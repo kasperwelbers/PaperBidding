@@ -6,7 +6,7 @@ env.allowLocalModels = false;
 // Use the Singleton pattern to enable lazy construction of the pipeline.
 class PipelineSingleton {
   static task = "feature-extraction";
-  static model = "Xenova/e5-small-v2";
+  static model = "Xenova/all-MiniLM-L6-v2";
   static instance = null;
 
   static async getInstance(progress_callback = null) {
@@ -18,21 +18,40 @@ class PipelineSingleton {
 }
 
 self.addEventListener("message", async (event) => {
-  let extractor = await PipelineSingleton.getInstance((x) => {
-    self.postMessage({
+  let extractor;
+  try {
+    extractor = await PipelineSingleton.getInstance();
+    if (event.data.type === "prepare-model") {
+      return self.postMessage({
+        type: "model-status",
+        status: "ready",
+      });
+    }
+  } catch (e) {
+    return self.postMessage({
       type: "model-status",
-      status: x,
+      status: "error",
+      error: e.message,
     });
-  });
+  }
 
-  let output = await extractor(event.data.text, {
-    pooling: "mean",
-    normalize: true,
-  });
-
-  self.postMessage({
-    type: "results",
-    id: event.data.id,
-    output: output.data,
-  });
+  try {
+    let output = await extractor(event.data.text, {
+      pooling: "mean",
+      normalize: true,
+    });
+    return self.postMessage({
+      type: "results",
+      id: event.data.id,
+      status: "ready",
+      vector: output.data,
+    });
+  } catch (e) {
+    return self.postMessage({
+      type: "results",
+      id: event.data.id,
+      status: "error",
+      vector: [],
+    });
+  }
 });
