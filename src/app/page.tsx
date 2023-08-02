@@ -13,7 +13,7 @@ interface Result {
   status: "processing" | "ready" | "error";
   vector: number[];
 }
-type ModelStatus = "idle" | "loading" | "ready";
+type ModelStatus = "idle" | "loading" | "ready" | "error";
 
 export default function Upload() {
   const [modelStatus, setModelStatus] = useState<ModelStatus>("idle");
@@ -22,8 +22,7 @@ export default function Upload() {
   const [referenceScores, setReferenceScores] = useState<
     Record<string, number>
   >({});
-  const worker = useRef(null);
-
+  const worker = useRef<Worker | null>(null);
   const inputs: Input[] = [
     {
       id: "1623455",
@@ -59,7 +58,8 @@ export default function Upload() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      worker.current.postMessage({ id: "reference", text: referenceText });
+      if (worker.current)
+        worker.current.postMessage({ id: "reference", text: referenceText });
     });
     return () => clearTimeout(timer);
   }, [referenceText, worker, modelStatus]);
@@ -88,6 +88,7 @@ export default function Upload() {
     };
 
     return () => {
+      if (!worker.current) return;
       worker.current.terminate();
       worker.current = null;
     };
@@ -97,7 +98,7 @@ export default function Upload() {
     const timer = setTimeout(() => {
       const newReferenceScores: Record<string, number> = {};
       const reference = results["reference"];
-      if (reference.length === 0) return;
+      if (!reference?.vector || reference.vector.length === 0) return;
       for (let key of Object.keys(results)) {
         if (key === "reference") continue;
         const current = results[key];
@@ -111,6 +112,7 @@ export default function Upload() {
   }, [results]);
 
   const prepareModel = useCallback(() => {
+    if (!worker.current?.postMessage) return;
     setModelStatus("loading");
     worker.current.postMessage({ type: "prepare-model" });
   }, [worker]);
@@ -118,17 +120,18 @@ export default function Upload() {
   const processInputs = useCallback(
     (inputs: Input[]) => {
       setResults((results) => {
+        if (!worker.current) return results;
         const newResults = { ...results };
         for (let input of inputs) {
           const current = results[input.id];
           if (current?.status === "processing") continue;
           if (current?.status === "ready") continue;
           worker.current.postMessage({
+            type: "process",
             id: input.id,
             text: input.title + "\n\n" + input.abstract,
           });
-          newResults[input] = {
-            type: "process",
+          newResults[input.id] = {
             status: "processing",
             vector: [],
           };
@@ -161,7 +164,7 @@ export default function Upload() {
         </div>
         {inputs.map((input, i) => {
           return (
-            <div key={input + i} className="contents text-center">
+            <div key={input.id + i} className="contents text-center">
               <div className="grid  grid-cols-[10em,1fr]">
                 <div className="font-bold">{input.id} </div>
                 <h3 className="font-bold">{input.title} </h3>
@@ -169,7 +172,7 @@ export default function Upload() {
                 <p>{input.abstract} </p>
               </div>
               <div className={`text-green-700`}>
-                {Math.round(referenceScores[input.id] * 100) / 100}
+                {Math.round(referenceScores[input.id] * 100) / 100 || ""}
               </div>{" "}
             </div>
           );
