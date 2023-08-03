@@ -23,7 +23,7 @@ export default function Upload() {
     Record<string, number>
   >({});
   const worker = useRef<Worker | null>(null);
-  const inputs: Input[] = [
+  const [inputs, _] = useState<Input[]>([
     {
       id: "1623455",
       authors: ["Anna", "Bob"],
@@ -54,7 +54,7 @@ export default function Upload() {
       title: "Pancakes",
       abstract: "Suddenly craving pancakes",
     },
-  ];
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -129,7 +129,7 @@ export default function Upload() {
           worker.current.postMessage({
             type: "process",
             id: input.id,
-            text: input.title + "\n\n" + input.abstract,
+            text: input.title + ".\n\n" + input.abstract,
           });
           newResults[input.id] = {
             status: "processing",
@@ -139,7 +139,7 @@ export default function Upload() {
         return newResults;
       });
     },
-    [inputs, worker]
+    [worker]
   );
 
   return (
