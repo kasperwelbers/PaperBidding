@@ -1,29 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { FaCheck } from "react-icons/fa";
-
-interface Input {
-  id: string;
-  authors: string[];
-  title: string;
-  abstract: string;
-}
-interface Result {
-  status: "processing" | "ready" | "error";
-  vector: number[];
-}
-type ModelStatus = "idle" | "loading" | "ready" | "error";
+import useFeatureExtractor from "@/hooks/useFeatureExtractor";
+import { FeatureVector, ProcessedSubmission, Submission } from "@/types";
+import { useState, useEffect } from "react";
 
 export default function Upload() {
-  const [modelStatus, setModelStatus] = useState<ModelStatus>("idle");
-  const [results, setResults] = useState<Record<string, Result>>({});
+  const { modelStatus, prepareModel, extractFeatures } = useFeatureExtractor();
   const [referenceText, setReferenceText] = useState<string>("");
-  const [referenceScores, setReferenceScores] = useState<
-    Record<string, number>
-  >({});
-  const worker = useRef<Worker | null>(null);
-  const [inputs, _] = useState<Input[]>([
+  const [referenceVector, setReferenceVector] = useState<FeatureVector>([]);
+  const [processedSubmissions, setProcessedSubmissions] = useState<
+    ProcessedSubmission[]
+  >([]);
+  const [submissions, _] = useState<Submission[]>([
     {
       id: "1623455",
       authors: ["Anna", "Bob"],
@@ -57,90 +45,24 @@ export default function Upload() {
   ]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (worker.current)
-        worker.current.postMessage({ id: "reference", text: referenceText });
+    extractFeatures([referenceText], (featureVectors) => {
+      setReferenceVector(featureVectors[0]);
     });
-    return () => clearTimeout(timer);
-  }, [referenceText, worker, modelStatus]);
+  }, [referenceText, extractFeatures]);
 
-  // We use the `useEffect` hook to set up the worker as soon as the `App` component is mounted.
-  useEffect(() => {
-    if (!worker.current) {
-      // Create the worker if it does not yet exist.
-      worker.current = new Worker(
-        new URL("../workers/featureExtractorWorker.js", import.meta.url),
-        {
-          type: "module",
-        }
-      );
-    }
-
-    worker.current.onmessage = (e) => {
-      if (e.data.type === "model-status") {
-        setModelStatus(e.data.status);
-      } else {
-        setResults((results) => ({
-          ...results,
-          [e.data.id]: { status: e.data.status, vector: e.data.vector },
-        }));
-      }
-    };
-
-    return () => {
-      if (!worker.current) return;
-      worker.current.terminate();
-      worker.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const newReferenceScores: Record<string, number> = {};
-      const reference = results["reference"];
-      if (!reference?.vector || reference.vector.length === 0) return;
-      for (let key of Object.keys(results)) {
-        if (key === "reference") continue;
-        const current = results[key];
-        if (current?.status !== "ready") continue;
-        const score = cosineSimilarity(current.vector, reference.vector);
-        newReferenceScores[key] = score;
-      }
-      setReferenceScores(newReferenceScores);
+  function processSubmissions(submissions: Submission[]) {
+    const texts = submissions.map(
+      (submission) => submission.title + ".\n\n" + submission.abstract
+    );
+    extractFeatures(texts, (featureVectors) => {
+      console.log(featureVectors);
+      const newSubmissions = submissions.map((submission, i) => ({
+        ...submission,
+        vector: featureVectors[i],
+      }));
+      setProcessedSubmissions(newSubmissions);
     });
-    return () => clearTimeout(timer);
-  }, [results]);
-
-  const prepareModel = useCallback(() => {
-    if (!worker.current?.postMessage) return;
-    setModelStatus("loading");
-    worker.current.postMessage({ type: "prepare-model" });
-  }, [worker]);
-
-  const processInputs = useCallback(
-    (inputs: Input[]) => {
-      setResults((results) => {
-        if (!worker.current) return results;
-        const newResults = { ...results };
-        for (let input of inputs) {
-          const current = results[input.id];
-          if (current?.status === "processing") continue;
-          if (current?.status === "ready") continue;
-          worker.current.postMessage({
-            type: "process",
-            id: input.id,
-            text: input.title + ".\n\n" + input.abstract,
-          });
-          newResults[input.id] = {
-            status: "processing",
-            vector: [],
-          };
-        }
-        return newResults;
-      });
-    },
-    [worker]
-  );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-12">
@@ -149,8 +71,8 @@ export default function Upload() {
         Test case for running transformer-based semantic similarity in browser
       </h2>
 
-      <div key="inputs" className="grid grid-cols-2 gap-3">
-        <div className="font-bold text-3xl text-center ">Input</div>
+      <div key="submissions" className="grid grid-cols-2 gap-3">
+        <div className="font-bold text-3xl text-center ">Submission</div>
         <div>
           <div className="font-bold text-3xl text-center">Reference text</div>
           <div className="">
@@ -162,17 +84,21 @@ export default function Upload() {
             />
           </div>
         </div>
-        {inputs.map((input, i) => {
+        {processedSubmissions.map((submission, i) => {
+          const similarity = cosineSimilarity(
+            referenceVector || [],
+            submission.vector || []
+          );
           return (
-            <div key={input.id + i} className="contents text-center">
+            <div key={submission.id + i} className="contents text-center">
               <div className="grid  grid-cols-[10em,1fr]">
-                <div className="font-bold">{input.id} </div>
-                <h3 className="font-bold">{input.title} </h3>
-                <div className="italic">{input.authors.join(", ")} </div>
-                <p>{input.abstract} </p>
+                <div className="font-bold">{submission.id} </div>
+                <h3 className="font-bold">{submission.title} </h3>
+                <div className="italic">{submission.authors.join(", ")} </div>
+                <p>{submission.abstract} </p>
               </div>
               <div className={`text-green-700`}>
-                {Math.round(referenceScores[input.id] * 100) / 100 || ""}
+                {Math.round(similarity * 100) / 100 || ""}
               </div>{" "}
             </div>
           );
@@ -182,7 +108,7 @@ export default function Upload() {
         {modelStatus === "ready" ? (
           <button
             className="bg-slate-700 text-white p-3 rounded w-40"
-            onClick={() => processInputs(inputs)}
+            onClick={() => processSubmissions(submissions)}
           >
             Process texts
           </button>
@@ -201,7 +127,8 @@ export default function Upload() {
   );
 }
 
-function cosineSimilarity(a: number[], b: number[]) {
+function cosineSimilarity(a: FeatureVector, b: FeatureVector) {
+  if (a.length === 0 || a.length !== b.length) return NaN;
   let dotProduct = 0.0;
   let normA = 0.0;
   let normB = 0.0;
