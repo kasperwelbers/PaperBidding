@@ -1,53 +1,64 @@
-import useSWR from "swr";
-import useSWRMutation from "swr/mutation";
-import { useSearchParams } from "next/navigation";
+import useSWR, { Fetcher } from 'swr';
+import useSWRMutation from 'swr/mutation';
+import { useSearchParams } from 'next/navigation';
+import { Project } from '@/drizzle/schema';
 
-function fetcher([url, token]) {
-  return fetch(url, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  }).then((res) => res.json());
-}
-
-function useToken() {
+/** Wrapper for useSWR that:
+ * - adds the token for authentication
+ * - sets a type parameter for the return type
+ */
+export function useGET<ResponseType>(url: string) {
   const searchParams = useSearchParams();
-  return searchParams.get("token");
+  const token = searchParams.get('token');
+  if (!token) throw new Error('No token provided');
+
+  const fetcher = (url: string) => {
+    return fetch(url, {
+      method: 'GET',
+      headers: { Authorization: token }
+    }).then((res) => {
+      if (res.ok) {
+        return res.json();
+      } else {
+        throw new Error(res.statusText);
+      }
+    });
+  };
+
+  return useSWR<ResponseType>(url, fetcher);
 }
 
-function usePost<BodyType, BodyType>(url: string) {
-  const token = useToken();
+/** Wrapper for useSWRMutation that:
+ * - adds the token for authentication
+ * - sets a type parameter for the return type
+ * @param url
+ * @returns
+ */
+export function usePOST<BodyType, ResponseType>(url: string) {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
 
-  function postRequest(url, { arg }: { arg: { arg: BodyType } }) {
+  function fetcher(url: string, { arg }: { arg: BodyType }) {
     return fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify(arg),
+      body: JSON.stringify(arg)
     });
   }
 
-  return useSWRMutation(url, postRequest);
+  return useSWRMutation(url, fetcher);
 }
 
+// GET HELPERS
 export function useProjects() {
-  const token = useToken();
-  return useSWR(["api/project", token], fetcher);
+  return useGET<Project[]>('/api/project');
+}
+export function useProject(id: number) {
+  console.log(id);
+  return useGET<Project>('/api/project/' + id);
 }
 
-export function useProject() {
-  const token = useToken();
-  return useSWR(["api/project/myproject", token], fetcher);
-}
-
-export function useSubmission() {
-  const token = useToken();
-  return useSWR(["api/project/myproject/submissionID", token], fetcher);
-}
-
-export function useProjectUser() {
-  const token = useToken();
-  return useSWR(["api/user", token], fetcher);
-}
-
+// POST HELPERS
 export function useCreateProject() {
-  return usePost<{ name: string }>("api/project");
+  return usePOST<{ name: string }, Project>('api/project');
 }

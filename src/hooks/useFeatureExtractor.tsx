@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ModelStatus, FeatureExtractorCallback } from "@/types";
-import CallbackManager from "@/classes/CallbackManager";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ModelStatus, FeatureExtractorCallback } from '@/types';
+import CallbackManager from '@/classes/CallbackManager';
 
 interface FeatureExtractorOut {
   modelStatus: ModelStatus;
@@ -16,7 +16,7 @@ interface FeatureExtractorOut {
 export default function useFeatureExtractor(
   autoLoad?: boolean
 ): FeatureExtractorOut {
-  const [modelStatus, setModelStatus] = useState<ModelStatus>("idle");
+  const [modelStatus, setModelStatus] = useState<ModelStatus>('idle');
   const worker = useRef<Worker | null>(null);
   const callbackManager = useRef(
     new CallbackManager<FeatureExtractorCallback>()
@@ -27,21 +27,21 @@ export default function useFeatureExtractor(
   useEffect(() => {
     if (!worker.current) {
       worker.current = new Worker(
-        new URL("./featureExtractorWorker.js", import.meta.url),
+        new URL('./featureExtractorWorker.js', import.meta.url),
         {
-          type: "module",
+          type: 'module'
         }
       );
     }
 
     worker.current.onmessage = (e) => {
-      if (e.data.type === "prepare-model") {
+      if (e.data.type === 'prepare-model') {
         callbackManager.current.delete(e.data.callbackId);
         setModelStatus(e.data.status);
       }
-      if (e.data.type === "extract") {
+      if (e.data.type === 'extract') {
         const callback = callbackManager.current.pop(e.data.callbackId);
-        callback(e.data.featureVectors);
+        callback?.(e.data.featureVectors);
       }
     };
 
@@ -54,20 +54,20 @@ export default function useFeatureExtractor(
 
   const prepareModel = useCallback(() => {
     if (!worker.current?.postMessage) return;
-    setModelStatus("loading");
-    worker.current.postMessage({ type: "prepare-model" });
+    setModelStatus('loading');
+    worker.current.postMessage({ type: 'prepare-model' });
   }, [worker]);
 
   const extractFeatures = useCallback(
     (texts: string[], callback: FeatureExtractorCallback) => {
       if (!worker.current?.postMessage) return;
       const callbackId = callbackManager.current.set(callback);
-      worker.current.postMessage({ type: "extract", texts, callbackId });
+      worker.current.postMessage({ type: 'extract', texts, callbackId });
     },
     [worker, callbackManager]
   );
 
-  if (autoLoad && modelStatus !== "ready") prepareModel();
+  if (autoLoad && modelStatus !== 'ready') prepareModel();
 
   return { modelStatus, prepareModel, extractFeatures };
 }

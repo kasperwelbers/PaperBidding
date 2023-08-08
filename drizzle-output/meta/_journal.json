@@ -1,0 +1,20 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1691514324260,
+      "tag": "0000_windy_lifeguard",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1691515708182,
+      "tag": "0001_military_winter_soldier",
+      "breakpoints": true
+    }
+  ]
+}

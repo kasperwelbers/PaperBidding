@@ -1,4 +1,7 @@
-import { NextResponse } from "next/server";
+import db, { project } from '@/drizzle/schema';
+import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 // simply make project endpoint:
 // - verify token
@@ -13,17 +16,20 @@ import { NextResponse } from "next/server";
 // are all users own submissions. They can disable them, and
 // also select other submissions as additional reference submissions.
 
-export async function GET(req: Request) {
-  console.log(req.headers);
+export async function GET(req: Request, { params }: { params: { project: number } }) {
+  const projects = await db.select().from(project).where(eq(project.id, params.project));
+  const p = projects[0];
 
-  // db query for token > usersubmissions > submissions
-  // if no match, invalid token
-  // if match, db query for all project submissions
-  // return only the submission ids with vectors to keep small
-  // then on page compute strongest matches and retrieve
-  // abstracts with pagination
+  if (p === undefined) return NextResponse.json({}, { statusText: 'Invalid Project', status: 404 });
 
-  return NextResponse.json({ test: "test" });
+  const headersList = headers();
+  const token = headersList.get('Authorization');
+
+  if (token !== p.token) {
+    return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
+  }
+
+  return NextResponse.json(p);
 }
 
 export async function POST(req: Request) {

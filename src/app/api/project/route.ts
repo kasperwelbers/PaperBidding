@@ -1,26 +1,32 @@
-import { NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import cryptoRandomString from 'crypto-random-string';
+import db, { project } from '@/drizzle/schema';
 
 export async function GET(req: Request) {
   const headersList = headers();
-  console.log(headersList.get("Authorization"));
-  return NextResponse.json({ projects: demo_projects });
+  const token = headersList.get('Authorization');
+  if (token !== process.env.ADMIN_TOKEN) {
+    return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
+  }
+
+  const projects = await db.select().from(project);
+  return NextResponse.json(projects);
 }
 
 export async function POST(req: Request) {
   const { name } = await req.json();
-  const project = {
-    id: demo_projects.length,
-    name,
-    secret: String(demo_projects.length + 1),
-  };
-  return NextResponse.json({ status: 200 });
-}
 
-var demo_projects = [
-  { id: 0, name: "test1", secret: "1" },
-  { id: 1, name: "test2", secret: "2" },
-  { id: 2, name: "test3", secret: "3" },
-  { id: 3, name: "test4", secret: "4" },
-  { id: 4, name: "test5", secret: "5" },
-];
+  try {
+    const newProject = await db
+      .insert(project)
+      .values({
+        name: name,
+        token: cryptoRandomString({ length: 32 })
+      })
+      .returning();
+    return NextResponse.json(newProject[0], { status: 201 });
+  } catch (e) {
+    return NextResponse.json({}, { status: 400 });
+  }
+}

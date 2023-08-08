@@ -1,47 +1,45 @@
-"use client";
+'use client';
 
-import useFeatureExtractor from "@/hooks/useFeatureExtractor";
-import { FeatureVector, ProcessedSubmission, Submission } from "@/types";
-import { useState, useEffect } from "react";
+import useFeatureExtractor from '@/hooks/useFeatureExtractor';
+import { FeatureVector, ProcessedSubmission, Submission } from '@/types';
+import { useState, useEffect } from 'react';
 
 export default function Upload() {
   const { modelStatus, prepareModel, extractFeatures } = useFeatureExtractor();
-  const [referenceText, setReferenceText] = useState<string>("");
+  const [referenceText, setReferenceText] = useState<string>('');
   const [referenceVector, setReferenceVector] = useState<FeatureVector>([]);
-  const [processedSubmissions, setProcessedSubmissions] = useState<
-    ProcessedSubmission[]
-  >([]);
+  const [processedSubmissions, setProcessedSubmissions] = useState<ProcessedSubmission[]>([]);
   const [submissions, _] = useState<Submission[]>([
     {
-      id: "1623455",
-      authors: ["Anna", "Bob"],
-      title: "sports",
-      abstract: "This is a text about sports",
+      id: '1623455',
+      authors: ['Anna', 'Bob'],
+      title: 'sports',
+      abstract: 'This is a text about sports'
     },
     {
-      id: "2543534",
-      authors: ["Claire"],
-      title: "football one",
-      abstract: "I really don't like football",
+      id: '2543534',
+      authors: ['Claire'],
+      title: 'football one',
+      abstract: "I really don't like football"
     },
     {
-      id: "3353454",
-      authors: ["Anna", "David"],
-      title: "football two",
-      abstract: "But many people do like football",
+      id: '3353454',
+      authors: ['Anna', 'David'],
+      title: 'football two',
+      abstract: 'But many people do like football'
     },
     {
-      id: "4534534",
-      authors: ["Emma", "Frank"],
-      title: "Food",
-      abstract: "I like food better",
+      id: '4534534',
+      authors: ['Emma', 'Frank'],
+      title: 'Food',
+      abstract: 'I like food better'
     },
     {
-      id: "5634534",
-      authors: ["Claire", "Frank"],
-      title: "Pancakes",
-      abstract: "Suddenly craving pancakes",
-    },
+      id: '5634534',
+      authors: ['Claire', 'Frank'],
+      title: 'Pancakes',
+      abstract: 'Suddenly craving pancakes'
+    }
   ]);
 
   useEffect(() => {
@@ -51,14 +49,12 @@ export default function Upload() {
   }, [referenceText, extractFeatures]);
 
   function processSubmissions(submissions: Submission[]) {
-    const texts = submissions.map(
-      (submission) => submission.title + ".\n\n" + submission.abstract
-    );
+    const texts = submissions.map((submission) => submission.title + '.\n\n' + submission.abstract);
     extractFeatures(texts, (featureVectors) => {
       console.log(featureVectors);
       const newSubmissions = submissions.map((submission, i) => ({
         ...submission,
-        vector: featureVectors[i],
+        vector: featureVectors[i]
       }));
       setProcessedSubmissions(newSubmissions);
     });
@@ -78,34 +74,29 @@ export default function Upload() {
           <div className="">
             <input
               value={referenceText}
-              className="w-full rounded p-1 m-2"
+              className="w-full rounded p-1 m-2 border-2 border-gray-300"
               placeholder="type reference text"
               onChange={(e) => setReferenceText(e.target.value)}
             />
           </div>
         </div>
         {processedSubmissions.map((submission, i) => {
-          const similarity = cosineSimilarity(
-            referenceVector || [],
-            submission.vector || []
-          );
+          const similarity = cosineSimilarity(referenceVector || [], submission.vector || []);
           return (
             <div key={submission.id + i} className="contents text-center">
               <div className="grid  grid-cols-[10em,1fr]">
                 <div className="font-bold">{submission.id} </div>
-                <h3 className="font-bold">{submission.title} </h3>
-                <div className="italic">{submission.authors.join(", ")} </div>
+                <h3 className="font-bold mb-0">{submission.title} </h3>
+                <div className="italic">{submission.authors.join(', ')} </div>
                 <p>{submission.abstract} </p>
               </div>
-              <div className={`text-green-700`}>
-                {Math.round(similarity * 100) / 100 || ""}
-              </div>{" "}
+              <div className={`text-green-700`}>{Math.round(similarity * 100) / 100 || ''}</div>{' '}
             </div>
           );
         })}
       </div>
       <div className="pt-10">
-        {modelStatus === "ready" ? (
+        {modelStatus === 'ready' ? (
           <button
             className="bg-slate-700 text-white p-3 rounded w-40"
             onClick={() => processSubmissions(submissions)}
@@ -117,9 +108,9 @@ export default function Upload() {
             className="bg-slate-700 text-white p-3 rounded w-40"
             onClick={() => prepareModel()}
           >
-            {modelStatus === "idle" ? "load model" : ""}
-            {modelStatus === "loading" ? "loading..." : ""}
-            {modelStatus === "error" ? "Error :(" : ""}{" "}
+            {modelStatus === 'idle' ? 'load model' : ''}
+            {modelStatus === 'loading' ? 'loading...' : ''}
+            {modelStatus === 'error' ? 'Error :(' : ''}{' '}
           </button>
         )}
       </div>
