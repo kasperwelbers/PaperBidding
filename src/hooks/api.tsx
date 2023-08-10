@@ -2,6 +2,7 @@ import useSWR, { Fetcher } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -10,9 +11,9 @@ import { Project } from '@/drizzle/schema';
 export function useGET<ResponseType>(url: string) {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-  if (!token) throw new Error('No token provided');
 
-  const fetcher = (url: string) => {
+  const fetcher = ([url, token]: any) => {
+    if (!token) throw new Error('No token provided');
     return fetch(url, {
       method: 'GET',
       headers: { Authorization: token }
@@ -25,7 +26,7 @@ export function useGET<ResponseType>(url: string) {
     });
   };
 
-  return useSWR<ResponseType>(url, fetcher);
+  return useSWR<ResponseType>([url, token], fetcher, { revalidateOnFocus: false });
 }
 
 /** Wrapper for useSWRMutation that:
@@ -38,7 +39,9 @@ export function usePOST<BodyType, ResponseType>(url: string) {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
-  function fetcher(url: string, { arg }: { arg: BodyType }) {
+  function fetcher([url, token]: any, { arg }: { arg: BodyType }) {
+    if (!token) throw new Error('No token provided');
+
     return fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -46,7 +49,7 @@ export function usePOST<BodyType, ResponseType>(url: string) {
     });
   }
 
-  return useSWRMutation(url, fetcher);
+  return useSWRMutation([url, token], fetcher);
 }
 
 // GET HELPERS
@@ -54,11 +57,22 @@ export function useProjects() {
   return useGET<Project[]>('/api/project');
 }
 export function useProject(id: number) {
-  console.log(id);
   return useGET<Project>('/api/project/' + id);
+}
+export function useData(projectId: number, what: 'submissions' | 'references' | 'volunteers') {
+  return useGET<{ count: number }>(`/api/project/${projectId}/data/${what}`);
 }
 
 // POST HELPERS
 export function useCreateProject() {
-  return usePOST<{ name: string }, Project>('api/project');
+  return usePOST<{ name: string }, Project>('/api/project');
+}
+
+export function useUploadData(
+  projectId: number,
+  what: 'submissions' | 'references' | 'volunteers'
+) {
+  return usePOST<{ data: Record<string, any>[] }, Project>(
+    `/api/project/${projectId}/data/${what}`
+  );
 }

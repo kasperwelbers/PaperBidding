@@ -1,6 +1,6 @@
 'use client';
 
-import Error from '@/components/ui/error';
+import { Error } from '@/components/ui/error';
 import { Combobox } from '@/components/ui/combobox';
 import { useProjects, useCreateProject } from '@/hooks/api';
 import { useState } from 'react';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
-import Loading from '@/components/loading';
+import { Loading } from '@/components/ui/loading';
 
 export default function ProjectsPage() {
   const { data: projects, isLoading, error } = useProjects();
@@ -28,7 +28,7 @@ export default function ProjectsPage() {
     <main className="flex min-h-screen p-12 gap-3 items-center justify-center">
       <div className="max-w-lg flex flex-col items-center p-3">
         <h3>Open project</h3>
-        <Combobox projects={projects} onSelect={onSelect} />
+        <Combobox items={projects} label={'project'} onSelect={onSelect} />
         <h3 className="mt-5">Create project</h3>
         <form
           className="flex flex-col gap-2"
@@ -52,9 +52,7 @@ export default function ProjectsPage() {
               }
               console.log(projects);
               if (!/^[a-zA-Z0-9_-]+$/.test(e.target.value)) {
-                e.target.setCustomValidity(
-                  'Only letters, numbers, - and _ allowed'
-                );
+                e.target.setCustomValidity('Only letters, numbers, - and _ allowed');
               }
               setName(e.target.value);
             }}

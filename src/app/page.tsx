@@ -43,9 +43,11 @@ export default function Upload() {
   ]);
 
   useEffect(() => {
-    extractFeatures([referenceText], (featureVectors) => {
+    const callback = (featureVectors: any) => {
       setReferenceVector(featureVectors[0]);
-    });
+    };
+
+    extractFeatures([referenceText], callback);
   }, [referenceText, extractFeatures]);
 
   function processSubmissions(submissions: Submission[]) {
@@ -54,7 +56,7 @@ export default function Upload() {
       console.log(featureVectors);
       const newSubmissions = submissions.map((submission, i) => ({
         ...submission,
-        vector: featureVectors[i]
+        features: featureVectors[i]
       }));
       setProcessedSubmissions(newSubmissions);
     });
@@ -81,7 +83,7 @@ export default function Upload() {
           </div>
         </div>
         {processedSubmissions.map((submission, i) => {
-          const similarity = cosineSimilarity(referenceVector || [], submission.vector || []);
+          const similarity = cosineSimilarity(referenceVector || [], submission.features || []);
           return (
             <div key={submission.id + i} className="contents text-center">
               <div className="grid  grid-cols-[10em,1fr]">

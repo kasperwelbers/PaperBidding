@@ -103,3 +103,7 @@ h5 {
 h6 {
   @apply text-base;
 }
+
+p {
+  margin-bottom: 0.5rem;
+}
