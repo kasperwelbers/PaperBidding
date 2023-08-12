@@ -1,12 +1,13 @@
 'use client';
 
-import { useProject } from '@/hooks/api';
+import { useData, useProject } from '@/hooks/api';
 import UploadSubmissions from './UploadSubmissions';
 import { Loading } from '@/components/ui/loading';
 import { Error } from '@/components/ui/error';
 import useFeatureExtractor from '@/hooks/useFeatureExtractor';
 import { useState } from 'react';
 import UploadVolunteers from './UploadVolunteers';
+import { MdOutlineCheckBoxOutlineBlank, MdOutlineCheckBox } from 'react-icons/md';
 
 type Tab = 'submissions' | 'references' | 'volunteers';
 const tabs: Tab[] = ['submissions', 'volunteers', 'references'];
@@ -14,6 +15,10 @@ const tabs: Tab[] = ['submissions', 'volunteers', 'references'];
 export default function ProjectPage({ params }: { params: { project: number } }) {
   const { modelStatus, extractFeatures } = useFeatureExtractor(true);
   const [selectedTab, setSelectedTab] = useState<Tab>('submissions');
+
+  const submissionsData = useData(params.project, 'submissions');
+  const volunteersData = useData(params.project, 'volunteers');
+  const referencesData = useData(params.project, 'references');
 
   const { data: project, isLoading, error } = useProject(params.project);
   if (isLoading) return <Loading msg="Loading Project" />;
@@ -23,7 +28,7 @@ export default function ProjectPage({ params }: { params: { project: number } })
 
   return (
     <main className="flex flex-wrap justify-center p-10 gap-8">
-      <div className="flex flex-col gap-3 items-center p-4">
+      <div className="flex flex-col gap-3 items-center">
         <h3>Preparing a project</h3>
         <div className="max-w-xl">
           <p>
@@ -39,31 +44,47 @@ export default function ProjectPage({ params }: { params: { project: number } })
           </p>
         </div>
       </div>
-      <div className="w-full max-w-md grid justify-center rounded border-2 border-gray-500 p-5">
+      <div className="w-full max-w-lg  ">
         <h3 className="text-center">Upload Data</h3>
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap gap-3 mb-6">
           {tabs.map((tab: Tab) => {
             const buttonColor =
               tab === selectedTab ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black';
+            let ready = false;
+            if (tab === 'submissions' && !submissionsData?.data?.count) ready = true;
+            if (tab === 'volunteers' && !volunteersData?.data?.count) ready = true;
+            if (tab === 'references' && !referencesData?.data?.count) ready = true;
+
             return (
               <div
                 key={tab}
-                className={`flex-auto rounded ${buttonColor} cursor-pointer px-3 py-2 text-center`}
+                className={`flex-auto flex justify-center gap-2 items-center  h-11 rounded ${buttonColor} cursor-pointer px-3 py-2 text-center`}
                 onClick={() => setSelectedTab(tab)}
               >
-                {tab}{' '}
+                {tab}
+
+                {ready ? <MdOutlineCheckBoxOutlineBlank /> : <MdOutlineCheckBox />}
               </div>
             );
           })}
         </div>
         <div key="submissions" className={selectedTab === 'submissions' ? '' : 'hidden'}>
-          <UploadSubmissions project={project} extractFeatures={extractFeatures} />
+          <UploadSubmissions
+            projectId={project.id}
+            data={submissionsData}
+            extractFeatures={extractFeatures}
+          />
         </div>
         <div key="volunteers" className={selectedTab === 'volunteers' ? '' : 'hidden'}>
-          <UploadVolunteers project={project} />
+          <UploadVolunteers projectId={project.id} data={volunteersData} />
         </div>
         <div key="references" className={selectedTab === 'references' ? '' : 'hidden'}>
-          <UploadSubmissions project={project} extractFeatures={extractFeatures} reference />
+          <UploadSubmissions
+            projectId={project.id}
+            data={referencesData}
+            extractFeatures={extractFeatures}
+            reference
+          />
         </div>
       </div>
     </main>

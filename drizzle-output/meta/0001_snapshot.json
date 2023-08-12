@@ -1,16 +1,28 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "35976c4e-dc74-4be9-9680-80ed727e2e5d",
-  "prevId": "fbd1e7ba-1ef9-4704-afad-e342e7773e56",
+  "id": "03dc928e-a11b-44e7-bcf4-5504ccf23214",
+  "prevId": "5462a399-c753-4dd8-843c-1b387b114ad4",
   "tables": {
-    "author": {
-      "name": "author",
+    "authors": {
+      "name": "authors",
       "schema": "",
       "columns": {
-        "submissionId": {
-          "name": "submissionId",
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "submission_id": {
+          "name": "submission_id",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -22,20 +34,28 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "author_submissionId_email": {
-          "name": "author_submissionId_email",
-          "columns": [
-            "submissionId",
-            "email"
-          ]
+      "foreignKeys": {
+        "authors_project_id_submission_id_submissions_project_id_submission_id_fk": {
+          "name": "authors_project_id_submission_id_submissions_project_id_submission_id_fk",
+          "tableFrom": "authors",
+          "tableTo": "submissions",
+          "columnsFrom": [
+            "project_id",
+            "submission_id"
+          ],
+          "columnsTo": [
+            "project_id",
+            "submission_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "project": {
-      "name": "project",
+    "projects": {
+      "name": "projects",
       "schema": "",
       "columns": {
         "id": {
@@ -68,8 +88,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "project_name_unique": {
-          "name": "project_name_unique",
+        "projects_name_unique": {
+          "name": "projects_name_unique",
           "nullsNotDistinct": false,
           "columns": [
             "name"
@@ -77,21 +97,27 @@
         }
       }
     },
-    "submission": {
-      "name": "submission",
+    "submissions": {
+      "name": "submissions",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(256)",
+          "type": "serial",
           "primaryKey": true,
           "notNull": true
         },
-        "projectId": {
-          "name": "projectId",
+        "project_id": {
+          "name": "project_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "submission_id": {
+          "name": "submission_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
         },
         "title": {
           "name": "title",
@@ -111,8 +137,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "isReference": {
-          "name": "isReference",
+        "is_reference": {
+          "name": "is_reference",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -121,29 +147,44 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "submission_projectId_project_id_fk": {
-          "name": "submission_projectId_project_id_fk",
-          "tableFrom": "submission",
-          "tableTo": "project",
+        "submissions_project_id_projects_id_fk": {
+          "name": "submissions_project_id_projects_id_fk",
+          "tableFrom": "submissions",
+          "tableTo": "projects",
           "columnsFrom": [
-            "projectId"
+            "project_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "submissions_project_id_submission_id_unique": {
+          "name": "submissions_project_id_submission_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "submission_id"
+          ]
+        }
+      }
     },
-    "volunteer": {
-      "name": "volunteer",
+    "volunteers": {
+      "name": "volunteers",
       "schema": "",
       "columns": {
-        "projectId": {
-          "name": "projectId",
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -162,16 +203,22 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "volunteer_projectId_email": {
-          "name": "volunteer_projectId_email",
-          "columns": [
-            "projectId",
-            "email"
-          ]
+      "foreignKeys": {
+        "volunteers_project_id_projects_id_fk": {
+          "name": "volunteers_project_id_projects_id_fk",
+          "tableFrom": "volunteers",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }
   },

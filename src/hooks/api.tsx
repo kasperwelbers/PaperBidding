@@ -2,7 +2,6 @@ import useSWR, { Fetcher } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
-import { useEffect, useMemo, useRef, useState } from 'react';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -35,7 +34,7 @@ export function useGET<ResponseType>(url: string) {
  * @param url
  * @returns
  */
-export function usePOST<BodyType, ResponseType>(url: string) {
+export function usePOST<BodyType, ResponseType>(url: string, method: string = 'POST') {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -43,7 +42,7 @@ export function usePOST<BodyType, ResponseType>(url: string) {
     if (!token) throw new Error('No token provided');
 
     return fetch(url, {
-      method: 'POST',
+      method: method,
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(arg)
     });
@@ -75,4 +74,11 @@ export function useUploadData(
   return usePOST<{ data: Record<string, any>[] }, Project>(
     `/api/project/${projectId}/data/${what}`
   );
+}
+
+export function useDeleteData(
+  projectId: number,
+  what: 'submissions' | 'references' | 'volunteers'
+) {
+  return usePOST<{ ids: string[] }, Project>(`/api/project/${projectId}/data/${what}`, 'DELETE');
 }

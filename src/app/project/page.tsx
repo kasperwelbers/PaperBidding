@@ -7,8 +7,8 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Project } from '@/drizzle/schema';
 import { Loading } from '@/components/ui/loading';
+import { Project } from '@/drizzle/schema';
 
 export default function ProjectsPage() {
   const { data: projects, isLoading, error } = useProjects();

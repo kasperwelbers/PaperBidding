@@ -41,7 +41,12 @@ export default function CSVReader({ fields, label, detail, onUpload }: Props) {
           onUploadAccepted={(results: any) => {
             const data: string[][] = results.data;
             const headers = data[0];
-            const rows = data.slice(1);
+            const rows = data.slice(1).filter((row) => {
+              // ignore empty rows
+              let allEmpty = true;
+              for (let cell of row) if (cell) allEmpty = false;
+              return !allEmpty;
+            });
             setData({ headers, rows });
           }}
         >

@@ -1,11 +1,19 @@
-import db, { project, submission, volunteer } from '@/drizzle/schema';
+import db, {
+  NewSubmission,
+  NewVolunteer,
+  NewAuthor,
+  submissions,
+  volunteers,
+  authors
+} from '@/drizzle/schema';
+import { authenticateProject } from '@/lib/authenticate';
+import { SubmissionsSchema, VolunteersSchema } from '@/schemas';
 import cryptoRandomString from 'crypto-random-string';
 import { and, eq, sql } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request, { params }: { params: { project: number; data: string } }) {
-  await authenticate(params.project);
+  await authenticateProject(req, params.project);
 
   if (!['submissions', 'volunteers', 'references'].includes(params.data)) {
     return NextResponse.json({}, { statusText: 'Invalid Request', status: 400 });
@@ -13,18 +21,19 @@ export async function GET(req: Request, { params }: { params: { project: number;
 
   if (params.data === 'volunteers') {
     const data = await db
-      .select({ count: sql<number>`count(${volunteer.email})` })
-      .from(volunteer)
-      .where(eq(volunteer.projectId, params.project));
+      .select({ count: sql<number>`count(${volunteers.email})` })
+      .from(volunteers)
+      .where(eq(volunteers.projectId, params.project));
     return NextResponse.json({ count: Number(data[0].count) });
   }
   if (params.data === 'submissions' || params.data === 'references') {
     const isReference = params.data === 'references';
     const data = await db
-      .select({ count: sql<number>`count(${submission.id})` })
-      .from(submission)
-      .where(eq(submission.isReference, isReference))
-      .where(eq(submission.projectId, params.project));
+      .select({ count: sql<number>`count(${submissions.id})` })
+      .from(submissions)
+      .where(
+        and(eq(submissions.isReference, isReference), eq(submissions.projectId, params.project))
+      );
     return NextResponse.json({ count: Number(data[0].count) });
   }
 
@@ -35,54 +44,83 @@ export async function POST(
   req: Request,
   { params }: { params: { project: number; data: string } }
 ) {
-  await authenticate(params.project);
+  await authenticateProject(req, params.project);
 
   const { data } = await req.json();
 
   try {
-    if (params.data === 'volunteers') {
-      const volunteerData = data.map((d: any) => ({
-        ...d,
-        projectId: params.project,
-        token: cryptoRandomString({ length: 32 })
-      }));
-      await db.delete(volunteer).where(eq(volunteer.projectId, params.project));
-      await db.insert(volunteer).values(volunteerData);
-      return NextResponse.json({ status: 201 });
-    }
-
+    if (params.data === 'volunteers') await insertVolunteers(data, params.project);
     if (params.data === 'submissions' || params.data === 'references') {
-      const submissionData = data.map((d: any) => ({
-        ...d,
-        projectId: params.project,
-        isReference: params.data === 'references'
-      }));
-      await db
-        .delete(submission)
-        .where(
-          and(
-            eq(submission.projectId, params.project),
-            eq(submission.isReference, params.data === 'references')
-          )
-        );
-      await db.insert(submission).values(submissionData);
-      return NextResponse.json({ status: 201 });
+      await insertSubmissions(data, params.project, params.data === 'references');
     }
   } catch (e: any) {
     console.error(e.message);
-    return NextResponse.json({}, { status: 400, statusText: 'invalid payload' });
+    return NextResponse.json({ error: e.message }, { status: 400, statusText: 'invalid payload' });
   }
 
   return NextResponse.json({}, { status: 400 });
 }
 
-async function authenticate(projectId: number) {
-  const headersList = headers();
-  const token = headersList.get('Authorization');
-  const projects = await db.select().from(project).where(eq(project.id, projectId));
-  const p = projects[0];
-  if (p === undefined) return NextResponse.json({}, { statusText: 'Invalid Project', status: 404 });
-  if (token !== p.token) {
-    return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
+export async function DELETE(
+  req: Request,
+  { params }: { params: { project: number; data: string } }
+) {
+  await authenticateProject(req, params.project);
+
+  if (params.data === 'volunteers') {
+    await db.delete(volunteers).where(eq(volunteers.projectId, params.project));
+    return NextResponse.json({}, { status: 204 });
   }
+  if (params.data === 'submissions' || params.data === 'references') {
+    const isReference = params.data === 'references';
+    await db
+      .delete(submissions)
+      .where(
+        and(eq(submissions.projectId, params.project), eq(submissions.isReference, isReference))
+      );
+    return NextResponse.json({}, { status: 204 });
+  }
+
+  return NextResponse.json({}, { status: 400 });
+}
+
+async function insertVolunteers(data: any, projectId: number) {
+  const validData = VolunteersSchema.parse(data);
+  const newVolunteers: NewVolunteer[] = validData.map((d: any) => ({
+    email: d.email,
+    projectId,
+    token: cryptoRandomString({ length: 32 })
+  }));
+  await db.insert(volunteers).values(newVolunteers);
+  return NextResponse.json({ status: 201 });
+}
+
+async function insertSubmissions(data: any, projectId: number, isReference: boolean) {
+  const newSubmissions: NewSubmission[] = [];
+  const newAuthors: NewAuthor[] = [];
+
+  const validData = SubmissionsSchema.parse(data);
+
+  for (let row of validData) {
+    newSubmissions.push({
+      projectId,
+      submissionId: row.id,
+      title: row.title,
+      abstract: row.abstract,
+      features: row.features,
+      isReference
+    });
+
+    for (let author of row.authors) {
+      newAuthors.push({
+        projectId,
+        submissionId: row.id,
+        email: author
+      });
+    }
+  }
+
+  await db.insert(submissions).values(newSubmissions);
+  await db.insert(authors).values(newAuthors);
+  return NextResponse.json({ status: 201 });
 }

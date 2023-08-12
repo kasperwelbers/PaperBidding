@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "5462a399-c753-4dd8-843c-1b387b114ad4",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "6a8b7cfd-49f7-484a-94e5-196817129cfa",
+  "prevId": "03dc928e-a11b-44e7-bcf4-5504ccf23214",
   "tables": {
     "authors": {
       "name": "authors",
@@ -47,7 +47,7 @@
             "project_id",
             "submission_id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -157,7 +157,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -214,7 +214,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

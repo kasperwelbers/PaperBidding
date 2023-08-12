@@ -1,25 +1,24 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import cryptoRandomString from 'crypto-random-string';
-import db, { project } from '@/drizzle/schema';
+import db, { projects } from '@/drizzle/schema';
+import { authenticateAdmin } from '@/lib/authenticate';
 
 export async function GET(req: Request) {
-  const headersList = headers();
-  const token = headersList.get('Authorization');
-  if (token !== process.env.ADMIN_TOKEN) {
-    return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
-  }
+  authenticateAdmin(req);
 
-  const projects = await db.select().from(project);
-  return NextResponse.json(projects);
+  const projectList = await db.select().from(projects);
+  return NextResponse.json(projectList);
 }
 
 export async function POST(req: Request) {
+  authenticateAdmin(req);
+
   const { name } = await req.json();
 
   try {
     const newProject = await db
-      .insert(project)
+      .insert(projects)
       .values({
         name: name,
         token: cryptoRandomString({ length: 32 })
