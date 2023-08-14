@@ -17,14 +17,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 export function Combobox({
   items,
   label,
+  controlledValue,
   onSelect
 }: {
   items: any[];
   label: string;
+  controlledValue?: string;
   onSelect?: (item: any) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (controlledValue) setValue(controlledValue);
+  }, [controlledValue]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

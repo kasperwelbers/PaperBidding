@@ -9,12 +9,21 @@ export function authenticateAdmin(req: Request) {
   }
 }
 
-export async function authenticateProject(req: Request, projectId: number) {
+export async function authenticateProject(req: Request, projectId: number, edit: boolean) {
   const token = req.headers.get('Authorization');
   const project = await db.select().from(projects).where(eq(projects.id, projectId));
   const p = project[0];
   if (p === undefined) return NextResponse.json({}, { statusText: 'Invalid Project', status: 404 });
-  if (token !== p.token) {
-    return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
+
+  if (edit) {
+    if (token !== p.editToken) {
+      return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
+    }
+  } else {
+    if (token !== p.readToken || token !== p.editToken) {
+      return NextResponse.json({}, { statusText: 'Invalid Token', status: 403 });
+    }
   }
+
+  return p;
 }

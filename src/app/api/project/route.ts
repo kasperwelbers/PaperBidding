@@ -21,7 +21,8 @@ export async function POST(req: Request) {
       .insert(projects)
       .values({
         name: name,
-        token: cryptoRandomString({ length: 32 })
+        readToken: cryptoRandomString({ length: 32 }),
+        editToken: cryptoRandomString({ length: 32 })
       })
       .returning();
     return NextResponse.json(newProject[0], { status: 201 });

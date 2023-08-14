@@ -9,6 +9,7 @@ interface Props {
   label: string;
   detail: string;
   onUpload: (data: Row[]) => void;
+  defaultFields: Record<string, string>;
 }
 type Row = Record<string, string>;
 interface SelectedColumns {
@@ -17,7 +18,7 @@ interface SelectedColumns {
   STUPIDLOWERCASE: string;
 }
 
-export default function CSVReader({ fields, label, detail, onUpload }: Props) {
+export default function CSVReader({ fields, label, detail, onUpload, defaultFields = {} }: Props) {
   const { CSVReader } = useCSVReader();
   const [data, setData] = useState<{ headers: string[]; rows: string[][] }>();
   const [selectedColumns, setSelectedColumns] = useState<Record<string, SelectedColumns>>({});
@@ -33,23 +34,36 @@ export default function CSVReader({ fields, label, detail, onUpload }: Props) {
     });
   };
 
+  const onUploadAccepted = (results: any) => {
+    const data: string[][] = results.data;
+    const headers = data[0];
+    const rows = data.slice(1).filter((row) => {
+      // ignore empty rows
+      let allEmpty = true;
+      for (let cell of row) if (cell) allEmpty = false;
+      return !allEmpty;
+    });
+    setData({ headers, rows });
+
+    const selectedColumns: Record<string, SelectedColumns> = {};
+    for (let [key, value] of Object.entries(defaultFields)) {
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i];
+        const lowerHeader = header.toLowerCase();
+        if (lowerHeader.includes(value.toLowerCase())) {
+          selectedColumns[key] = { id: i, name: header, STUPIDLOWERCASE: lowerHeader };
+        }
+      }
+    }
+    console.log(selectedColumns);
+    setSelectedColumns(selectedColumns);
+  };
+
   return (
     <div className="flex flex-col gap-8">
       <div>
         {/* <h3 className="text-center">Upload Submissions CSV</h3> */}
-        <CSVReader
-          onUploadAccepted={(results: any) => {
-            const data: string[][] = results.data;
-            const headers = data[0];
-            const rows = data.slice(1).filter((row) => {
-              // ignore empty rows
-              let allEmpty = true;
-              for (let cell of row) if (cell) allEmpty = false;
-              return !allEmpty;
-            });
-            setData({ headers, rows });
-          }}
-        >
+        <CSVReader onUploadAccepted={onUploadAccepted}>
           {({ getRootProps }: any) => (
             <div className="flex items-center gap-5">
               <Button
@@ -74,6 +88,7 @@ export default function CSVReader({ fields, label, detail, onUpload }: Props) {
                 <Combobox
                   items={data?.headers || []}
                   label="column"
+                  controlledValue={selectedColumns[field]?.name || ''}
                   onSelect={(value) => {
                     setSelectedColumns((selectedColumns: Record<string, SelectedColumns>) => {
                       return { ...selectedColumns, [field]: value };

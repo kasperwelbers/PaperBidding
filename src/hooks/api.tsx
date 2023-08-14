@@ -2,6 +2,8 @@ import useSWR, { Fetcher } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { DataPage } from '@/types';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -58,8 +60,37 @@ export function useProjects() {
 export function useProject(id: number) {
   return useGET<Project>('/api/project/' + id);
 }
-export function useData(projectId: number, what: 'submissions' | 'references' | 'volunteers') {
-  return useGET<{ count: number }>(`/api/project/${projectId}/data/${what}`);
+export function useData(
+  projectId: number,
+  what: 'submissions' | 'references' | 'volunteers'
+): DataPage {
+  const limit = 10;
+  const [offset, setOffset] = useState(0);
+  const { data, mutate, isLoading } = useGET<Record<string, any>[]>(
+    `/api/project/${projectId}/data/${what}?offset=${offset}&limit=${limit + 1}`
+  );
+
+  const reset = () => {
+    setOffset(0);
+    mutate();
+  };
+  let nextPage: undefined | (() => void);
+  let prevPage: undefined | (() => void);
+  if (data) {
+    if (data.length > limit) {
+      nextPage = () => setOffset(offset + limit);
+    }
+    if (offset.current > 0) {
+      prevPage = () => setOffset(Math.max(0, offset - limit));
+    }
+  }
+
+  const realData = useMemo(() => {
+    // we added one extra to see if there is a next page. remove it
+    return data?.slice(0, limit);
+  }, [data]);
+
+  return { data: realData, reset, nextPage, prevPage, isLoading };
 }
 
 // POST HELPERS
@@ -80,5 +111,5 @@ export function useDeleteData(
   projectId: number,
   what: 'submissions' | 'references' | 'volunteers'
 ) {
-  return usePOST<{ ids: string[] }, Project>(`/api/project/${projectId}/data/${what}`, 'DELETE');
+  return usePOST<any, Project>(`/api/project/${projectId}/data/${what}`, 'DELETE');
 }

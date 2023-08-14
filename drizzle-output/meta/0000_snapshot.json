@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "5462a399-c753-4dd8-843c-1b387b114ad4",
+  "id": "836d9c09-8791-4d56-b61d-c9d6edef3ee8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "authors": {
@@ -47,7 +47,7 @@
             "project_id",
             "submission_id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -77,8 +77,14 @@
           "notNull": true,
           "default": "now()"
         },
-        "token": {
-          "name": "token",
+        "read_token": {
+          "name": "read_token",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edit_token": {
+          "name": "edit_token",
           "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true
@@ -157,7 +163,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -214,7 +220,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

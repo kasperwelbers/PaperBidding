@@ -23,7 +23,8 @@ export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 256 }).notNull().unique(),
   created: timestamp('created').notNull().defaultNow(),
-  token: varchar('token', { length: 32 }).notNull()
+  readToken: varchar('read_token', { length: 32 }).notNull(),
+  editToken: varchar('edit_token', { length: 32 }).notNull()
 });
 
 // export const projectsRelations = relations(projects, ({ many }) => ({

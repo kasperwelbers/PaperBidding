@@ -11,7 +11,14 @@ class PipelineSingleton {
 
   static async getInstance(progress_callback = null) {
     if (this.instance === null) {
-      this.instance = pipeline(this.task, this.model, { progress_callback });
+      self.postMessage({ type: 'prepare-model', status: 'loading' });
+      try {
+        this.instance = await pipeline(this.task, this.model, { progress_callback });
+        self.postMessage({ type: 'prepare-model', status: 'ready' });
+      } catch (e) {
+        self.postMessage({ type: 'prepare-model', status: 'error' });
+        throw e;
+      }
     }
     return this.instance;
   }
@@ -19,18 +26,7 @@ class PipelineSingleton {
 
 self.addEventListener('message', async (event) => {
   if (event.data.type === 'prepare-model') {
-    try {
-      await PipelineSingleton.getInstance();
-      return self.postMessage({
-        type: 'prepare-model',
-        status: 'ready'
-      });
-    } catch (e) {
-      return self.postMessage({
-        type: 'prepare-model',
-        status: 'error'
-      });
-    }
+    await PipelineSingleton.getInstance();
   }
 
   if (event.data.type === 'extract') {

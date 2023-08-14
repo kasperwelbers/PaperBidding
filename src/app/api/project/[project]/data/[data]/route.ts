@@ -13,7 +13,10 @@ import { and, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request, { params }: { params: { project: number; data: string } }) {
-  await authenticateProject(req, params.project);
+  await authenticateProject(req, params.project, false);
+  const searchParams = new URL(req.url).searchParams;
+  const offset = Number(searchParams.get('offset')) || 0;
+  const limit = Number(searchParams.get('limit')) || 10;
 
   if (!['submissions', 'volunteers', 'references'].includes(params.data)) {
     return NextResponse.json({}, { statusText: 'Invalid Request', status: 400 });
@@ -21,30 +24,36 @@ export async function GET(req: Request, { params }: { params: { project: number;
 
   if (params.data === 'volunteers') {
     const data = await db
-      .select({ count: sql<number>`count(${volunteers.email})` })
+      .select({ email: volunteers.email, link: volunteers.token })
       .from(volunteers)
-      .where(eq(volunteers.projectId, params.project));
-    return NextResponse.json({ count: Number(data[0].count) });
+      .where(eq(volunteers.projectId, params.project))
+      .offset(offset)
+      .limit(limit);
+
+    for (let row of data) row.link = `/project/${params.project}/bid?token=${row.link}`;
+    return NextResponse.json(data);
   }
   if (params.data === 'submissions' || params.data === 'references') {
     const isReference = params.data === 'references';
     const data = await db
-      .select({ count: sql<number>`count(${submissions.id})` })
+      .select()
       .from(submissions)
       .where(
         and(eq(submissions.isReference, isReference), eq(submissions.projectId, params.project))
-      );
-    return NextResponse.json({ count: Number(data[0].count) });
+      )
+      .offset(offset)
+      .limit(limit);
+    return NextResponse.json(data);
   }
 
-  return NextResponse.json({}, { status: 400 });
+  return NextResponse.json([], { status: 400 });
 }
 
 export async function POST(
   req: Request,
   { params }: { params: { project: number; data: string } }
 ) {
-  await authenticateProject(req, params.project);
+  await authenticateProject(req, params.project, true);
 
   const { data } = await req.json();
 
@@ -65,7 +74,7 @@ export async function DELETE(
   req: Request,
   { params }: { params: { project: number; data: string } }
 ) {
-  await authenticateProject(req, params.project);
+  await authenticateProject(req, params.project, true);
 
   if (params.data === 'volunteers') {
     await db.delete(volunteers).where(eq(volunteers.projectId, params.project));

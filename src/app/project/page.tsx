@@ -17,7 +17,7 @@ export default function ProjectsPage() {
   const router = useRouter();
 
   function onSelect(project: Project) {
-    router.push(`/project/${project.id}?token=${project.token}`);
+    router.push(`/project/${project.id}?token=${project.editToken}`);
   }
 
   if (isLoading) return <Loading />;

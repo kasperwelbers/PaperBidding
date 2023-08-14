@@ -13,3 +13,11 @@ export interface Submission {
 export interface ProcessedSubmission extends Submission {
   features: FeatureVector;
 }
+
+export interface DataPage {
+  data: Record<string, any>[] | undefined;
+  isLoading: boolean;
+  reset: () => void;
+  nextPage?: () => void;
+  prevPage?: () => void;
+}

@@ -51,7 +51,6 @@ export default function useFeatureExtractor(autoLoad?: boolean): FeatureExtracto
 
   const prepareModel = useCallback(() => {
     if (!worker.current?.postMessage) return;
-    setModelStatus('loading');
     worker.current.postMessage({ type: 'prepare-model' });
   }, [worker]);
 
