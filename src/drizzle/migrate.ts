@@ -5,13 +5,23 @@ import { drizzle } from "drizzle-orm/postgres-js";
 
 config({ path: ".env.local" });
 
-const databaseUrl = drizzle(
-  postgres(`${process.env.DATABASE_URL}`, { ssl: "require", max: 1 })
-);
+let sql: any;
+if (process.env.NEON_DATABASE_URL) {
+  // If a NEON DB is used, we need to set the SSL option to require
+  sql = postgres(process.env.NEON_DATABASE_URL || "", {
+    ssl: "require",
+    max: 1,
+  });
+} else {
+  sql = postgres(process.env.DATABASE_URL || "", {
+    max: 1,
+  });
+}
+const db = drizzle(sql);
 
 const main = async () => {
   try {
-    await migrate(databaseUrl, { migrationsFolder: "drizzle-output" });
+    await migrate(db, { migrationsFolder: "drizzle-output" });
     console.log("Migration complete");
   } catch (error) {
     console.log(error);

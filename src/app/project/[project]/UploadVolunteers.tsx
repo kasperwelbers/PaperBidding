@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import CSVReader from '@/components/ui/csvUpload';
-import { Loading } from '@/components/ui/loading';
-import { useDeleteData, useUploadData } from '@/hooks/api';
-import { DataPage, ProcessedSubmission } from '@/types';
-import { useState } from 'react';
-import DeleteData from './ManageData';
+import CSVReader from "@/components/ui/csvUpload";
+import { Loading } from "@/components/ui/loading";
+import { useDeleteData, useUploadData } from "@/hooks/api";
+import { DataPage, ProcessedSubmission } from "@/types";
+import { useState } from "react";
+import ManageData from "./ManageData";
 
-const submissionFields = ['id', 'email'];
+const submissionFields = ["id", "email"];
 const defaultFields = {
-  id: 'person id',
-  email: 'email'
+  id: "person id",
+  email: "email",
 };
 
 interface Props {
@@ -19,26 +19,26 @@ interface Props {
 }
 
 export default function UploadVolunteers({ projectId, dataPage }: Props) {
-  const [status, setStatus] = useState({ loading: '', error: '' });
+  const [status, setStatus] = useState({ loading: "", error: "" });
 
-  const { trigger: uploadVolunteers } = useUploadData(projectId, 'volunteers');
-  const { trigger: deleteVolunteers } = useDeleteData(projectId, 'volunteers');
+  const { trigger: uploadVolunteers } = useUploadData(projectId, "volunteers");
+  const { trigger: deleteVolunteers } = useDeleteData(projectId, "volunteers");
 
   async function onUpload(data: Record<string, string>[]) {
     const emails = data.map((row) => row.email);
 
     if (emails.length !== new Set(emails).size) {
-      setStatus({ loading: '', error: 'Duplicate email found' });
+      setStatus({ loading: "", error: "Duplicate email found" });
       return;
     }
     for (let i = 0; i < emails.length; i++) {
       if (!emails[i]) {
-        setStatus({ loading: '', error: `Empty email found (row ${i + 2})` });
+        setStatus({ loading: "", error: `Empty email found (row ${i + 2})` });
         return;
       }
     }
 
-    setStatus({ loading: 'Uploading', error: '' });
+    setStatus({ loading: "Uploading", error: "" });
 
     try {
       const batchSize = 100;
@@ -47,17 +47,19 @@ export default function UploadVolunteers({ projectId, dataPage }: Props) {
         batch.push(data[i]);
         if (batch.length === batchSize || i === data.length - 1) {
           setStatus({
-            loading: `Uploading ${Math.min(i + batchSize, data.length)}/${data.length}}`,
-            error: ''
+            loading: `Uploading ${Math.min(i + batchSize, data.length)}/${
+              data.length
+            }}`,
+            error: "",
           });
           await uploadVolunteers({ data: batch });
           batch = [];
         }
       }
-      setStatus({ loading: '', error: '' });
+      setStatus({ loading: "", error: "" });
       dataPage.reset();
     } catch (e: any) {
-      setStatus({ loading: '', error: e.message });
+      setStatus({ loading: "", error: e.message });
     }
   }
 
@@ -65,7 +67,13 @@ export default function UploadVolunteers({ projectId, dataPage }: Props) {
   if (dataPage.isLoading) return <Loading msg="Loading Data" />;
 
   if (dataPage.data && dataPage.data.length > 0)
-    return <DeleteData dataPage={dataPage} deleteData={deleteVolunteers} setStatus={setStatus} />;
+    return (
+      <ManageData
+        dataPage={dataPage}
+        deleteData={deleteVolunteers}
+        setStatus={setStatus}
+      />
+    );
 
   return (
     <>

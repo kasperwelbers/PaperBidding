@@ -1,5 +1,5 @@
-import { config } from 'dotenv';
-import { InferModel } from 'drizzle-orm';
+import { config } from "dotenv";
+import { InferModel } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
@@ -11,20 +11,22 @@ import {
   text,
   timestamp,
   varchar,
-  unique
-} from 'drizzle-orm/pg-core';
+  unique,
+} from "drizzle-orm/pg-core";
 
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
+import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
 
-config({ path: '.env.local' });
+config({ path: ".env.local" });
 
-export const projects = pgTable('projects', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 256 }).notNull().unique(),
-  created: timestamp('created').notNull().defaultNow(),
-  readToken: varchar('read_token', { length: 32 }).notNull(),
-  editToken: varchar('edit_token', { length: 32 }).notNull()
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 256 }).notNull().unique(),
+  created: timestamp("created").notNull().defaultNow(),
+  readToken: varchar("read_token", { length: 32 }).notNull(),
+  editToken: varchar("edit_token", { length: 32 }).notNull(),
 });
 
 // export const projectsRelations = relations(projects, ({ many }) => ({
@@ -33,21 +35,21 @@ export const projects = pgTable('projects', {
 // }));
 
 export const submissions = pgTable(
-  'submissions',
+  "submissions",
   {
-    id: serial('id').primaryKey(),
-    projectId: integer('project_id')
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id")
       .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    submissionId: varchar('submission_id', { length: 256 }).notNull(),
-    title: text('title').notNull(),
-    abstract: text('abstract').notNull(),
-    features: jsonb('features').notNull(),
-    isReference: boolean('is_reference').notNull().default(false)
+      .references(() => projects.id, { onDelete: "cascade" }),
+    submissionId: varchar("submission_id", { length: 256 }).notNull(),
+    title: text("title").notNull(),
+    abstract: text("abstract").notNull(),
+    features: jsonb("features").notNull(),
+    isReference: boolean("is_reference").notNull().default(false),
   },
   (table) => {
     return {
-      unq: unique().on(table.projectId, table.submissionId)
+      unq: unique().on(table.projectId, table.submissionId),
     };
   }
 );
@@ -61,19 +63,20 @@ export const submissions = pgTable(
 // }));
 
 export const authors = pgTable(
-  'authors',
+  "authors",
   {
-    id: serial('id').primaryKey(),
-    projectId: integer('project_id'),
-    submissionId: varchar('submission_id', { length: 256 }).notNull(),
-    email: varchar('email', { length: 256 }).notNull()
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id"),
+    submissionId: varchar("submission_id", { length: 256 }).notNull(),
+    email: varchar("email", { length: 256 }).notNull(),
+    token: varchar("token", { length: 32 }).notNull(),
   },
   (table) => {
     return {
       submissionReference: foreignKey({
         columns: [table.projectId, table.submissionId],
-        foreignColumns: [submissions.projectId, submissions.submissionId]
-      }).onDelete('cascade')
+        foreignColumns: [submissions.projectId, submissions.submissionId],
+      }).onDelete("cascade"),
     };
   }
 );
@@ -86,13 +89,13 @@ export const authors = pgTable(
 //   volunteers:
 // }));
 
-export const volunteers = pgTable('volunteers', {
-  id: serial('id').primaryKey(),
-  projectId: integer('project_id')
+export const volunteers = pgTable("volunteers", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
     .notNull()
-    .references(() => projects.id, { onDelete: 'cascade' }),
-  email: varchar('email', { length: 256 }).notNull(),
-  token: varchar('token', { length: 32 }).notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  email: varchar("email", { length: 256 }).notNull(),
+  token: varchar("token", { length: 32 }).notNull(),
 });
 
 // export const volunteersRelations = relations(volunteers, ({ one }) => ({
@@ -104,17 +107,28 @@ export const volunteers = pgTable('volunteers', {
 // }));
 
 export type Project = InferModel<typeof projects>;
-export type NewProject = InferModel<typeof projects, 'insert'>;
+export type NewProject = InferModel<typeof projects, "insert">;
 
 export type Submission = InferModel<typeof submissions>;
-export type NewSubmission = InferModel<typeof submissions, 'insert'>;
+export type NewSubmission = InferModel<typeof submissions, "insert">;
 
 export type Author = InferModel<typeof authors>;
-export type NewAuthor = InferModel<typeof authors, 'insert'>;
+export type NewAuthor = InferModel<typeof authors, "insert">;
 
 export type Volunteer = InferModel<typeof volunteers>;
-export type NewVolunteer = InferModel<typeof volunteers, 'insert'>;
+export type NewVolunteer = InferModel<typeof volunteers, "insert">;
 
-const sql = neon(process.env.DATABASE_URL || '');
-const db = drizzle(sql);
+function getDB() {
+  if (process.env.NEON_DATABASE_URL) {
+    const queryClient = neon(process.env.NEON_DATABASE_URL || "");
+    const db = drizzleNeon(queryClient);
+    return db;
+  } else {
+    const queryClient = postgres(process.env.DATABASE_URL || "");
+    const db = drizzlePostgres(queryClient);
+    return db;
+  }
+}
+
+const db = getDB();
 export default db;

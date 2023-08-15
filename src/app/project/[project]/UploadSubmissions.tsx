@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { Loading } from '@/components/ui/loading';
-import { useData, useDeleteData, useUploadData } from '@/hooks/api';
-import CSVReader from '@/components/ui/csvUpload';
-import { useState } from 'react';
-import { ModelStatus, ProcessedSubmission, DataPage } from '@/types';
-import { SubmissionsSchema } from '@/schemas';
-import DeleteData from './ManageData';
+import { Loading } from "@/components/ui/loading";
+import { useData, useDeleteData, useUploadData } from "@/hooks/api";
+import CSVReader from "@/components/ui/csvUpload";
+import { useState } from "react";
+import { ModelStatus, ProcessedSubmission, DataPage } from "@/types";
+import { SubmissionsSchema } from "@/schemas";
+import ManageData from "./ManageData";
 
-const submissionFields = ['id', 'author', 'title', 'abstract'];
+const submissionFields = ["id", "author", "title", "abstract"];
 const defaultFields = {
-  id: 'control id',
-  author: '(e-mail)',
-  title: 'title',
-  abstract: 'abstract'
+  id: "control id",
+  author: "(e-mail)",
+  title: "title",
+  abstract: "abstract",
 };
 
 interface Props {
@@ -33,15 +33,15 @@ export default function UploadSubmissions({
   modelStatus,
   dataPage,
   extractFeatures,
-  reference
+  reference,
 }: Props) {
-  const what = reference ? 'references' : 'submissions';
-  const [status, setStatus] = useState({ loading: '', error: '' });
+  const what = reference ? "references" : "submissions";
+  const [status, setStatus] = useState({ loading: "", error: "" });
   const { trigger: uploadSubmissions } = useUploadData(projectId, what);
   const { trigger: deleteSubmissions } = useDeleteData(projectId, what);
 
   function onUpload(data: Record<string, string>[]) {
-    setStatus({ loading: 'loading', error: '' });
+    setStatus({ loading: "loading", error: "" });
     try {
       const submissionMap = new Map<string, ProcessedSubmission>();
       for (let row of data) {
@@ -51,7 +51,7 @@ export default function UploadSubmissions({
             authors: [row.author],
             title: row.title,
             abstract: row.abstract,
-            features: []
+            features: [],
           });
         } else {
           submissionMap.get(row.id)?.authors.push(row.author);
@@ -59,7 +59,7 @@ export default function UploadSubmissions({
       }
       const submissions: ProcessedSubmission[] = [...submissionMap.values()];
       const texts = submissions.map(
-        (submission) => submission.title + '.\n\n' + submission.abstract
+        (submission) => submission.title + ".\n\n" + submission.abstract
       );
 
       const callback = async (features: number[][]) => {
@@ -77,41 +77,52 @@ export default function UploadSubmissions({
             batch.push(submissions[i]);
             if (batch.length === batchSize || i === submissions.length - 1) {
               setStatus({
-                loading: `Uploading ${Math.min(i + batchSize, submissions.length)}/${
+                loading: `Uploading ${Math.min(
+                  i + batchSize,
                   submissions.length
-                }}`,
-                error: ''
+                )}/${submissions.length}}`,
+                error: "",
               });
               await uploadSubmissions({ data: batch });
               batch = [];
             }
           }
           dataPage.reset();
-          setStatus({ loading: '', error: '' });
+          setStatus({ loading: "", error: "" });
         } catch (e) {
           console.error(e);
-          setStatus({ loading: '', error: 'Failed to upload' });
+          setStatus({ loading: "", error: "Failed to upload" });
         }
       };
 
       const progressCallback = (percent: number) => {
         // called when extractFeatures is running to report progress
-        setStatus({ loading: `Preprocessing (${Math.round(percent * 100)}%)`, error: '' });
+        setStatus({
+          loading: `Preprocessing (${Math.round(percent * 100)}%)`,
+          error: "",
+        });
       };
 
       extractFeatures(texts, callback, progressCallback);
     } catch (e: any) {
       console.error(e);
-      setStatus({ loading: '', error: e.message });
+      setStatus({ loading: "", error: e.message });
     }
   }
 
-  if (modelStatus === 'loading') return <Loading msg="Loading Model" />;
-  if (dataPage.isLoading) return <Loading msg="Loading Data" />;
+  if (modelStatus === "loading") return <Loading msg="Loading Model" />;
+  if (dataPage.isLoading && !dataPage.data?.length)
+    return <Loading msg="Loading Data" />;
   if (status.loading) return <Loading msg={status.loading} />;
 
   if (dataPage.data && dataPage.data.length > 0)
-    return <DeleteData dataPage={dataPage} deleteData={deleteSubmissions} setStatus={setStatus} />;
+    return (
+      <ManageData
+        dataPage={dataPage}
+        deleteData={deleteSubmissions}
+        setStatus={setStatus}
+      />
+    );
 
   return (
     <>

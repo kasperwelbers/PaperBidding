@@ -9,7 +9,8 @@
     "lint": "next lint",
     "migrate": "drizzle-kit generate:pg && tsx src/drizzle/migrate.ts",
     "studio": "drizzle-kit studio",
-    "watch": "tsc -watch"
+    "watch": "tsc -watch",
+    "admintoken": "tsx src/lib/admintoken.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.5.6",

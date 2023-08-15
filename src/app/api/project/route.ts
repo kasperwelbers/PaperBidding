@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import cryptoRandomString from 'crypto-random-string';
-import db, { projects } from '@/drizzle/schema';
-import { authenticateAdmin } from '@/lib/authenticate';
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import cryptoRandomString from "crypto-random-string";
+import db, { projects } from "@/drizzle/schema";
+import { authenticateAdmin } from "@/lib/authenticate";
 
 export async function GET(req: Request) {
   authenticateAdmin(req);
@@ -21,8 +21,8 @@ export async function POST(req: Request) {
       .insert(projects)
       .values({
         name: name,
-        readToken: cryptoRandomString({ length: 32 }),
-        editToken: cryptoRandomString({ length: 32 })
+        readToken: cryptoRandomString({ length: 32, type: "url-safe" }),
+        editToken: cryptoRandomString({ length: 32, type: "url-safe" }),
       })
       .returning();
     return NextResponse.json(newProject[0], { status: 201 });

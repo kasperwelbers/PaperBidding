@@ -1,24 +1,27 @@
-'use client';
+"use client";
 
-import { useData, useProject } from '@/hooks/api';
-import UploadSubmissions from './UploadSubmissions';
-import { Loading } from '@/components/ui/loading';
-import { Error } from '@/components/ui/error';
-import useFeatureExtractor from '@/hooks/useFeatureExtractor';
-import { useState } from 'react';
-import UploadVolunteers from './UploadVolunteers';
-import { MdOutlineCheckBoxOutlineBlank, MdOutlineCheckBox } from 'react-icons/md';
+import { useData, useProject } from "@/hooks/api";
+import UploadSubmissions from "./UploadSubmissions";
+import { Loading } from "@/components/ui/loading";
+import { Error } from "@/components/ui/error";
+import useFeatureExtractor from "@/hooks/useFeatureExtractor";
+import { useState } from "react";
+import UploadVolunteers from "./UploadVolunteers";
+import {
+  MdOutlineCheckBoxOutlineBlank,
+  MdOutlineCheckBox,
+} from "react-icons/md";
 
-type Tab = 'submissions' | 'references' | 'volunteers';
-const tabs: Tab[] = ['submissions', 'volunteers', 'references'];
+type Tab = "submissions" | "references" | "volunteers";
+const tabs: Tab[] = ["submissions", "volunteers", "references"];
 
 export default function UploadData({ projectId }: { projectId: number }) {
   const { modelStatus, extractFeatures } = useFeatureExtractor();
-  const [selectedTab, setSelectedTab] = useState<Tab>('submissions');
+  const [selectedTab, setSelectedTab] = useState<Tab>("submissions");
 
-  const submissions = useData(projectId, 'submissions');
-  const volunteers = useData(projectId, 'volunteers');
-  const references = useData(projectId, 'references');
+  const submissions = useData(projectId, "submissions");
+  const volunteers = useData(projectId, "volunteers");
+  const references = useData(projectId, "references");
   const data = { submissions, volunteers, references };
 
   const { data: project, isLoading, error } = useProject(projectId);
@@ -32,9 +35,9 @@ export default function UploadData({ projectId }: { projectId: number }) {
       <div className="flex flex-wrap gap-3 mb-6">
         {tabs.map((tab: Tab) => {
           const buttonColor =
-            tab === selectedTab ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black';
-          let ready = false;
-          if (data[tab]?.data?.length) ready = true;
+            tab === selectedTab
+              ? "bg-blue-500 text-white"
+              : "bg-gray-300 text-black";
 
           return (
             <div
@@ -44,12 +47,19 @@ export default function UploadData({ projectId }: { projectId: number }) {
             >
               {tab}
 
-              {ready ? <MdOutlineCheckBox /> : <MdOutlineCheckBoxOutlineBlank />}
+              {data[tab]?.data?.length ? (
+                <MdOutlineCheckBox />
+              ) : (
+                <MdOutlineCheckBoxOutlineBlank />
+              )}
             </div>
           );
         })}
       </div>
-      <div key="submissions" className={selectedTab === 'submissions' ? '' : 'hidden'}>
+      <div
+        key="submissions"
+        className={selectedTab === "submissions" ? "" : "hidden"}
+      >
         <UploadSubmissions
           projectId={project.id}
           modelStatus={modelStatus}
@@ -57,10 +67,16 @@ export default function UploadData({ projectId }: { projectId: number }) {
           extractFeatures={extractFeatures}
         />
       </div>
-      <div key="volunteers" className={selectedTab === 'volunteers' ? '' : 'hidden'}>
+      <div
+        key="volunteers"
+        className={selectedTab === "volunteers" ? "" : "hidden"}
+      >
         <UploadVolunteers projectId={project.id} dataPage={data.volunteers} />
       </div>
-      <div key="references" className={selectedTab === 'references' ? '' : 'hidden'}>
+      <div
+        key="references"
+        className={selectedTab === "references" ? "" : "hidden"}
+      >
         <UploadSubmissions
           projectId={project.id}
           modelStatus={modelStatus}
