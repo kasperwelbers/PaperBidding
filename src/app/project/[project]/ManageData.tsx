@@ -1,4 +1,3 @@
-import { Combobox } from "@/components/ui/combobox";
 import { DataPage } from "@/types";
 import { useState } from "react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
@@ -36,19 +35,26 @@ export default function ManageData({
   return (
     <div className="flex flex-col text-center">
       <div className="mb-5">
-        <div className="flex gap-3 justify-center select-none items-center">
-          <FaArrowLeft
-            onClick={(e: MouseEvent) => changePage(e, "prev")}
-            className={`${dataPage.prevPage ? "cursor-pointer" : "opacity-50"}`}
-          />
-          <strong>{dataPage.page}</strong>
-          <FaArrowRight
-            onClick={(e: MouseEvent) => changePage(e, "next")}
-            className={`${dataPage.nextPage ? "cursor-pointer" : "opacity-50"}`}
-          />
+        <div className="flex flex-col justify-center select-none">
+          <strong className="text-primary">{dataPage.n} items</strong>
+          <div className="flex justify-end items-center gap-3">
+            <FaArrowLeft
+              onClick={(e: MouseEvent) => changePage(e, "prev")}
+              className={`${
+                dataPage.prevPage ? "cursor-pointer" : "opacity-50"
+              }`}
+            />
+            <strong>{dataPage.page}</strong>
+            <FaArrowRight
+              onClick={(e: MouseEvent) => changePage(e, "next")}
+              className={`${
+                dataPage.nextPage ? "cursor-pointer" : "opacity-50"
+              }`}
+            />
+          </div>
         </div>
         <div
-          className={`max-w-full overflow-auto py-3 ${
+          className={`max-w-full overflow-auto pb-3 pt-1 ${
             dataPage.isLoading ? "opacity-50" : ""
           }`}
         >
@@ -56,7 +62,7 @@ export default function ManageData({
             <thead>
               <tr className="">
                 {Object.keys(dataPage.data[0]).map((key) => (
-                  <th className="px-3" key={key}>
+                  <th className="pr-3" key={key}>
                     {key}
                   </th>
                 ))}
@@ -76,7 +82,7 @@ export default function ManageData({
                     }
                     return (
                       <td
-                        className="px-3 whitespace-nowrap max-w-[20rem] overflow-hidden overflow-ellipsis"
+                        className="pr-3 whitespace-nowrap max-w-[20rem] overflow-hidden overflow-ellipsis"
                         key={key}
                       >
                         <span title={value}>{value}</span>

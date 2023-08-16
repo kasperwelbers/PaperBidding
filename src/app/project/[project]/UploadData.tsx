@@ -5,7 +5,7 @@ import UploadSubmissions from "./UploadSubmissions";
 import { Loading } from "@/components/ui/loading";
 import { Error } from "@/components/ui/error";
 import useFeatureExtractor from "@/hooks/useFeatureExtractor";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UploadVolunteers from "./UploadVolunteers";
 import {
   MdOutlineCheckBoxOutlineBlank,
@@ -15,19 +15,39 @@ import {
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
 
-export default function UploadData({ projectId }: { projectId: number }) {
+export default function UploadData({
+  projectId,
+  setStatus,
+}: {
+  projectId: number;
+  setStatus: ({
+    volunteers,
+    submissions,
+  }: {
+    volunteers: boolean;
+    submissions: boolean;
+  }) => void;
+}) {
   const { modelStatus, extractFeatures } = useFeatureExtractor();
   const [selectedTab, setSelectedTab] = useState<Tab>("submissions");
 
   const submissions = useData(projectId, "submissions");
-  const volunteers = useData(projectId, "volunteers");
-  const references = useData(projectId, "references");
+  const references = useData(projectId, "submissions", { reference: true });
+  const volunteers = useData(projectId, "reviewers", { volunteer: true });
   const data = { submissions, volunteers, references };
 
   const { data: project, isLoading, error } = useProject(projectId);
   if (isLoading) return <Loading msg="Loading Project" />;
   if (error) return <Error msg={error.message} />;
   if (!project) return null; //shouldn't happen, but typescript
+
+  useEffect(() => {
+    const status = {
+      submissions: (submissions?.data?.length || 0) > 0,
+      volunteers: (volunteers?.data?.length || 0) > 0,
+    };
+    setStatus(status);
+  }, [submissions.data, volunteers.data, setStatus]);
 
   return (
     <div className="w-full max-w-lg  ">

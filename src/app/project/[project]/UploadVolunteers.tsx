@@ -20,8 +20,12 @@ interface Props {
 export default function UploadVolunteers({ projectId, dataPage }: Props) {
   const [status, setStatus] = useState({ loading: "", error: "" });
 
-  const { trigger: uploadVolunteers } = useUploadData(projectId, "volunteers");
-  const { trigger: deleteVolunteers } = useDeleteData(projectId, "volunteers");
+  const { trigger: uploadVolunteers } = useUploadData(projectId, "reviewers", {
+    volunteer: true,
+  });
+  const { trigger: deleteVolunteers } = useDeleteData(projectId, "reviewers", {
+    volunteer: true,
+  });
 
   async function onUpload(data: Record<string, string>[]) {
     const emails = data.map((row) => row.email);

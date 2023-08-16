@@ -35,10 +35,19 @@ export default function UploadSubmissions({
   extractFeatures,
   reference,
 }: Props) {
-  const what = reference ? "references" : "submissions";
   const [status, setStatus] = useState({ loading: "", error: "" });
-  const { trigger: uploadSubmissions } = useUploadData(projectId, what);
-  const { trigger: deleteSubmissions } = useDeleteData(projectId, what);
+
+  const params = reference ? { reference } : {};
+  const { trigger: uploadSubmissions } = useUploadData(
+    projectId,
+    "submissions",
+    params
+  );
+  const { trigger: deleteSubmissions } = useDeleteData(
+    projectId,
+    "submissions",
+    params
+  );
 
   function onUpload(data: Record<string, string>[]) {
     setStatus({ loading: "loading", error: "" });

@@ -2,6 +2,7 @@ import db, {
   NewSubmission,
   NewAuthor,
   submissions,
+  reviewers,
   authors,
 } from "@/drizzle/schema";
 import { authenticateProject } from "@/lib/authenticate";
@@ -55,6 +56,7 @@ export async function GET(
     .select({ count: sql<number>`count(*)` })
     .from(selection);
   const [rows, meta] = await Promise.all([rowsPromise, metaPromise]);
+
   return NextResponse.json({ rows, meta: meta[0] });
 }
 
@@ -69,7 +71,9 @@ export async function POST(
 
   const newSubmissions: NewSubmission[] = [];
   const newAuthors: NewAuthor[] = [];
+  const newReviewers: NewReviewer[] = [];
   const validData = SubmissionsSchema.safeParse(data);
+
   if (!validData.success)
     return NextResponse.json(validData, {
       statusText: "Invalid payload",
@@ -91,13 +95,32 @@ export async function POST(
         projectId: params.project,
         submissionId: row.id,
         email: author,
+      });
+      newReviewers.push({
+        projectId: params.project,
+        email: author,
         token: cryptoRandomString({ length: 32, type: "url-safe" }),
+        importedFrom: reference ? "reference" : "submission",
       });
     }
   }
 
-  await db.insert(submissions).values(newSubmissions);
+  if (reference) {
+    // if we are importing the reference, we don't want to overwrite existing submissions
+    await db.insert(submissions).values(newSubmissions).onConflictDoNothing();
+  } else {
+    // but if we are importing submissions, we want to overwrite the reference. This way,
+    // submissions will always be included as non-reference submissions
+    await db
+      .insert(submissions)
+      .values(newSubmissions)
+      .onConflictDoUpdate({
+        target: [submissions.projectId, submissions.submissionId],
+        set: { isReference: false },
+      });
+  }
   await db.insert(authors).values(newAuthors);
+  await db.insert(reviewers).values(newReviewers);
   return NextResponse.json({ status: 201 });
 }
 
@@ -117,5 +140,13 @@ export async function DELETE(
         eq(submissions.isReference, reference)
       )
     );
-  return NextResponse.json({}, { status: 204 });
+  await db
+    .delete(reviewers)
+    .where(
+      and(
+        eq(reviewers.projectId, params.project),
+        eq(reviewers.importedFrom, reference ? "reference" : "submission")
+      )
+    );
+  return NextResponse.json({}, { status: 201 });
 }

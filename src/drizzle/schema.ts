@@ -31,7 +31,7 @@ export const projects = pgTable("projects", {
 
 // export const projectsRelations = relations(projects, ({ many }) => ({
 //   submissions: many(submissions),
-//   volunteers: many(volunteers)
+//   reviewers: many(reviewers)
 // }));
 
 export const submissions = pgTable(
@@ -69,7 +69,6 @@ export const authors = pgTable(
     projectId: integer("project_id"),
     submissionId: varchar("submission_id", { length: 256 }).notNull(),
     email: varchar("email", { length: 256 }).notNull(),
-    token: varchar("token", { length: 32 }).notNull(),
   },
   (table) => {
     return {
@@ -86,21 +85,22 @@ export const authors = pgTable(
 //     fields: [authors.submissionId],
 //     references: [submissions.id]
 //   }),
-//   volunteers:
+//   reviewers:
 // }));
 
-export const volunteers = pgTable("volunteers", {
+export const reviewers = pgTable("reviewers", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   email: varchar("email", { length: 256 }).notNull(),
   token: varchar("token", { length: 32 }).notNull(),
+  importedFrom: varchar("imported_from", { length: 256 }),
 });
 
-// export const volunteersRelations = relations(volunteers, ({ one }) => ({
+// export const reviewersRelations = relations(reviewers, ({ one }) => ({
 //   project: one(projects, {
-//     fields: [volunteers.projectId],
+//     fields: [reviewers.projectId],
 //     references: [projects.id]
 //   }),
 //   submissions:
@@ -115,8 +115,8 @@ export type NewSubmission = InferModel<typeof submissions, "insert">;
 export type Author = InferModel<typeof authors>;
 export type NewAuthor = InferModel<typeof authors, "insert">;
 
-export type Volunteer = InferModel<typeof volunteers>;
-export type NewVolunteer = InferModel<typeof volunteers, "insert">;
+export type Reviewer = InferModel<typeof reviewers>;
+export type NewReviewer = InferModel<typeof reviewers, "insert">;
 
 function getDB() {
   if (process.env.NEON_DATABASE_URL) {

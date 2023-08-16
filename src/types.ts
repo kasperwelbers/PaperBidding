@@ -20,6 +20,7 @@ export interface DataPage {
   data: Record<string, any>[] | undefined;
   isLoading: boolean;
   page: number;
+  n: number | undefined;
   reset: () => void;
   setPage: (page: number) => void;
   nextPage?: () => void;

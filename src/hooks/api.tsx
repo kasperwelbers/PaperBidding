@@ -2,7 +2,7 @@ import useSWR, { Fetcher } from "swr";
 import useSWRMutation from "swr/mutation";
 import { useSearchParams } from "next/navigation";
 import { Project } from "@/drizzle/schema";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DataPage } from "@/types";
 
 /** Wrapper for useSWR that:
@@ -65,23 +65,29 @@ export function useProjects() {
 export function useProject(id: number) {
   return useGET<Project>("/api/project/" + id);
 }
+
+interface DataResponse {
+  rows: Record<string, any>[];
+  meta: { count: number };
+}
 export function useData(
   projectId: number,
-  what: "submissions" | "references" | "volunteers"
+  what: "submissions" | "reviewers",
+  params: Record<string, any> = {}
 ): DataPage {
-  const limit = 10;
+  const limit = params.limit || 10;
   const [offset, setOffset] = useState(0);
 
-  let url: string = "";
-  if (what === "submissions")
-    url = `/api/project/${projectId}/data/submissions?offset=${offset}&limit=${limit}`;
-  if (what === "references")
-    url = `/api/project/${projectId}/data/submissions?reference=true&offset=${offset}&limit=${limit}`;
-  if (what === "volunteers")
-    url = `/api/project/${projectId}/data/volunteers?offset=${offset}&limit=${limit}`;
+  const urlParams = new URLSearchParams({
+    ...params,
+    offset: String(offset),
+    limit: String(limit),
+  });
+  const urlParamsString = urlParams.toString();
+  let url: string = `/api/project/${projectId}/data/${what}/?${urlParamsString}`;
 
-  const { data, mutate, isLoading } = useGET<Record<string, any>[]>(url);
-  const staleData = useRef<Record<string, any>[]>();
+  const { data, mutate, isLoading } = useGET<DataResponse>(url);
+  const staleData = useRef<DataResponse>();
   if (!isLoading) staleData.current = data;
 
   const reset = () => {
@@ -109,6 +115,35 @@ export function useData(
     isLoading,
   };
 }
+export function useAllData(
+  projectId: number,
+  what: "submissions" | "reviewers",
+  params: Record<string, any> = {}
+) {
+  const [allData, setAllData] = useState<Record<string, any>[] | undefined>(
+    undefined
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const tmpData = useRef<Record<string, any>[]>([]);
+  const { data, nextPage } = useData(projectId, what, {
+    ...params,
+    limit: 100,
+  });
+
+  useEffect(() => {
+    if (!data) return;
+    setIsLoading(true);
+    tmpData.current = [...tmpData.current, ...data];
+    if (nextPage) {
+      nextPage();
+    } else {
+      setAllData(tmpData.current);
+      setIsLoading(false);
+    }
+  }, [data, nextPage]);
+
+  return { allData, isLoading };
+}
 
 // POST HELPERS
 export function useCreateProject() {
@@ -117,27 +152,31 @@ export function useCreateProject() {
 
 export function useUploadData(
   projectId: number,
-  what: "submissions" | "references" | "volunteers"
+  what: "submissions" | "reviewers",
+  params?: Record<string, any>
 ) {
-  let url: string = "";
-  if (what === "submissions")
-    url = `/api/project/${projectId}/data/submissions`;
-  if (what === "references")
-    url = `/api/project/${projectId}/data/submissions?reference=true`;
-  if (what === "volunteers") url = `/api/project/${projectId}/data/volunteers`;
+  let url: string = `/api/project/${projectId}/data/${what}`;
+  if (params) {
+    const urlParams = new URLSearchParams({ ...params });
+    const urlParamsString = urlParams.toString();
+    url += `?${urlParamsString}`;
+  }
+  console.log(url);
 
   return usePOST<{ data: Record<string, any>[] }, Project>(url);
 }
 
 export function useDeleteData(
   projectId: number,
-  what: "submissions" | "references" | "volunteers"
+  what: "submissions" | "reviewers",
+  params?: Record<string, any>
 ) {
-  let url: string = "";
-  if (what === "submissions")
-    url = `/api/project/${projectId}/data/submissions`;
-  if (what === "references")
-    url = `/api/project/${projectId}/data/submissions?reference=true`;
-  if (what === "volunteers") url = `/api/project/${projectId}/data/volunteers`;
+  let url: string = `/api/project/${projectId}/data/${what}`;
+  if (params) {
+    const urlParams = new URLSearchParams({ ...params });
+    const urlParamsString = urlParams.toString();
+    url += `?${urlParamsString}`;
+  }
+
   return usePOST<any, Project>(url, "DELETE");
 }
