@@ -5,9 +5,9 @@ import db, {
   authors,
 } from "@/drizzle/schema";
 import { authenticateProject } from "@/lib/authenticate";
-import { SubmissionsSchema } from "@/schemas";
+import { SubmissionsSchema } from "@/zodSchemas";
 import cryptoRandomString from "crypto-random-string";
-import { and, eq } from "drizzle-orm";
+import { sql, and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -28,18 +28,34 @@ export async function GET(
     );
   }
 
-  const data = await db
-    .select()
-    .from(submissions)
-    .where(
-      and(
-        eq(submissions.isReference, reference),
-        eq(submissions.projectId, params.project)
+  const selection = db.$with("sq").as(
+    db
+      .select()
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.isReference, reference),
+          eq(submissions.projectId, params.project)
+        )
       )
-    )
+  );
+
+  const rowsPromise = db
+    .with(selection)
+    .select({
+      id: selection.submissionId,
+      title: selection.title,
+      abstract: selection.abstract,
+    })
+    .from(selection)
     .offset(offset)
     .limit(limit);
-  return NextResponse.json(data);
+  const metaPromise = db
+    .with(selection)
+    .select({ count: sql<number>`count(*)` })
+    .from(selection);
+  const [rows, meta] = await Promise.all([rowsPromise, metaPromise]);
+  return NextResponse.json({ rows, meta: meta[0] });
 }
 
 export async function POST(

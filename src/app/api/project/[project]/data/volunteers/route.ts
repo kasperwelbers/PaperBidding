@@ -1,8 +1,8 @@
 import db, { volunteers, NewVolunteer } from "@/drizzle/schema";
 import { authenticateProject } from "@/lib/authenticate";
-import { VolunteersSchema } from "@/schemas";
+import { VolunteersSchema } from "@/zodSchemas";
 import cryptoRandomString from "crypto-random-string";
-import { eq } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -14,19 +14,20 @@ export async function GET(
   const offset = Number(searchParams.get("offset")) || 0;
   const limit = Number(searchParams.get("limit")) || 10;
 
-  const data = await db
-    .select({
-      id: volunteers.id,
-      email: volunteers.email,
-      link: volunteers.token,
-    })
+  const rowsPromise = db
+    .select({ email: volunteers.email, link: volunteers.token })
     .from(volunteers)
     .where(eq(volunteers.projectId, params.project))
     .offset(offset)
     .limit(limit);
-  for (let row of data)
+  const metaPromise = db
+    .select({ count: sql<number>`count(*)` })
+    .from(volunteers)
+    .where(eq(volunteers.projectId, params.project));
+  const [rows, meta] = await Promise.all([rowsPromise, metaPromise]);
+  for (let row of rows)
     row.link = `/project/${params.project}/bid?token=${row.link}`;
-  return NextResponse.json(data);
+  return NextResponse.json({ rows, meta: meta[0] });
 }
 
 export async function POST(

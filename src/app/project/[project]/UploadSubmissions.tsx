@@ -5,7 +5,7 @@ import { useData, useDeleteData, useUploadData } from "@/hooks/api";
 import CSVReader from "@/components/ui/csvUpload";
 import { useState } from "react";
 import { ModelStatus, ProcessedSubmission, DataPage } from "@/types";
-import { SubmissionsSchema } from "@/schemas";
+import { SubmissionsSchema } from "@/zodSchemas";
 import ManageData from "./ManageData";
 
 const submissionFields = ["id", "author", "title", "abstract"];

@@ -19,7 +19,9 @@ export interface ProcessedSubmission extends Submission {
 export interface DataPage {
   data: Record<string, any>[] | undefined;
   isLoading: boolean;
+  page: number;
   reset: () => void;
+  setPage: (page: number) => void;
   nextPage?: () => void;
   prevPage?: () => void;
 }

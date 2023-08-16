@@ -74,45 +74,40 @@ export function useData(
 
   let url: string = "";
   if (what === "submissions")
-    url = `/api/project/${projectId}/data/submissions?offset=${offset}&limit=${
-      limit + 1
-    }`;
+    url = `/api/project/${projectId}/data/submissions?offset=${offset}&limit=${limit}`;
   if (what === "references")
-    url = `/api/project/${projectId}/data/submissions?reference=true&offset=${offset}&limit=${
-      limit + 1
-    }`;
+    url = `/api/project/${projectId}/data/submissions?reference=true&offset=${offset}&limit=${limit}`;
   if (what === "volunteers")
-    url = `/api/project/${projectId}/data/volunteers?offset=${offset}&limit=${
-      limit + 1
-    }`;
+    url = `/api/project/${projectId}/data/volunteers?offset=${offset}&limit=${limit}`;
 
   const { data, mutate, isLoading } = useGET<Record<string, any>[]>(url);
-  const lastData = useRef<Record<string, any>[]>();
+  const staleData = useRef<Record<string, any>[]>();
+  if (!isLoading) staleData.current = data;
 
   const reset = () => {
     setOffset(0);
     mutate();
   };
+  const page = Math.floor(offset / limit) + 1;
+  const pages = data ? Math.ceil(data.meta.count / limit) : undefined;
+  const setPage = (page: number) => {
+    setOffset((page - 1) * limit);
+  };
   let nextPage: undefined | (() => void);
   let prevPage: undefined | (() => void);
-  if (data) {
-    if (data.length > limit) {
-      nextPage = () => setOffset(offset + limit);
-    }
-    if (offset > 0) {
-      prevPage = () => setOffset(Math.max(0, offset - limit));
-    }
-  }
+  if (pages && page < pages) nextPage = () => setPage(page + 1);
+  if (page > 1) prevPage = () => setPage(page - 1);
 
-  const staleData = useMemo(() => {
-    // if we are loading a new page, we want to show the last data we had
-    // also, we added one extra item to see if there is a next page, so remove it here
-    if (isLoading) return lastData.current;
-    lastData.current = data?.slice(0, limit);
-    return lastData.current;
-  }, [data, isLoading]);
-
-  return { data: staleData, reset, nextPage, prevPage, isLoading };
+  return {
+    data: staleData.current?.rows,
+    n: staleData.current?.meta.count,
+    page,
+    reset,
+    setPage,
+    nextPage,
+    prevPage,
+    isLoading,
+  };
 }
 
 // POST HELPERS

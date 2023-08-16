@@ -7,9 +7,8 @@ import { DataPage, ProcessedSubmission } from "@/types";
 import { useState } from "react";
 import ManageData from "./ManageData";
 
-const submissionFields = ["id", "email"];
+const submissionFields = ["email"];
 const defaultFields = {
-  id: "person id",
   email: "email",
 };
 
@@ -64,7 +63,8 @@ export default function UploadVolunteers({ projectId, dataPage }: Props) {
   }
 
   if (status.loading) return <Loading msg={status.loading} />;
-  if (dataPage.isLoading) return <Loading msg="Loading Data" />;
+  if (dataPage.isLoading && !dataPage.data?.length)
+    return <Loading msg="Loading Data" />;
 
   if (dataPage.data && dataPage.data.length > 0)
     return (
