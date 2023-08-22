@@ -46,6 +46,7 @@ self.addEventListener('message', async (event) => {
           callbackId: event.data.progressCallbackId
         });
       }
+
       return self.postMessage({
         type: 'extract',
         status: 'ready',

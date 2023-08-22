@@ -1,52 +1,39 @@
-import db, {
-  NewSubmission,
-  NewAuthor,
-  submissions,
-  reviewers,
-  authors,
-} from "@/drizzle/schema";
-import { authenticateProject } from "@/lib/authenticate";
-import { SubmissionsSchema } from "@/zodSchemas";
-import cryptoRandomString from "crypto-random-string";
-import { sql, and, eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import db, { NewSubmission, NewAuthor, submissions, reviewers, authors } from '@/drizzle/schema';
+import { authenticateProject } from '@/lib/authenticate';
+import { SubmissionsSchema } from '@/zodSchemas';
+import cryptoRandomString from 'crypto-random-string';
+import { sql, and, eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { project: number } }
-) {
-  const { editRight } = await authenticateProject(req, params.project, false);
+export async function GET(req: Request, { params }: { params: { project: number } }) {
+  const { editRight, error } = await authenticateProject(req, params.project, false);
+  if (error) return error;
   const searchParams = new URL(req.url).searchParams;
-  const offset = Number(searchParams.get("offset")) || 0;
-  const limit = Number(searchParams.get("limit")) || 10;
-  const reference = !!searchParams.get("reference");
+  const offset = Number(searchParams.get('offset')) || 0;
+  const limit = Number(searchParams.get('limit')) || 10;
+  const reference = !!searchParams.get('reference');
 
   if (!editRight && reference) {
     // project read token can only be used to get the normal submissions
     return NextResponse.json(
-      { error: "not authorized" },
-      { status: 403, statusText: "not authorized" }
+      { error: 'not authorized' },
+      { status: 403, statusText: 'not authorized' }
     );
   }
 
-  const selection = db.$with("sq").as(
+  const selection = db.$with('sq').as(
     db
       .select()
       .from(submissions)
-      .where(
-        and(
-          eq(submissions.isReference, reference),
-          eq(submissions.projectId, params.project)
-        )
-      )
+      .where(and(eq(submissions.isReference, reference), eq(submissions.projectId, params.project)))
   );
 
   const rowsPromise = db
     .with(selection)
     .select({
-      id: selection.submissionId,
+      id: selection.id,
       title: selection.title,
-      abstract: selection.abstract,
+      features: selection.features
     })
     .from(selection)
     .offset(offset)
@@ -60,14 +47,11 @@ export async function GET(
   return NextResponse.json({ rows, meta: meta[0] });
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { project: number } }
-) {
+export async function POST(req: Request, { params }: { params: { project: number } }) {
   await authenticateProject(req, params.project, true);
   const { data } = await req.json();
   const searchParams = new URL(req.url).searchParams;
-  const reference = !!searchParams.get("reference");
+  const reference = !!searchParams.get('reference');
 
   const newSubmissions: NewSubmission[] = [];
   const newAuthors: NewAuthor[] = [];
@@ -76,8 +60,8 @@ export async function POST(
 
   if (!validData.success)
     return NextResponse.json(validData, {
-      statusText: "Invalid payload",
-      status: 400,
+      statusText: 'Invalid payload',
+      status: 400
     });
 
   for (let row of validData.data) {
@@ -87,20 +71,20 @@ export async function POST(
       title: row.title,
       abstract: row.abstract,
       features: row.features,
-      isReference: reference,
+      isReference: reference
     });
 
     for (let author of row.authors) {
       newAuthors.push({
         projectId: params.project,
         submissionId: row.id,
-        email: author,
+        email: author
       });
       newReviewers.push({
         projectId: params.project,
         email: author,
-        token: cryptoRandomString({ length: 32, type: "url-safe" }),
-        importedFrom: reference ? "reference" : "submission",
+        token: cryptoRandomString({ length: 32, type: 'url-safe' }),
+        importedFrom: reference ? 'reference' : 'submission'
       });
     }
   }
@@ -116,7 +100,7 @@ export async function POST(
       .values(newSubmissions)
       .onConflictDoUpdate({
         target: [submissions.projectId, submissions.submissionId],
-        set: { isReference: false },
+        set: { isReference: false }
       });
   }
   await db.insert(authors).values(newAuthors);
@@ -124,28 +108,20 @@ export async function POST(
   return NextResponse.json({ status: 201 });
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { project: number } }
-) {
+export async function DELETE(req: Request, { params }: { params: { project: number } }) {
   await authenticateProject(req, params.project, true);
   const searchParams = new URL(req.url).searchParams;
-  const reference = !!searchParams.get("reference");
+  const reference = !!searchParams.get('reference');
 
   await db
     .delete(submissions)
-    .where(
-      and(
-        eq(submissions.projectId, params.project),
-        eq(submissions.isReference, reference)
-      )
-    );
+    .where(and(eq(submissions.projectId, params.project), eq(submissions.isReference, reference)));
   await db
     .delete(reviewers)
     .where(
       and(
         eq(reviewers.projectId, params.project),
-        eq(reviewers.importedFrom, reference ? "reference" : "submission")
+        eq(reviewers.importedFrom, reference ? 'reference' : 'submission')
       )
     );
   return NextResponse.json({}, { status: 201 });

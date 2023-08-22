@@ -1,23 +1,23 @@
-import useSWR, { Fetcher } from "swr";
-import useSWRMutation from "swr/mutation";
-import { useSearchParams } from "next/navigation";
-import { Project } from "@/drizzle/schema";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DataPage } from "@/types";
+import useSWR, { Fetcher } from 'swr';
+import useSWRMutation from 'swr/mutation';
+import { useSearchParams } from 'next/navigation';
+import { Project } from '@/drizzle/schema';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DataPage } from '@/types';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
  * - sets a type parameter for the return type
  */
-export function useGET<ResponseType>(url: string) {
+export function useGET<ResponseType>(url: string | null) {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams.get('token');
 
   const fetcher = ([url, token]: any) => {
-    if (!token) throw new Error("No token provided");
+    if (!token) throw new Error('No token provided');
     return fetch(url, {
-      method: "GET",
-      headers: { Authorization: token },
+      method: 'GET',
+      headers: { Authorization: token }
     }).then((res) => {
       if (res.ok) {
         return res.json();
@@ -27,8 +27,8 @@ export function useGET<ResponseType>(url: string) {
     });
   };
 
-  return useSWR<ResponseType>([url, token], fetcher, {
-    revalidateOnFocus: false,
+  return useSWR<ResponseType>(url ? [url, token] : null, fetcher, {
+    revalidateOnFocus: false
   });
 }
 
@@ -38,20 +38,17 @@ export function useGET<ResponseType>(url: string) {
  * @param url
  * @returns
  */
-export function usePOST<BodyType, ResponseType>(
-  url: string,
-  method: string = "POST"
-) {
+export function usePOST<BodyType, ResponseType>(url: string, method: string = 'POST') {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams.get('token');
 
   function fetcher([url, token]: any, { arg }: { arg: BodyType }) {
-    if (!token) throw new Error("No token provided");
+    if (!token) throw new Error('No token provided');
 
     return fetch(url, {
       method: method,
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify(arg),
+      body: JSON.stringify(arg)
     });
   }
 
@@ -60,10 +57,11 @@ export function usePOST<BodyType, ResponseType>(
 
 // GET HELPERS
 export function useProjects() {
-  return useGET<Project[]>("/api/project");
+  return useGET<Project[]>('/api/project');
 }
-export function useProject(id: number) {
-  return useGET<Project>("/api/project/" + id);
+export function useProject(id: number, edit?: boolean) {
+  const url = edit ? `/api/project/${id}?edit=true` : `/api/project/${id}`;
+  return useGET<Project>(url);
 }
 
 interface DataResponse {
@@ -72,7 +70,7 @@ interface DataResponse {
 }
 export function useData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: 'submissions' | 'reviewers',
   params: Record<string, any> = {}
 ): DataPage {
   const limit = params.limit || 10;
@@ -81,12 +79,12 @@ export function useData(
   const urlParams = new URLSearchParams({
     ...params,
     offset: String(offset),
-    limit: String(limit),
+    limit: String(limit)
   });
   const urlParamsString = urlParams.toString();
   let url: string = `/api/project/${projectId}/data/${what}/?${urlParamsString}`;
 
-  const { data, mutate, isLoading } = useGET<DataResponse>(url);
+  const { data, mutate, isLoading, error } = useGET<DataResponse>(url);
   const staleData = useRef<DataResponse>();
   if (!isLoading) staleData.current = data;
 
@@ -113,25 +111,24 @@ export function useData(
     nextPage,
     prevPage,
     isLoading,
+    error: error?.message || ''
   };
 }
 export function useAllData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: 'submissions' | 'reviewers',
   params: Record<string, any> = {}
 ) {
-  const [allData, setAllData] = useState<Record<string, any>[] | undefined>(
-    undefined
-  );
+  const [allData, setAllData] = useState<Record<string, any>[] | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const tmpData = useRef<Record<string, any>[]>([]);
-  const { data, nextPage } = useData(projectId, what, {
+  const { data, error, nextPage } = useData(projectId, what, {
     ...params,
-    limit: 100,
+    limit: 100
   });
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || error) return;
     setIsLoading(true);
     tmpData.current = [...tmpData.current, ...data];
     if (nextPage) {
@@ -140,19 +137,28 @@ export function useAllData(
       setAllData(tmpData.current);
       setIsLoading(false);
     }
-  }, [data, nextPage]);
+  }, [data, error, nextPage]);
 
-  return { allData, isLoading };
+  return { allData, isLoading: isLoading && !error, error };
+}
+
+export function useAbstract(projectId: number, submissionId: number | undefined) {
+  const url = submissionId ? `/api/project/${projectId}/data/submission/${submissionId}` : null;
+  return useGET<{ abstract: string }>(url);
+}
+
+export function useReviewer(projectId: number, reviewerId: number) {
+  return useGET<Reviewer>(`/api/project/${projectId}/data/reviewer/${reviewerId}`);
 }
 
 // POST HELPERS
 export function useCreateProject() {
-  return usePOST<{ name: string }, Project>("/api/project");
+  return usePOST<{ name: string }, Project>('/api/project');
 }
 
 export function useUploadData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: 'submissions' | 'reviewers',
   params?: Record<string, any>
 ) {
   let url: string = `/api/project/${projectId}/data/${what}`;
@@ -168,7 +174,7 @@ export function useUploadData(
 
 export function useDeleteData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: 'submissions' | 'reviewers',
   params?: Record<string, any>
 ) {
   let url: string = `/api/project/${projectId}/data/${what}`;
@@ -178,5 +184,5 @@ export function useDeleteData(
     url += `?${urlParamsString}`;
   }
 
-  return usePOST<any, Project>(url, "DELETE");
+  return usePOST<any, Project>(url, 'DELETE');
 }

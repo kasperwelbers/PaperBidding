@@ -8,7 +8,7 @@ export default function ProjectLayout({
   params
 }: {
   children: React.ReactNode;
-  params: { project: number };
+  params: { project: number; reviewer?: number };
 }) {
   const { data: project, isLoading } = useProject(params.project);
 

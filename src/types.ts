@@ -1,8 +1,6 @@
 export type FeatureVector = number[];
-export type ModelStatus = "idle" | "loading" | "ready" | "error";
-export type FeatureExtractorCallback = (
-  featureVectors: FeatureVector[]
-) => void;
+export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type FeatureExtractorCallback = (featureVectors: FeatureVector[]) => void;
 export type ProgressCallback = (percent: number) => void;
 
 export interface Submission {
@@ -21,8 +19,22 @@ export interface DataPage {
   isLoading: boolean;
   page: number;
   n: number | undefined;
+  error: string | undefined;
   reset: () => void;
   setPage: (page: number) => void;
   nextPage?: () => void;
   prevPage?: () => void;
+}
+
+export interface Reviewer {
+  id: number;
+  email: string;
+  bids: number[];
+  submissionIds: number[];
+  coAuthorSubmissionIds: number[];
+}
+
+export interface GetSubmissions {
+  id: number;
+  title: string;
 }
