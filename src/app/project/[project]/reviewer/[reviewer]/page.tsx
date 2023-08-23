@@ -2,7 +2,6 @@
 
 import { Error } from '@/components/ui/error';
 import { Loading } from '@/components/ui/loading';
-import { Submission } from '@/drizzle/schema';
 import { useAbstract, useAllData, useProject, useReviewer } from '@/hooks/api';
 import { computeRelevantSubmissions } from '@/lib/computeRelevantSubmissions';
 import { GetSubmission } from '@/types';
@@ -13,7 +12,6 @@ import {
   FaChevronDown,
   FaChevronRight,
   FaClock,
-  FaQuestion,
   FaQuestionCircle
 } from 'react-icons/fa';
 import { GiVote } from 'react-icons/gi';
@@ -49,6 +47,12 @@ export default function Reviewer({ params }: { params: { project: number; review
     window.addEventListener('click', closePopup);
     return () => window.removeEventListener('click', closePopup);
   }, [selected, popupRef]);
+
+  console.log('isloading', isLoading);
+  console.log('error', error);
+  console.log('isloadingreviewer', isLoadingReviewer);
+  console.log('errorreviewer', errorReviewer);
+  console.log('relevantsubmissions', relevantSubmissions);
 
   if (isLoading) return <Loading msg="Loading Project" />;
   if (error) return <Error msg={error.message} />;

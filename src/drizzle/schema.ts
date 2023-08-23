@@ -88,6 +88,7 @@ export type NewAuthor = InferInsertModel<typeof authors>;
 
 export type Reviewer = InferSelectModel<typeof reviewers>;
 export type NewReviewer = InferInsertModel<typeof reviewers>;
+
 function getDB() {
   if (process.env.NEON_DATABASE_URL) {
     const queryClient = neon(process.env.NEON_DATABASE_URL || '');
