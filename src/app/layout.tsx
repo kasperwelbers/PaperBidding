@@ -1,22 +1,23 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 
-const inter = Inter({ subsets: ["latin"] });
+const font = Poppins({
+  weight: '400',
+  subsets: ['devanagari'],
+  display: 'swap'
+});
 
 export const metadata: Metadata = {
-  title: "Paper Bidding",
-  description: "Computational Methods Paper Bidding Tool",
+  title: 'Paper Bidding',
+  description: 'Computational Methods Paper Bidding Tool'
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`min-h-screen ${inter.className}`}>{children}</body>
+      <body className={`min-h-screen ${font.className}`}>{children}</body>
     </html>
   );
 }

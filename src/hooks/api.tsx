@@ -3,7 +3,7 @@ import useSWRMutation from 'swr/mutation';
 import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DataPage } from '@/types';
+import { DataPage, Reviewer } from '@/types';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -28,6 +28,45 @@ export function useGET<ResponseType>(url: string | null) {
   };
 
   return useSWR<ResponseType>(url ? [url, token] : null, fetcher, {
+    revalidateOnFocus: false
+  });
+}
+
+/** Wrapper for useSWR that paginates
+ */
+export function useGETPagionation<ResponseType>(url: string | null) {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+
+  const fetcher = async ([url, token]: any) => {
+    if (!token) throw new Error('No token provided');
+    const limit = 100;
+    let offset = 0;
+
+    const allData: ResponseType[] = [];
+    while (true) {
+      if (offset > 10000) throw new Error('Too many rows');
+      const urlWithOffset = `${url}?offset=${offset}&limit=${limit}`;
+
+      try {
+        const res = await fetch(urlWithOffset, {
+          method: 'GET',
+          headers: { Authorization: token }
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        allData.push(...data.rows);
+        if (allData.length >= data.meta.count) break;
+        offset += limit;
+      } catch (e) {
+        console.log(e);
+        throw new Error('Failed to get data');
+      }
+    }
+    return allData;
+  };
+
+  return useSWR<ResponseType[]>(url ? [url, token] : null, fetcher, {
     revalidateOnFocus: false
   });
 }
@@ -114,32 +153,8 @@ export function useData(
     error: error?.message || ''
   };
 }
-export function useAllData(
-  projectId: number,
-  what: 'submissions' | 'reviewers',
-  params: Record<string, any> = {}
-) {
-  const [allData, setAllData] = useState<Record<string, any>[] | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
-  const tmpData = useRef<Record<string, any>[]>([]);
-  const { data, error, nextPage } = useData(projectId, what, {
-    ...params,
-    limit: 100
-  });
-
-  useEffect(() => {
-    if (!data || error) return;
-    setIsLoading(true);
-    tmpData.current = [...tmpData.current, ...data];
-    if (nextPage) {
-      nextPage();
-    } else {
-      setAllData(tmpData.current);
-      setIsLoading(false);
-    }
-  }, [data, error, nextPage]);
-
-  return { allData, isLoading: isLoading && !error, error };
+export function useAllData<ResponseType>(projectId: number, what: 'submissions' | 'reviewers') {
+  return useGETPagionation<ResponseType>(`/api/project/${projectId}/data/${what}`);
 }
 
 export function useAbstract(projectId: number, submissionId: number | undefined) {
@@ -167,7 +182,6 @@ export function useUploadData(
     const urlParamsString = urlParams.toString();
     url += `?${urlParamsString}`;
   }
-  console.log(url);
 
   return usePOST<{ data: Record<string, any>[] }, Project>(url);
 }

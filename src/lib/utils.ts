@@ -6,12 +6,13 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // https://dev.to/noclat/fixing-too-many-connections-errors-with-database-clients-stacking-in-dev-mode-with-next-js-3kpm
-export function registerService(name, initFn) {
+export function registerService(name: string, initFn: any) {
+  const anyGlobal = global as any;
   if (process.env.NODE_ENV === 'development') {
     if (!(name in global)) {
-      global[name] = initFn();
+      anyGlobal[name] = initFn();
     }
-    return global[name];
+    return anyGlobal[name];
   }
   return initFn();
 }

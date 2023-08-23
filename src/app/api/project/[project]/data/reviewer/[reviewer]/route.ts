@@ -1,4 +1,4 @@
-import db, { authors, submissions } from '@/drizzle/schema';
+import db, { authors, submissions, Submission } from '@/drizzle/schema';
 import { authenticateReviewer } from '@/lib/authenticate';
 
 import { and, eq, inArray } from 'drizzle-orm';
@@ -17,12 +17,12 @@ export async function GET(
     return NextResponse.json({}, { status: 404, statusText: 'Invalid project X reviewer' });
 
   const ownSubmissions = await db
-    .select({ id: submissions.id, externalId: submissions.submissionId })
+    .select({ id: submissions.id, submissionId: submissions.submissionId })
     .from(authors)
     .leftJoin(submissions, eq(authors.submissionId, submissions.submissionId))
     .where(and(eq(authors.projectId, projectId), eq(authors.email, reviewer.email)));
 
-  const submissionExternalIds = ownSubmissions.map((s) => s.externalId);
+  const submissionExternalIds = ownSubmissions.map((s: Submission) => s.submissionId);
 
   const coAuthors = db
     .selectDistinct({ email: authors.email })
@@ -40,7 +40,7 @@ export async function GET(
     id: reviewer.id,
     email: reviewer.email,
     bids: [],
-    submissionIds: ownSubmissions.map((s) => s.id),
-    coAuthorSubmissionIds: coAuthorSubmissions.map((s) => s.id)
+    submissionIds: ownSubmissions.map((s: Submission) => s.id),
+    coAuthorSubmissionIds: coAuthorSubmissions.map((s: Submission) => s.id)
   });
 }

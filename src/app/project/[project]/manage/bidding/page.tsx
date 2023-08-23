@@ -2,11 +2,12 @@
 
 import { Error } from '@/components/ui/error';
 import { useAllData } from '@/hooks/api';
+import { GetReviewer } from '@/types';
 
 export default function Bidding({ params }: { params: { project: number } }) {
-  const { allData, isLoading, error } = useAllData(params.project, 'reviewers');
+  const { data, isLoading, error } = useAllData<GetReviewer>(params.project, 'reviewers');
 
-  if (error) return <Error msg={error} />;
+  if (error) return <Error msg={error.message} />;
 
   return (
     <div className="flex flex-col ">
@@ -21,9 +22,9 @@ export default function Bidding({ params }: { params: { project: number } }) {
             </tr>
           </thead>
           <tbody>
-            {allData?.map((reviewer) => {
+            {data?.map((reviewer) => {
               return (
-                <tr>
+                <tr key={reviewer.email}>
                   <td>{reviewer.email}</td>
                   <td>
                     <a href={reviewer.link}>{reviewer.link}</a>

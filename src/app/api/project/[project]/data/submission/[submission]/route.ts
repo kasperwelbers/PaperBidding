@@ -11,7 +11,8 @@ export async function GET(
     .select({ abstract: submissions.abstract, token: projects.readToken })
     .from(submissions)
     .leftJoin(projects, eq(submissions.projectId, projects.id))
-    .where(eq(submissions.id, Number(params.submission)));
+    .where(eq(submissions.id, Number(params.submission)))
+    .orderBy(submissions.id);
 
   if (abstracts.length === 0)
     return NextResponse.json({}, { status: 404, statusText: 'Submission not found' });

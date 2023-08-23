@@ -1,4 +1,11 @@
-import db, { NewSubmission, NewAuthor, submissions, reviewers, authors } from '@/drizzle/schema';
+import db, {
+  NewSubmission,
+  NewAuthor,
+  NewReviewer,
+  submissions,
+  reviewers,
+  authors
+} from '@/drizzle/schema';
 import { authenticateProject } from '@/lib/authenticate';
 import { SubmissionsSchema } from '@/zodSchemas';
 import cryptoRandomString from 'crypto-random-string';
@@ -36,6 +43,7 @@ export async function GET(req: Request, { params }: { params: { project: number 
       features: selection.features
     })
     .from(selection)
+    .orderBy(selection.id)
     .offset(offset)
     .limit(limit);
   const metaPromise = db

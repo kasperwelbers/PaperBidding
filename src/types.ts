@@ -34,7 +34,15 @@ export interface Reviewer {
   coAuthorSubmissionIds: number[];
 }
 
-export interface GetSubmissions {
+export interface GetReviewer {
+  id: number;
+  email: string;
+  link: string;
+}
+
+export interface GetSubmission {
   id: number;
   title: string;
+  features: FeatureVector;
+  meanSimilarity?: number;
 }
