@@ -15,10 +15,7 @@ const tabs: Tab[] = ['submissions', 'volunteers', 'references'];
 export default function ProjectPage({ params }: { params: { project: number } }) {
   const { data: project, isLoading, error } = useProject(params.project);
   const router = useRouter();
-  const [status, setStatus] = useState({
-    submissions: false,
-    volunteers: false
-  });
+  const [status, setStatus] = useState<Record<string, boolean>>();
   if (isLoading) return <Loading msg="Loading Project" />;
   if (error) return <Error msg={error.message} />;
   if (!project) return null; //shouldn't happen, but typescript
@@ -44,7 +41,7 @@ export default function ProjectPage({ params }: { params: { project: number } })
           </p>
         </div>
         <Button
-          disabled={!status.submissions}
+          disabled={!status?.submissions}
           className="w-full"
           onClick={() =>
             router.push(`/project/${project.id}/manage/bidding?token=${project.editToken}`)
@@ -53,7 +50,7 @@ export default function ProjectPage({ params }: { params: { project: number } })
           Manage bidding
         </Button>
         <p className="text-red-600">
-          {status.submissions ? '' : 'Need to upload submissions first'}
+          {!status || status.submissions ? '' : 'Need to upload submissions first'}
         </p>
       </div>
       <UploadData projectId={params.project} setStatus={setStatus} />

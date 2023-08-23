@@ -17,7 +17,7 @@ export default function UploadData({
   setStatus
 }: {
   projectId: number;
-  setStatus: ({ volunteers, submissions }: { volunteers: boolean; submissions: boolean }) => void;
+  setStatus: (status: Record<string, boolean>) => void;
 }) {
   const { modelStatus, extractFeatures } = useFeatureExtractor();
   const [selectedTab, setSelectedTab] = useState<Tab>('submissions');
@@ -29,12 +29,12 @@ export default function UploadData({
   const data = { submissions, volunteers, references };
 
   useEffect(() => {
+    if (submissions.isLoading) return;
     const status = {
-      submissions: (submissions?.data?.length || 0) > 0,
-      volunteers: (volunteers?.data?.length || 0) > 0
+      submissions: (submissions?.data?.length || 0) > 0
     };
     setStatus(status);
-  }, [submissions.data, volunteers.data, setStatus]);
+  }, [submissions.isLoading, submissions.data, setStatus]);
 
   if (isLoading) return <Loading msg="Loading Project" />;
   if (error) return <Error msg={error.message} />;

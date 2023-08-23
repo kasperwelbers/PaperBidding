@@ -129,3 +129,12 @@ p {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

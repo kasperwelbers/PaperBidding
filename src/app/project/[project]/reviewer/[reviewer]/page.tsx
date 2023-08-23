@@ -65,6 +65,32 @@ export default function Reviewer({ params }: { params: { project: number; review
     setPage(Math.max(1, page - 1));
   }
 
+  const pagination = (
+    <div
+      className={`Pagination flex justify-end items-center p-2 pr-5 pt-0 md:pt-2 gap-1 md:gap-3 `}
+    >
+      <FaArrowLeft
+        className={`w-6 h-6  ${
+          page === 1
+            ? 'cursor-default text-gray-300'
+            : 'cursor-pointer text-blue-500 hover:text-blue-700'
+        }`}
+        onClick={prevPage}
+      />
+      <span className="font-bold min-w-[7rem] text-center select-none">
+        Page {page} / {nPages}
+      </span>
+      <FaArrowRight
+        className={`w-6 h-6  ${
+          page === nPages
+            ? 'cursor-default text-gray-300'
+            : 'cursor-pointer text-blue-500 hover:text-blue-700'
+        }`}
+        onClick={nextPage}
+      />
+    </div>
+  );
+
   return (
     <div className="relative flex flex-col h-screen">
       <header className="flex  z-20 px-1 sticky top-0 w-full justify-center bg-foreground  text-white">
@@ -73,32 +99,9 @@ export default function Reviewer({ params }: { params: { project: number; review
             <h5 className="m-0">{project?.name || ''}</h5>
             <span className="italic">{reviewer?.email}</span>
           </div>
-          <div
-            className={`Pagination flex justify-end items-center p-2 pr-5 pt-0 md:pt-2 gap-1 md:gap-3 `}
-          >
-            <FaArrowLeft
-              className={`w-6 h-6  ${
-                page === 1
-                  ? 'cursor-default text-gray-500'
-                  : 'cursor-pointer text-blue-200 hover:text-blue-400'
-              }`}
-              onClick={prevPage}
-            />
-            <span className="font-bold min-w-[7rem] text-center select-none">
-              Page {page} / {nPages}
-            </span>
-            <FaArrowRight
-              className={`w-6 h-6  ${
-                page === nPages
-                  ? 'cursor-default text-gray-500'
-                  : 'cursor-pointer text-blue-200 hover:text-blue-400'
-              }`}
-              onClick={nextPage}
-            />
-          </div>
         </div>
       </header>
-      <div className="mt-3 max-h-full grid grid-cols-[auto,1fr] gap-1 md:gap-5 p-1 md:p-3 overflow-hidden">
+      <div className="mt-3 h-full grid grid-cols-[auto,1fr] gap-1 md:gap-5 p-1 md:p-3 overflow-hidden">
         <div className="grid auto-rows-min justify-center  max-h-full md:pr-3 w-12 md:w-20">
           <div>
             <GiVote className="w-8 h-8 md:w-12 md:h-12 mb-2" />
@@ -107,7 +110,7 @@ export default function Reviewer({ params }: { params: { project: number; review
             return (
               <div
                 key={id}
-                className={`relative border-2 rounded border-primary px-1 md:px-2 mt-1 cursor-pointer text-center ${
+                className={`animate-fade-in  relative border-2 rounded border-primary px-1 md:px-2 mt-1 cursor-pointer text-center ${
                   focusSelected === id ? 'bg-blue-300' : 'hover:bg-blue-300'
                 }`}
                 onClick={(e) => {
@@ -121,11 +124,11 @@ export default function Reviewer({ params }: { params: { project: number; review
           })}
         </div>
         <div
-          className={`flex justify-center overflow-auto max-h-full ${
+          className={`flex justify-center h-full overflow-auto max-h-full ${
             focusSelected ? 'blur-[2px] opacity-50' : ''
           }`}
         >
-          <div className="">
+          <div className="flex flex-col">
             <div className="relative flex gap-3 items-start select-none">
               <h5>Select X submissions that you would be willing to review </h5>
               <div className="peer">
@@ -152,6 +155,7 @@ export default function Reviewer({ params }: { params: { project: number; review
                 </p>
               </div>
             </div>
+            <div className="flex justify-center">{pagination}</div>
             {pageData?.map((submission) => {
               return (
                 <SubmissionItem
@@ -163,6 +167,7 @@ export default function Reviewer({ params }: { params: { project: number; review
                 />
               );
             })}
+            <div className="flex justify-center mt-auto">{pagination}</div>
           </div>
         </div>
         <div
@@ -237,7 +242,9 @@ function SubmissionItem({ projectId, submission, selected, setSelected }: Submis
       </div>
       {/* <div className="flex flex-col"> */}
       <h6
-        className="cursor-pointer mb-0 hyphens-auto break-words whitespace-break-spaces"
+        className={`cursor-pointer mb-0 hyphens-auto break-words whitespace-break-spaces ${
+          showAbstract ? '' : 'font-normal'
+        }`}
         onClick={onClick}
       >
         {submission.title}
@@ -253,7 +260,9 @@ function SubmissionItem({ projectId, submission, selected, setSelected }: Submis
           }  relative transition-all overflow-hidden  text-justify  whitespace-break-spaces hyphens-auto break-words  ${fadeOutBefore} ${fadeOutAfter}`}
         >
           {abstractData ? (
-            <p className={`pb-4 pt-1 mb-0  overflow-auto pr-2 `}>{abstractData.abstract}</p>
+            <p className={`pb-4 pt-1 mb-0  overflow-auto pr-2 italic text-blue-900 `}>
+              {abstractData.abstract}
+            </p>
           ) : null}
         </div>
       </div>
