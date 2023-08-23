@@ -1,12 +1,11 @@
 import { config } from 'dotenv';
-import { InferModel } from 'drizzle-orm';
+import { type InferSelectModel, type InferInsertModel } from 'drizzle-orm';
 import {
   boolean,
   foreignKey,
   integer,
   jsonb,
   pgTable,
-  primaryKey,
   serial,
   text,
   timestamp,
@@ -30,11 +29,6 @@ export const projects = pgTable('projects', {
   editToken: varchar('edit_token', { length: 32 }).notNull()
 });
 
-// export const projectsRelations = relations(projects, ({ many }) => ({
-//   submissions: many(submissions),
-//   reviewers: many(reviewers)
-// }));
-
 export const submissions = pgTable(
   'submissions',
   {
@@ -55,14 +49,6 @@ export const submissions = pgTable(
   }
 );
 
-// export const submissionsRelations = relations(submissions, ({ one, many }) => ({
-//   project: one(projects, {
-//     fields: [submissions.projectId],
-//     references: [projects.id]
-//   }),
-//   authors: many(authors)
-// }));
-
 export const authors = pgTable(
   'authors',
   {
@@ -81,14 +67,6 @@ export const authors = pgTable(
   }
 );
 
-// export const authorsRelations = relations(authors, ({ one }) => ({
-//   submissions: one(submissions, {
-//     fields: [authors.submissionId],
-//     references: [submissions.id]
-//   }),
-//   reviewers:
-// }));
-
 export const reviewers = pgTable('reviewers', {
   id: serial('id').primaryKey(),
   projectId: integer('project_id')
@@ -99,26 +77,17 @@ export const reviewers = pgTable('reviewers', {
   importedFrom: varchar('imported_from', { length: 256 })
 });
 
-// export const reviewersRelations = relations(reviewers, ({ one }) => ({
-//   project: one(projects, {
-//     fields: [reviewers.projectId],
-//     references: [projects.id]
-//   }),
-//   submissions:
-// }));
+export type Project = InferSelectModel<typeof projects>;
+export type NewProject = InferInsertModel<typeof projects>;
 
-export type Project = InferModel<typeof projects>;
-export type NewProject = InferModel<typeof projects, 'insert'>;
+export type Submission = InferSelectModel<typeof submissions>;
+export type NewSubmission = InferInsertModel<typeof submissions>;
 
-export type Submission = InferModel<typeof submissions>;
-export type NewSubmission = InferModel<typeof submissions, 'insert'>;
+export type Author = InferSelectModel<typeof authors>;
+export type NewAuthor = InferInsertModel<typeof authors>;
 
-export type Author = InferModel<typeof authors>;
-export type NewAuthor = InferModel<typeof authors, 'insert'>;
-
-export type Reviewer = InferModel<typeof reviewers>;
-export type NewReviewer = InferModel<typeof reviewers, 'insert'>;
-
+export type Reviewer = InferSelectModel<typeof reviewers>;
+export type NewReviewer = InferInsertModel<typeof reviewers>;
 function getDB() {
   if (process.env.NEON_DATABASE_URL) {
     const queryClient = neon(process.env.NEON_DATABASE_URL || '');
