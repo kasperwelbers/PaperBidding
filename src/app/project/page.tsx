@@ -24,7 +24,7 @@ export default function ProjectsPage() {
   if (isLoading) return <Loading />;
   if (error) return <Error msg={error.message} />;
   if (!projects) return null; // shouldn't happen, but typescript
-  if (creating) return <Loading msg={`Creating ${name} project`} />;
+  if (creating) return <Loading msg={`Creating new project`} />;
 
   return (
     <main className="flex min-h-screen p-12 gap-3 items-center justify-center">
@@ -37,7 +37,7 @@ export default function ProjectsPage() {
           onSubmit={(e) => {
             e.preventDefault();
             setCreating(true);
-            createProject({ name })
+            createProject({ name: name.replaceAll(' ', '_') })
               .then(async (res) => {
                 const project = await res.json();
                 onSelect(project);
@@ -55,9 +55,10 @@ export default function ProjectsPage() {
               if (projects.find((p: Project) => p.name === e.target.value)) {
                 e.target.setCustomValidity('Project already exists');
               }
-              console.log(projects);
-              if (!/^[a-zA-Z0-9_-]+$/.test(e.target.value)) {
-                e.target.setCustomValidity('Only letters, numbers, - and _ allowed');
+              if (!/^[a-zA-Z0-9_ -]+$/.test(e.target.value)) {
+                e.target.setCustomValidity(
+                  'Only letters, numbers, dashes, underscores and spaces are allowed'
+                );
               }
               setName(e.target.value);
             }}

@@ -26,6 +26,7 @@ export default function Reviewer({ params }: { params: { project: number; review
   const [focusSelected, setFocusSelected] = useState<number>();
   const [page, setPage] = useState(1);
   const { data: project } = useProject(params.project);
+  const projectName = project?.name || '';
   const {
     data: reviewer,
     isLoading: isLoadingReviewer,
@@ -54,7 +55,7 @@ export default function Reviewer({ params }: { params: { project: number; review
   console.log('errorreviewer', errorReviewer);
   console.log('relevantsubmissions', relevantSubmissions);
 
-  if (isLoading) return <Loading msg="Loading Project" />;
+  if (isLoading) return <Loading msg="Loading Submissions" />;
   if (error) return <Error msg={error.message} />;
   if (isLoadingReviewer) return <Loading msg="Loading Reviewer" />;
   if (errorReviewer) return <Error msg={errorReviewer.message} />;
@@ -100,7 +101,7 @@ export default function Reviewer({ params }: { params: { project: number; review
       <header className="flex  z-20 px-1 sticky top-0 w-full justify-center bg-foreground  text-white">
         <div className="flex flex-col md:flex-row w-full justify-between">
           <div className="flex flex-wrap md:flex-col p-2 gap-x-3 justify-between ">
-            <h5 className="m-0">{project?.name || ''}</h5>
+            <h5 className="m-0">{projectName.replaceAll('_', ' ')}</h5>
             <span className="italic">{reviewer?.email}</span>
           </div>
         </div>
