@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server';
 import cryptoRandomString from 'crypto-random-string';
 import db, { projects } from '@/drizzle/schema';
 import { authenticateAdmin } from '@/lib/authenticate';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth/authOptions';
 
 export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user.email) return NextResponse.json({}, { status: 401 });
+
+  console.log(session);
   authenticateAdmin(req);
 
   const projectList = await db.select().from(projects);

@@ -14,7 +14,7 @@ export function useGET<ResponseType>(url: string | null) {
   const token = searchParams.get('token');
 
   const fetcher = ([url, token]: any) => {
-    if (!token) throw new Error('No token provided');
+    //if (!token) throw new Error('No token provided');
     return fetch(url, {
       method: 'GET',
       headers: { Authorization: token }

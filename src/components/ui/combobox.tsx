@@ -28,6 +28,8 @@ export function Combobox({
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState('');
 
+  if (items.length === 0) return <p className="text-center">No {label} found &#x1F97A;</p>;
+
   React.useEffect(() => {
     if (controlledValue) setValue(controlledValue);
   }, [controlledValue]);
