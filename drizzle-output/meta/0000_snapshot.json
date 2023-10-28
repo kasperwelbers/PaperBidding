@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "0213f483-8c27-439d-a94d-915efdc51449",
+  "id": "0f04892d-c08f-45f7-971f-d9fd67ba90e8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "authors": {
@@ -29,12 +29,6 @@
         "email": {
           "name": "email",
           "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true
         }
@@ -137,12 +131,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "is_volunteer": {
-          "name": "is_volunteer",
-          "type": "boolean",
+        "imported_from": {
+          "name": "imported_from",
+          "type": "varchar(256)",
           "primaryKey": false,
-          "notNull": true,
-          "default": false
+          "notNull": false
         }
       },
       "indexes": {},

@@ -17,7 +17,6 @@ import { neon } from '@neondatabase/serverless';
 import postgres from 'postgres';
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http';
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
-import { registerService } from '@/lib/utils';
 
 config({ path: '.env.local' });
 
@@ -77,6 +76,16 @@ export const reviewers = pgTable('reviewers', {
   importedFrom: varchar('imported_from', { length: 256 })
 });
 
+export const biddings = pgTable('bids', {
+  id: serial('id').primaryKey(),
+  reviewerId: integer('reviewer_id')
+    .notNull()
+    .references(() => reviewers.id, { onDelete: 'cascade' }),
+  submissionId: integer('submission_id')
+    .notNull()
+    .references(() => submissions.id, { onDelete: 'cascade' })
+});
+
 export type Project = InferSelectModel<typeof projects>;
 export type NewProject = InferInsertModel<typeof projects>;
 
@@ -99,6 +108,18 @@ function getDB() {
     const db = drizzlePostgres(queryClient);
     return db;
   }
+}
+
+// https://dev.to/noclat/fixing-too-many-connections-errors-with-database-clients-stacking-in-dev-mode-with-next-js-3kpm
+function registerService(name: string, initFn: any) {
+  const anyGlobal = global as any;
+  if (process.env.NODE_ENV === 'development') {
+    if (!(name in global)) {
+      anyGlobal[name] = initFn();
+    }
+    return anyGlobal[name];
+  }
+  return initFn();
 }
 
 const db = registerService('db', getDB);

@@ -39,7 +39,7 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between text-left "
+          className="w-full justify-between text-left"
         >
           <div className="whitespace-nowrap overflow-hidden overflow-ellipsis">
             {value || `Select ${label}...`}

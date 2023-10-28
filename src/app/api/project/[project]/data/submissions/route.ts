@@ -56,7 +56,8 @@ export async function GET(req: Request, { params }: { params: { project: number 
 }
 
 export async function POST(req: Request, { params }: { params: { project: number } }) {
-  await authenticateProject(req, params.project, true);
+  const { editRight, error } = await authenticateProject(req, params.project, true);
+  if (error) return error;
   const { data } = await req.json();
   const searchParams = new URL(req.url).searchParams;
   const reference = !!searchParams.get('reference');

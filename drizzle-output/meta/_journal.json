@@ -5,29 +5,15 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1692197990006,
-      "tag": "0000_abandoned_manta",
+      "when": 1697881534174,
+      "tag": "0000_empty_puff_adder",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "5",
-      "when": 1692198837659,
-      "tag": "0001_tearful_gateway",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1692200172980,
-      "tag": "0002_purple_human_torch",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1692203233091,
-      "tag": "0003_common_dexter_bennett",
+      "when": 1697885405684,
+      "tag": "0001_thin_retro_girl",
       "breakpoints": true
     }
   ]

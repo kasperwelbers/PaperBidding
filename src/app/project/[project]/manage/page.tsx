@@ -26,9 +26,9 @@ export default function ProjectPage({ params }: { params: { project: number } })
         <h3>Preparing a project</h3>
         <div className="max-w-xl py-3">
           <p>
-            A project first and foremost requires submissions to bid on. To upload submissions, you
-            should have a CSV file in which each row is an abstract-author pair (so multipe rows per
-            abstract if it has multiple authors).
+            A project requires submissions to bid on. To upload submissions, you should have a CSV
+            file in which each row is an abstract-author pair (so multipe rows per abstract if it
+            has multiple authors).
           </p>
           <p>
             By default, every submission author is considered as a possible reviewer. Alternatively,

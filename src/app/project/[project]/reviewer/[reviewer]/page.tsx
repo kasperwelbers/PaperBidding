@@ -2,19 +2,13 @@
 
 import { Error } from '@/components/ui/error';
 import { Loading } from '@/components/ui/loading';
-import { useAbstract, useAllData, useProject, useReviewer } from '@/hooks/api';
+import { useAllData, useProject, useReviewer } from '@/hooks/api';
 import { computeRelevantSubmissions } from '@/lib/computeRelevantSubmissions';
 import { GetSubmission } from '@/types';
-import { SetStateAction, useEffect, useMemo, useRef, useState, Dispatch } from 'react';
-import {
-  FaArrowLeft,
-  FaArrowRight,
-  FaChevronDown,
-  FaChevronRight,
-  FaClock,
-  FaQuestionCircle
-} from 'react-icons/fa';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from 'react-icons/fa';
 import { GiVote } from 'react-icons/gi';
+import SubmissionItem from './SubmissionItem';
 
 export default function Reviewer({ params }: { params: { project: number; reviewer: number } }) {
   const {
@@ -48,12 +42,6 @@ export default function Reviewer({ params }: { params: { project: number; review
     window.addEventListener('click', closePopup);
     return () => window.removeEventListener('click', closePopup);
   }, [selected, popupRef]);
-
-  console.log('isloading', isLoading);
-  console.log('error', error);
-  console.log('isloadingreviewer', isLoadingReviewer);
-  console.log('errorreviewer', errorReviewer);
-  console.log('relevantsubmissions', relevantSubmissions);
 
   if (isLoading) return <Loading msg="Loading Submissions" />;
   if (error) return <Error msg={error.message} />;
@@ -187,88 +175,6 @@ export default function Reviewer({ params }: { params: { project: number; review
             selected={selected}
             setSelected={setSelected}
           />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface SubmissionProps {
-  projectId: number;
-  submission?: GetSubmission;
-  selected: Set<number>;
-  setSelected: Dispatch<SetStateAction<Set<number>>>;
-}
-
-function SubmissionItem({ projectId, submission, selected, setSelected }: SubmissionProps) {
-  const [submissionId, setSubmissionId] = useState<number>();
-  const [showAbstract, setShowAbstract] = useState(false);
-  const { data: abstractData, isLoading } = useAbstract(projectId, submissionId);
-
-  async function onClick() {
-    if (!submission) return;
-    if (submissionId === undefined) setSubmissionId(submission.id);
-    setShowAbstract(!showAbstract);
-  }
-
-  async function onCheckboxClick() {
-    setSelected((prev: Set<number>) => {
-      if (!submission) return prev;
-      const newSet = new Set(prev);
-      if (newSet.has(submission.id)) {
-        newSet.delete(submission.id);
-      } else {
-        newSet.add(submission.id);
-      }
-      return newSet;
-    });
-  }
-
-  const fadeOutBefore =
-    'before:absolute before:content-[""] before:left-0 before:top-0 before:w-[calc(100%-10px)] before:h-2 before:bg-gradient-to-t from-transparent to-white';
-  const fadeOutAfter =
-    'after:absolute after:content-[""] after:left-0 after:bottom-0 after:w-[calc(100%-10px)] after:h-8 after:bg-gradient-to-b from-transparent to-white ';
-
-  if (!submission) return null;
-
-  return (
-    <div
-      key={submission.id}
-      id={String(submission.id)}
-      className="grid grid-rows-[auto,auto] grid-cols-[auto,1fr,auto] max-w-xl gap-x-3 md:gap-x-6 pt-3 pb-2 "
-    >
-      <div className="">
-        <input
-          type="checkbox"
-          checked={selected.has(submission.id)}
-          onChange={onCheckboxClick}
-          className="w-4 h-4 mt-[0.35rem] md:w-8 md:h-8"
-        />
-      </div>
-      {/* <div className="flex flex-col"> */}
-      <h6
-        className={`cursor-pointer mb-0 hyphens-auto break-words whitespace-break-spaces ${
-          showAbstract ? '' : 'font-normal'
-        }`}
-        onClick={onClick}
-      >
-        {submission.title}
-      </h6>
-      {/* </div> */}
-      <div className="h-4 w-4 mt-1">
-        {isLoading ? <FaClock /> : showAbstract ? <FaChevronDown /> : <FaChevronRight />}
-      </div>
-      <div className={` flex items-center col-start-2 col-end-4 m-0 mt-1`}>
-        <div
-          className={`grid  ${
-            showAbstract && abstractData ? 'grid-rows-[15rem]' : 'grid-rows-[0rem]'
-          }  relative transition-all overflow-hidden  text-justify  whitespace-break-spaces hyphens-auto break-words  ${fadeOutBefore} ${fadeOutAfter}`}
-        >
-          {abstractData ? (
-            <p className={`pb-4 pt-1 mb-0  overflow-auto pr-2 italic text-blue-900 `}>
-              {abstractData.abstract}
-            </p>
-          ) : null}
         </div>
       </div>
     </div>

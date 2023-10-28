@@ -171,6 +171,12 @@ export function useCreateProject() {
   return usePOST<{ name: string }, Project>('/api/project');
 }
 
+export function useBid(projectId: number, reviewerId: number) {
+  return usePOST<{ submission: number; delete: boolean }, { success: boolean }>(
+    `/api/project/${projectId}/data/reviewer/${reviewerId}/bid`
+  );
+}
+
 export function useUploadData(
   projectId: number,
   what: 'submissions' | 'reviewers',
