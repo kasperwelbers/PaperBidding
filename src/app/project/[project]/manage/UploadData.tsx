@@ -23,6 +23,7 @@ export default function UploadData({
   const [selectedTab, setSelectedTab] = useState<Tab>('submissions');
 
   const { data: project, isLoading, error } = useProject(projectId);
+  console.log(project);
   const submissions = useData(projectId, 'submissions');
   const references = useData(projectId, 'submissions', { reference: true });
   const volunteers = useData(projectId, 'reviewers', { volunteer: true });

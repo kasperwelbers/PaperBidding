@@ -2,17 +2,14 @@ import useSWR, { Fetcher } from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { DataPage, Reviewer } from '@/types';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
  * - sets a type parameter for the return type
  */
-export function useGET<ResponseType>(url: string | null) {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-
+export function useGET<ResponseType>(url: string | null, token?: string) {
   const fetcher = ([url, token]: any) => {
     //if (!token) throw new Error('No token provided');
     return fetch(url, {
@@ -34,12 +31,9 @@ export function useGET<ResponseType>(url: string | null) {
 
 /** Wrapper for useSWR that paginates
  */
-export function useGETPagionation<ResponseType>(url: string | null) {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-
+export function useGETPagionation<ResponseType>(url: string | null, token?: string) {
   const fetcher = async ([url, token]: any) => {
-    if (!token) throw new Error('No token provided');
+    //if (!token) throw new Error('No token provided');
     const limit = 100;
     let offset = 0;
 
@@ -77,16 +71,15 @@ export function useGETPagionation<ResponseType>(url: string | null) {
  * @param url
  * @returns
  */
-export function usePOST<BodyType, ResponseType>(url: string, method: string = 'POST') {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-
+export function usePOST<BodyType, ResponseType>(
+  url: string,
+  method: string = 'POST',
+  token?: string
+) {
   function fetcher([url, token]: any, { arg }: { arg: BodyType }) {
-    if (!token) throw new Error('No token provided');
-
     return fetch(url, {
       method: method,
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `${token}` },
       body: JSON.stringify(arg)
     });
   }
@@ -98,9 +91,9 @@ export function usePOST<BodyType, ResponseType>(url: string, method: string = 'P
 export function useProjects() {
   return useGET<Project[]>('/api/project');
 }
-export function useProject(id: number, edit?: boolean) {
-  const url = edit ? `/api/project/${id}?edit=true` : `/api/project/${id}`;
-  return useGET<Project>(url);
+
+export function useProject(id: number) {
+  return useGET<Project>(`/api/project/${id}`);
 }
 
 interface DataResponse {
@@ -153,17 +146,26 @@ export function useData(
     error: error?.message || ''
   };
 }
-export function useAllData<ResponseType>(projectId: number, what: 'submissions' | 'reviewers') {
-  return useGETPagionation<ResponseType>(`/api/project/${projectId}/data/${what}`);
+export function useAllData<ResponseType>(
+  projectId: number,
+  what: 'submissions' | 'reviewers' | 'submissions_meta',
+  token?: string
+) {
+  let url = `/api/project/${projectId}/data/${what}`;
+  if (what === 'submissions_meta') {
+    url = `/api/project/${projectId}/data/submissions?meta=true`;
+  }
+
+  return useGETPagionation<ResponseType>(url, token);
 }
 
-export function useAbstract(projectId: number, submissionId: number | undefined) {
+export function useAbstract(projectId: number, submissionId: number | undefined, token: string) {
   const url = submissionId ? `/api/project/${projectId}/data/submission/${submissionId}` : null;
-  return useGET<{ abstract: string }>(url);
+  return useGET<{ abstract: string }>(url, token);
 }
 
-export function useReviewer(projectId: number, reviewerId: number) {
-  return useGET<Reviewer>(`/api/project/${projectId}/data/reviewer/${reviewerId}`);
+export function useReviewer(projectId: number, reviewerId: number, token: string) {
+  return useGET<Reviewer>(`/api/project/${projectId}/data/reviewer/${reviewerId}`, token);
 }
 
 // POST HELPERS
@@ -171,9 +173,11 @@ export function useCreateProject() {
   return usePOST<{ name: string }, Project>('/api/project');
 }
 
-export function useBid(projectId: number, reviewerId: number) {
-  return usePOST<{ submission: number; delete: boolean }, { success: boolean }>(
-    `/api/project/${projectId}/data/reviewer/${reviewerId}/bid`
+export function usePostBiddings(projectId: number, reviewerId: number, token: string) {
+  return usePOST<{}, { selected: number[] }>(
+    `/api/project/${projectId}/data/reviewer/${reviewerId}/bid`,
+    'POST',
+    token
   );
 }
 

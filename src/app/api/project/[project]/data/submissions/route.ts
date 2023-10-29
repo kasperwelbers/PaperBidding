@@ -6,26 +6,30 @@ import db, {
   reviewers,
   authors
 } from '@/drizzle/schema';
-import { authenticateProject } from '@/lib/authenticate';
+import { authenticate, authenticateReviewer, canEditProject } from '@/lib/authenticate';
 import { SubmissionsSchema } from '@/zodSchemas';
 import cryptoRandomString from 'crypto-random-string';
 import { sql, and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request, { params }: { params: { project: number } }) {
-  const { editRight, error } = await authenticateProject(req, params.project, false);
-  if (error) return error;
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
   const searchParams = new URL(req.url).searchParams;
+
   const offset = Number(searchParams.get('offset')) || 0;
   const limit = Number(searchParams.get('limit')) || 10;
   const reference = !!searchParams.get('reference');
+  const metadata = !!searchParams.get('meta');
 
-  if (!editRight && reference) {
-    // project read token can only be used to get the normal submissions
-    return NextResponse.json(
-      { error: 'not authorized' },
-      { status: 403, statusText: 'not authorized' }
-    );
+  if (!canEdit) {
+    // reviewers can also GET submission, but not the reference submissions,
+    // and not the meta
+    const reviewer = await authenticateReviewer(req);
+    if (!reviewer || reference || metadata)
+      return NextResponse.json({ error: 'not authorized' }, { status: 403 });
   }
 
   const selection = db.$with('sq').as(
@@ -35,13 +39,19 @@ export async function GET(req: Request, { params }: { params: { project: number 
       .where(and(eq(submissions.isReference, reference), eq(submissions.projectId, params.project)))
   );
 
+  const fields: any = {
+    id: selection.id,
+    title: selection.title
+  };
+  if (metadata) {
+    fields.submissionId = selection.submissionId;
+  } else {
+    fields.features = selection.features;
+  }
+
   const rowsPromise = db
     .with(selection)
-    .select({
-      id: selection.id,
-      title: selection.title,
-      features: selection.features
-    })
+    .select(fields)
     .from(selection)
     .orderBy(selection.id)
     .offset(offset)
@@ -56,8 +66,12 @@ export async function GET(req: Request, { params }: { params: { project: number 
 }
 
 export async function POST(req: Request, { params }: { params: { project: number } }) {
-  const { editRight, error } = await authenticateProject(req, params.project, true);
-  if (error) return error;
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit) return NextResponse.json({}, { statusText: 'Not authorized', status: 403 });
+
   const { data } = await req.json();
   const searchParams = new URL(req.url).searchParams;
   const reference = !!searchParams.get('reference');
@@ -87,12 +101,14 @@ export async function POST(req: Request, { params }: { params: { project: number
       newAuthors.push({
         projectId: params.project,
         submissionId: row.id,
-        email: author
+        email: author.email
       });
       newReviewers.push({
         projectId: params.project,
-        email: author,
-        token: cryptoRandomString({ length: 32, type: 'url-safe' }),
+        email: author.email,
+        firstname: author.firstname,
+        secret: cryptoRandomString({ length: 32, type: 'url-safe' }),
+        biddings: [],
         importedFrom: reference ? 'reference' : 'submission'
       });
     }
@@ -118,7 +134,12 @@ export async function POST(req: Request, { params }: { params: { project: number
 }
 
 export async function DELETE(req: Request, { params }: { params: { project: number } }) {
-  await authenticateProject(req, params.project, true);
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit) return NextResponse.json({}, { statusText: 'Not authorized', status: 403 });
+
   const searchParams = new URL(req.url).searchParams;
   const reference = !!searchParams.get('reference');
 

@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import db from '@/drizzle/schema';
+import { canCreateProject } from '@/lib/authenticate';
 
 export const authOptions: NextAuthOptions = {
   //secret: process.env.NEXTAUTH_SECRET,
@@ -22,12 +23,10 @@ export const authOptions: NextAuthOptions = {
           from: provider.from,
           to: identifier,
           subject: 'Sign in to CM Paperbidding',
-          text: `Please click here to authenticate - ${url}`
+          html: `Please <a href="${url}">Click here</a> to sign in`
         };
 
-        console.log(email);
-
-        const response = await fetch(process.env.MIDDLECAT_MAIL, {
+        const response = await fetch(process.env.MIDDLECAT_MAIL || '', {
           body: JSON.stringify(email),
           headers: {
             Authorization: `${process.env.MIDDLECAT_MAIL_TOKEN}`,
@@ -42,5 +41,11 @@ export const authOptions: NextAuthOptions = {
         }
       }
     }
-  ]
+  ],
+  callbacks: {
+    async session({ session, user }) {
+      session.user.canCreateProject = await canCreateProject(session?.user.email || '');
+      return session;
+    }
+  }
 };

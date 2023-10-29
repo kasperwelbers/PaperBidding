@@ -9,9 +9,8 @@ export async function GET(
   { params }: { params: { project: number; reviewer: number } }
 ) {
   const projectId = Number(params.project);
-  const reviewerId = Number(params.reviewer);
-  const { reviewer, error } = await authenticateReviewer(req, reviewerId);
-  if (error) return error;
+  const reviewer = await authenticateReviewer(req);
+  if (!reviewer) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
 
   if (reviewer.projectId !== projectId)
     return NextResponse.json({}, { status: 404, statusText: 'Invalid project X reviewer' });

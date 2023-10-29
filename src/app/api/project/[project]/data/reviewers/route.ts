@@ -1,13 +1,16 @@
-import db, { reviewers, NewReviewer } from '@/drizzle/schema';
-import { authenticateProject } from '@/lib/authenticate';
+import db, { projects, reviewers, NewReviewer } from '@/drizzle/schema';
+import { authenticate, canEditProject } from '@/lib/authenticate';
 import { ReviewersSchema } from '@/zodSchemas';
 import cryptoRandomString from 'crypto-random-string';
 import { and, sql, eq, inArray } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request, { params }: { params: { project: number } }) {
-  const { project, error } = await authenticateProject(req, params.project, true);
-  if (error) return error;
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit) return NextResponse.json({}, { statusText: 'Not authorized', status: 403 });
 
   const searchParams = new URL(req.url).searchParams;
   const offset = Number(searchParams.get('offset')) || 0;
@@ -18,7 +21,10 @@ export async function GET(req: Request, { params }: { params: { project: number 
     .selectDistinctOn([reviewers.email], {
       id: reviewers.id,
       email: reviewers.email,
-      link: reviewers.token
+      firstname: reviewers.firstname,
+      link: reviewers.secret,
+      invitationSent: reviewers.invitationSent,
+      biddings: reviewers.biddings
     })
     .from(reviewers)
     .where(
@@ -35,15 +41,19 @@ export async function GET(req: Request, { params }: { params: { project: number 
 
   const [rows, meta] = await Promise.all([rowsPromise, metaPromise]);
   const domain = new URL(req.url).origin;
-  for (let row of rows)
-    row.link =
-      domain +
-      `/project/${params.project}/reviewer/${row.id}?token=${project.readToken + row.link}`;
+  for (let row of rows) {
+    row.link = domain + `/bidding/${params.project}/${row.id}/${row.link}`;
+  }
   return NextResponse.json({ rows, meta: meta[0] });
 }
 
 export async function POST(req: Request, { params }: { params: { project: number } }) {
-  await authenticateProject(req, params.project, true);
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit) return NextResponse.json({}, { statusText: 'Not authorized', status: 403 });
+
   const { data } = await req.json();
   const searchParams = new URL(req.url).searchParams;
   const volunteer = !!searchParams.get('volunteer') ? 'volunteer' : null;
@@ -59,16 +69,23 @@ export async function POST(req: Request, { params }: { params: { project: number
 
   const newReviewers: NewReviewer[] = validData.data.map((d: any) => ({
     email: d.email,
+    firstname: d.firstname,
     projectId: params.project,
     importedFrom: volunteer || submission || reference || 'volunteer',
-    token: cryptoRandomString({ length: 32, type: 'url-safe' })
+    biddings: [],
+    secret: cryptoRandomString({ length: 32, type: 'url-safe' })
   }));
   await db.insert(reviewers).values(newReviewers);
   return NextResponse.json({ status: 201 });
 }
 
 export async function DELETE(req: Request, { params }: { params: { project: number } }) {
-  await authenticateProject(req, params.project, true);
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit) return NextResponse.json({}, { statusText: 'Not authorized', status: 403 });
+
   const searchParams = new URL(req.url).searchParams;
   const importedFrom = getImportedFrom(searchParams);
 

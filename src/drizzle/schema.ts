@@ -81,8 +81,8 @@ export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 256 }).notNull().unique(),
   created: timestamp('created').notNull().defaultNow(),
-  readToken: varchar('read_token', { length: 32 }).notNull(),
-  editToken: varchar('edit_token', { length: 32 }).notNull()
+  creator: varchar('creator', { length: 256 }).notNull(),
+  readToken: varchar('read_token', { length: 32 }).notNull()
 });
 
 export const admins = pgTable('admins', {
@@ -90,7 +90,7 @@ export const admins = pgTable('admins', {
 });
 
 export const projectAdmins = pgTable(
-  'projectManagers',
+  'projectAdmins',
   {
     id: serial('id').primaryKey(),
     projectId: integer('project_id')
@@ -100,7 +100,8 @@ export const projectAdmins = pgTable(
   },
   (table) => {
     return {
-      emailIds: index('email_idx').on(table.email)
+      emailIdx: index('email_idx').on(table.email),
+      projectIdx: index('project_idx').on(table.projectId)
     };
   }
 );
@@ -149,7 +150,10 @@ export const reviewers = pgTable('reviewers', {
     .notNull()
     .references(() => projects.id, { onDelete: 'cascade' }),
   email: varchar('email', { length: 256 }).notNull(),
-  token: varchar('token', { length: 32 }).notNull(),
+  firstname: varchar('firstname', { length: 256 }).notNull(),
+  secret: varchar('token', { length: 32 }).notNull(),
+  invitationSent: timestamp('invitation_sent', { mode: 'date' }),
+  biddings: jsonb('biddings').notNull(),
   importedFrom: varchar('imported_from', { length: 256 })
 });
 

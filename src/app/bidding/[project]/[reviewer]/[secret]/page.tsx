@@ -6,26 +6,47 @@ import { useAllData, useProject, useReviewer } from '@/hooks/api';
 import { computeRelevantSubmissions } from '@/lib/computeRelevantSubmissions';
 import { GetSubmission } from '@/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from 'react-icons/fa';
+import {
+  FaAngleDown,
+  FaAngleUp,
+  FaArrowLeft,
+  FaArrowRight,
+  FaQuestionCircle,
+  FaUnsplash
+} from 'react-icons/fa';
 import { GiVote } from 'react-icons/gi';
 import SubmissionItem from './SubmissionItem';
+import useSelection from './useSelection';
+import CurrentSelection from './CurrentSelection';
 
-export default function Reviewer({ params }: { params: { project: number; reviewer: number } }) {
+export default function Reviewer({
+  params
+}: {
+  params: { project: number; reviewer: number; secret: number };
+}) {
+  const token = params.reviewer + '/' + params.secret;
+
   const {
     data: submissions,
     isLoading,
     error
-  } = useAllData<GetSubmission>(params.project, 'submissions');
-  const [selected, setSelected] = useState(new Set<number>());
-  const [focusSelected, setFocusSelected] = useState<number>();
-  const [page, setPage] = useState(1);
-  const { data: project } = useProject(params.project);
-  const projectName = project?.name || '';
+  } = useAllData<GetSubmission>(params.project, 'submissions', token);
   const {
     data: reviewer,
     isLoading: isLoadingReviewer,
     error: errorReviewer
-  } = useReviewer(params.project, params.reviewer);
+  } = useReviewer(params.project, params.reviewer, token);
+
+  const { selected, setSelected, selectionStatus } = useSelection(
+    params.project,
+    params.reviewer,
+    token
+  );
+
+  const [showSelected, setShowSelected] = useState(false);
+  const [page, setPage] = useState(1);
+  const { data: project } = useProject(params.project);
+  const projectName = project?.name || '';
   const popupRef = useRef<HTMLDivElement>(null);
 
   const relevantSubmissions = useMemo(() => {
@@ -33,21 +54,23 @@ export default function Reviewer({ params }: { params: { project: number; review
   }, [submissions, reviewer]);
 
   useEffect(() => {
-    setFocusSelected(undefined);
-
     function closePopup(e: MouseEvent) {
       if (popupRef.current?.contains(e.target as Node)) return;
-      setFocusSelected(undefined);
+      setShowSelected(false);
     }
-    window.addEventListener('click', closePopup);
-    return () => window.removeEventListener('click', closePopup);
-  }, [selected, popupRef]);
+    window.addEventListener('mousedown', closePopup);
+    return () => window.removeEventListener('mousedown', closePopup);
+  }, [popupRef]);
 
   if (isLoading) return <Loading msg="Loading Submissions" />;
   if (error) return <Error msg={error.message} />;
   if (isLoadingReviewer) return <Loading msg="Loading Reviewer" />;
   if (errorReviewer) return <Error msg={errorReviewer.message} />;
   if (!relevantSubmissions) return <Loading msg="Ranking Submissions" />;
+  if (!submissions) return <Loading msg="Loading Submissions" />;
+  if (selectionStatus === 'loading') return <Loading msg="Loading Selection" />;
+  if (selectionStatus === 'error')
+    return <Error msg="Error Loading Selection. Please reload page" />;
 
   const nPages = Math.ceil(relevantSubmissions?.length / 10 || 0);
   const pageData = relevantSubmissions?.slice((page - 1) * 10, page * 10);
@@ -90,35 +113,30 @@ export default function Reviewer({ params }: { params: { project: number; review
         <div className="flex flex-col md:flex-row w-full justify-between">
           <div className="flex flex-wrap md:flex-col p-2 gap-x-3 justify-between ">
             <h5 className="m-0">{projectName.replaceAll('_', ' ')}</h5>
-            <span className="italic">{reviewer?.email}</span>
+            <span className="italic text-sm">{reviewer?.email}</span>
           </div>
         </div>
       </header>
-      <div className="mt-3 h-full grid grid-cols-[auto,1fr] gap-1 md:gap-5 p-1 md:p-3 overflow-hidden">
-        <div className="grid auto-rows-min justify-center  max-h-full md:pr-3 w-12 md:w-20">
+      <div className="mt-3 h-full grid grid-cols-[auto,1fr] gap-3 md:gap-5 p-3 md:p-3 overflow-hidden">
+        <div
+          className="flex flex-col hover:bg-blue-300 h-min p-0 md:p-3 rounded cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSelected(!showSelected);
+          }}
+        >
           <div>
             <GiVote className="w-8 h-8 md:w-12 md:h-12 mb-2" />
           </div>
-          {[...selected].map((id, i) => {
-            return (
-              <div
-                key={id}
-                className={`animate-fade-in  relative border-2 rounded border-primary px-1 md:px-2 mt-1 cursor-pointer text-center ${
-                  focusSelected === id ? 'bg-blue-300' : 'hover:bg-blue-300'
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFocusSelected(focusSelected === id ? undefined : id);
-                }}
-              >
-                {i + 1}
-              </div>
-            );
-          })}
+          <div
+            className={`flex justify-center items-center animate-fade-in h-10 text-sm md:text-lg align-middle relative rounded border-primary px-1 md:px-2 mt-1 cursor-pointer text-center `}
+          >
+            <sup>{selected.length}</sup>&frasl;<sub>10</sub>
+          </div>
         </div>
         <div
           className={`flex justify-center h-full overflow-auto max-h-full ${
-            focusSelected ? 'blur-[2px] opacity-50' : ''
+            showSelected ? 'blur-[2px] opacity-50 pointer-events-none' : ''
           }`}
         >
           <div className="flex flex-col">
@@ -154,6 +172,8 @@ export default function Reviewer({ params }: { params: { project: number; review
                 <SubmissionItem
                   key={submission.id}
                   projectId={Number(params.project)}
+                  reviewerId={Number(params.reviewer)}
+                  token={token}
                   submission={submission}
                   selected={selected}
                   setSelected={setSelected}
@@ -163,17 +183,20 @@ export default function Reviewer({ params }: { params: { project: number; review
             <div className="flex justify-center mt-auto">{pagination}</div>
           </div>
         </div>
+
         <div
           ref={popupRef}
           className={`FocusSelectedPopup absolute left-12 md:left-32 bg-white border-2 rounded bg-primary p-4 ${
-            focusSelected ? '' : 'hidden'
+            showSelected ? '' : 'hidden'
           }`}
         >
-          <SubmissionItem
-            projectId={Number(params.project)}
-            submission={submissions?.find((s: GetSubmission) => s.id === focusSelected)}
+          <CurrentSelection
             selected={selected}
             setSelected={setSelected}
+            projectId={Number(params.project)}
+            reviewerId={Number(params.reviewer)}
+            token={token}
+            submissions={submissions}
           />
         </div>
       </div>

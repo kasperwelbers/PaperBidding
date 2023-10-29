@@ -1,24 +1,31 @@
 import { NextResponse } from 'next/server';
+import db, { projects, projectAdmins } from '@/drizzle/schema';
+import { authenticate, isSuperAdmin } from '@/lib/authenticate';
+import { eq } from 'drizzle-orm';
 import cryptoRandomString from 'crypto-random-string';
-import db, { projects } from '@/drizzle/schema';
-import { authenticateAdmin } from '@/lib/authenticate';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth/authOptions';
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const { email } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
 
-  if (!session?.user.email) return NextResponse.json({}, { status: 401 });
+  if (isSuperAdmin(email)) {
+    const projectList = await db.select().from(projects);
+    return NextResponse.json(projectList);
+  }
 
-  console.log(session);
-  authenticateAdmin(req);
+  const projectList = await db
+    .select(projects)
+    .from(projectAdmins)
+    .where(eq(projectAdmins.email, email || ''))
+    .leftJoin(projects, eq(projectAdmins.projectId, projects.id));
 
-  const projectList = await db.select().from(projects);
   return NextResponse.json(projectList);
 }
 
 export async function POST(req: Request) {
-  authenticateAdmin(req);
+  const { email, canCreateProject } = await authenticate();
+  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+  if (!canCreateProject) return NextResponse.json({}, { status: 403 });
 
   const { name } = await req.json();
 
@@ -27,10 +34,14 @@ export async function POST(req: Request) {
       .insert(projects)
       .values({
         name: name,
-        readToken: cryptoRandomString({ length: 32, type: 'url-safe' }),
-        editToken: cryptoRandomString({ length: 32, type: 'url-safe' })
+        creator: email,
+        readToken: cryptoRandomString({ length: 32, type: 'url-safe' })
       })
       .returning();
+    await db.insert(projectAdmins).values({
+      projectId: newProject[0].id,
+      email: email
+    });
     return NextResponse.json(newProject[0], { status: 201 });
   } catch (e) {
     return NextResponse.json({}, { status: 400 });

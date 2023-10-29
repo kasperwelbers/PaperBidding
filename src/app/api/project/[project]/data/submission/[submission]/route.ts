@@ -1,4 +1,5 @@
 import db, { submissions, projects } from '@/drizzle/schema';
+import { authenticateReviewer } from '@/lib/authenticate';
 
 import { sql, and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -7,10 +8,15 @@ export async function GET(
   req: Request,
   { params }: { params: { project: number; submission: number } }
 ) {
+  const reviewer = await authenticateReviewer(req);
+  if (!reviewer) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+
+  console.log('reviewer', reviewer);
+
   const abstracts = await db
-    .select({ abstract: submissions.abstract, token: projects.readToken })
+    .select({ abstract: submissions.abstract })
     .from(submissions)
-    .leftJoin(projects, eq(submissions.projectId, projects.id))
+    .leftJoin(projects, eq(submissions.projectId, reviewer.projectId))
     .where(eq(submissions.id, Number(params.submission)))
     .orderBy(submissions.id);
 
@@ -18,10 +24,6 @@ export async function GET(
     return NextResponse.json({}, { status: 404, statusText: 'Submission not found' });
 
   const abstract = abstracts[0];
-
-  const readToken = req.headers.get('Authorization')?.slice(0, 32);
-  if (abstract.token !== readToken)
-    return NextResponse.json({}, { statusText: 'Invalid project read token', status: 403 });
 
   return NextResponse.json({ abstract: abstract.abstract });
 }

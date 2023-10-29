@@ -1,6 +1,6 @@
 'use client';
 
-import { useAbstract, useBid } from '@/hooks/api';
+import { useAbstract } from '@/hooks/api';
 import { GetSubmission } from '@/types';
 import { SetStateAction, useState, Dispatch } from 'react';
 import { FaChevronDown, FaChevronRight, FaClock } from 'react-icons/fa';
@@ -8,22 +8,23 @@ import { FaChevronDown, FaChevronRight, FaClock } from 'react-icons/fa';
 interface SubmissionProps {
   projectId: number;
   reviewerId: number;
+  token: string;
   submission?: GetSubmission;
-  selected: Set<number>;
-  setSelected: Dispatch<SetStateAction<Set<number>>>;
+  selected: number[];
+  setSelected: Dispatch<SetStateAction<number[]>>;
 }
 
 export default function SubmissionItem({
   projectId,
   reviewerId,
+  token,
   submission,
   selected,
   setSelected
 }: SubmissionProps) {
   const [submissionId, setSubmissionId] = useState<number>();
   const [showAbstract, setShowAbstract] = useState(false);
-  const { trigger: makeBid } = useBid(projectId, reviewerId);
-  const { data: abstractData, isLoading } = useAbstract(projectId, submissionId);
+  const { data: abstractData, isLoading } = useAbstract(projectId, submissionId, token);
 
   async function onClick() {
     if (!submission) return;
@@ -31,20 +32,17 @@ export default function SubmissionItem({
     setShowAbstract(!showAbstract);
   }
 
-  async function onCheckboxClick() {
-    setSelected((prev: Set<number>) => {
-      if (!submission) return prev;
-      const newSet = new Set(prev);
-      if (newSet.has(submission.id)) {
-        makeBid({ submission: submission.id, delete: true });
-        newSet.delete(submission.id);
-      } else {
-        makeBid({ submission: submission.id, delete: false });
+  async function onCheckboxClick(e: any) {
+    e.stopPropagation();
+    if (!submission) return;
+    const newSet = [...selected];
 
-        newSet.add(submission.id);
-      }
-      return newSet;
-    });
+    if (newSet.includes(submission.id)) {
+      newSet.splice(newSet.indexOf(submission.id), 1);
+    } else {
+      newSet.push(submission.id);
+    }
+    setSelected(newSet);
   }
 
   const fadeOutBefore =
@@ -63,7 +61,7 @@ export default function SubmissionItem({
       <div className="">
         <input
           type="checkbox"
-          checked={selected.has(submission.id)}
+          checked={selected.includes(submission.id)}
           onChange={onCheckboxClick}
           className="w-4 h-4 mt-[0.35rem] md:w-8 md:h-8"
         />

@@ -5,7 +5,8 @@ import { z } from 'zod';
 
 export const ReviewersSchema = z.array(
   z.object({
-    email: z.string()
+    email: z.string(),
+    firstname: z.string()
   })
 );
 
@@ -15,7 +16,7 @@ export const SubmissionsSchema = z.array(
     title: z.string(),
     abstract: z.string(),
     features: z.array(z.number()),
-    authors: z.array(z.string())
+    authors: z.array(z.object({ email: z.string(), firstname: z.string() }))
   })
 );
 
