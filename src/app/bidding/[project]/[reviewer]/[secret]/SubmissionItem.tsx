@@ -76,7 +76,7 @@ export default function SubmissionItem({
         {submission.title}
       </h6>
       {/* </div> */}
-      <div className="h-4 w-4 mt-1">
+      <div className="h-4 w-4 mt-1 cursor-pointer" onClick={onClick}>
         {isLoading ? <FaClock /> : showAbstract ? <FaChevronDown /> : <FaChevronRight />}
       </div>
       <div className={` flex items-center col-start-2 col-end-4 m-0 mt-1`}>

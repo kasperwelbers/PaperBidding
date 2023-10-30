@@ -32,34 +32,27 @@ export async function GET(req: Request, { params }: { params: { project: number 
       return NextResponse.json({ error: 'not authorized' }, { status: 403 });
   }
 
-  const selection = db.$with('sq').as(
-    db
-      .select()
-      .from(submissions)
-      .where(and(eq(submissions.isReference, reference), eq(submissions.projectId, params.project)))
-  );
-
   const fields: any = {
-    id: selection.id,
-    title: selection.title
+    id: submissions.id,
+    title: submissions.title,
+    features: submissions.features
   };
   if (metadata) {
-    fields.submissionId = selection.submissionId;
-  } else {
-    fields.features = selection.features;
+    fields.submissionId = submissions.submissionId;
+    fields.authors = submissions.authors;
   }
 
   const rowsPromise = db
-    .with(selection)
     .select(fields)
-    .from(selection)
-    .orderBy(selection.id)
+    .from(submissions)
+    .where(and(eq(submissions.isReference, reference), eq(submissions.projectId, params.project)))
+    .orderBy(submissions.id)
     .offset(offset)
     .limit(limit);
   const metaPromise = db
-    .with(selection)
     .select({ count: sql<number>`count(*)` })
-    .from(selection);
+    .from(submissions)
+    .where(and(eq(submissions.isReference, reference), eq(submissions.projectId, params.project)));
   const [rows, meta] = await Promise.all([rowsPromise, metaPromise]);
 
   return NextResponse.json({ rows, meta: meta[0] });
@@ -94,6 +87,7 @@ export async function POST(req: Request, { params }: { params: { project: number
       title: row.title,
       abstract: row.abstract,
       features: row.features,
+      authors: row.authors,
       isReference: reference
     });
 
@@ -103,15 +97,17 @@ export async function POST(req: Request, { params }: { params: { project: number
         submissionId: row.id,
         email: author.email
       });
-      newReviewers.push({
-        projectId: params.project,
-        email: author.email,
-        firstname: author.firstname,
-        secret: cryptoRandomString({ length: 32, type: 'url-safe' }),
-        biddings: [],
-        importedFrom: reference ? 'reference' : 'submission'
-      });
     }
+
+    const firstauthor = row.authors[0];
+    newReviewers.push({
+      projectId: params.project,
+      email: firstauthor.email,
+      firstname: firstauthor.firstname,
+      secret: cryptoRandomString({ length: 32, type: 'url-safe' }),
+      biddings: [],
+      importedFrom: reference ? 'reference' : 'submission'
+    });
   }
 
   if (reference) {

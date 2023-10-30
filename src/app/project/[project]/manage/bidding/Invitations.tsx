@@ -24,27 +24,25 @@ export default function Invitations({ reviewers }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-[1fr,2fr] items-center gap-4 border-2 border-primary rounded p-3">
+    <div className="grid grid-cols-[1fr,2fr] items-center gap-4 border-2 border-primary rounded-lg p-3">
       <div>
         <h3 className="text-center">Invitations</h3>
         <div className="grid grid-cols-1 gap-2">
           <CSVDownloader
             type={Type.Button}
-            className="flex-auto"
+            className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors"
             filename={`reviewer_invitations.csv`}
             bom={true}
             data={reviewers}
           >
-            <Button className="w-full bg-secondary text-primary hover:text-secondary">
-              Download
-            </Button>
+            Download
           </CSVDownloader>
-          <Button
-            className="flex-auto bg-secondary text-primary hover:text-secondary"
+          <button
+            className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors"
             onClick={clickSend}
           >
             Send
-          </Button>
+          </button>
         </div>
       </div>
       <p className="whitespace-normal">

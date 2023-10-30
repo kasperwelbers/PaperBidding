@@ -18,7 +18,7 @@ export async function canEditProject(email: string, projectId: number) {
 
   const projectAdmin = await db
     .select()
-    .from(projects)
+    .from(projectAdmins)
     .where(and(eq(projectAdmins.projectId, projectId), eq(projectAdmins.email, email)));
   return projectAdmin.length > 0;
 }

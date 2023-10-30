@@ -4,7 +4,7 @@ import db from '@/drizzle/schema';
 import { canCreateProject } from '@/lib/authenticate';
 
 export const authOptions: NextAuthOptions = {
-  //secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
 
   adapter: DrizzleAdapter(db),
   providers: [
@@ -34,6 +34,8 @@ export const authOptions: NextAuthOptions = {
           },
           method: 'POST'
         });
+
+        console.log(response.ok);
 
         if (!response.ok) {
           const { errors } = await response.json();

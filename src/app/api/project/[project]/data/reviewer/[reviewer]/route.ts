@@ -16,7 +16,12 @@ export async function GET(
     return NextResponse.json({}, { status: 404, statusText: 'Invalid project X reviewer' });
 
   const ownSubmissions = await db
-    .select({ id: submissions.id, submissionId: submissions.submissionId })
+    .select({
+      id: submissions.id,
+      submissionId: submissions.submissionId,
+      title: submissions.title,
+      features: submissions.features
+    })
     .from(authors)
     .leftJoin(submissions, eq(authors.submissionId, submissions.submissionId))
     .where(and(eq(authors.projectId, projectId), eq(authors.email, reviewer.email)));
@@ -38,8 +43,10 @@ export async function GET(
   return NextResponse.json({
     id: reviewer.id,
     email: reviewer.email,
+    firstname: reviewer.firstname,
     bids: [],
     submissionIds: ownSubmissions.map((s: Submission) => s.id),
+    submissions: ownSubmissions,
     coAuthorSubmissionIds: coAuthorSubmissions.map((s: Submission) => s.id)
   });
 }

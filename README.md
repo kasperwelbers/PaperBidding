@@ -1,6 +1,6 @@
 # Short instruction for develompent
 
-## Create an admin secret
+## Set a superadmin
 
 Authentication in this application is (currently?) very simple. When someone visits a page, they need to provide a token URL parameter.
 There are three types of tokens:

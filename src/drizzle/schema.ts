@@ -81,8 +81,7 @@ export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 256 }).notNull().unique(),
   created: timestamp('created').notNull().defaultNow(),
-  creator: varchar('creator', { length: 256 }).notNull(),
-  readToken: varchar('read_token', { length: 32 }).notNull()
+  creator: varchar('creator', { length: 256 }).notNull()
 });
 
 export const admins = pgTable('admins', {
@@ -90,7 +89,7 @@ export const admins = pgTable('admins', {
 });
 
 export const projectAdmins = pgTable(
-  'projectAdmins',
+  'project_admins',
   {
     id: serial('id').primaryKey(),
     projectId: integer('project_id')
@@ -117,11 +116,14 @@ export const submissions = pgTable(
     title: text('title').notNull(),
     abstract: text('abstract').notNull(),
     features: jsonb('features').notNull(),
+    authors: jsonb('authors').notNull(),
     isReference: boolean('is_reference').notNull().default(false)
   },
   (table) => {
     return {
-      unq: unique().on(table.projectId, table.submissionId)
+      unq: unique().on(table.projectId, table.submissionId),
+      projectIds: index('project_id_idx').on(table.projectId),
+      submissionIdx: index('submission_idx').on(table.submissionId)
     };
   }
 );
@@ -139,7 +141,9 @@ export const authors = pgTable(
       submissionReference: foreignKey({
         columns: [table.projectId, table.submissionId],
         foreignColumns: [submissions.projectId, submissions.submissionId]
-      }).onDelete('cascade')
+      }).onDelete('cascade'),
+      emailIdx: index('email_idx').on(table.email),
+      submissionIdx: index('submission_idx').on(table.submissionId)
     };
   }
 );

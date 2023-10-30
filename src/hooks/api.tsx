@@ -3,7 +3,7 @@ import useSWRMutation from 'swr/mutation';
 import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
 import { useRef, useState } from 'react';
-import { DataPage, Reviewer } from '@/types';
+import { DataPage, Reviewer, GetProject } from '@/types';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -31,7 +31,11 @@ export function useGET<ResponseType>(url: string | null, token?: string) {
 
 /** Wrapper for useSWR that paginates
  */
-export function useGETPagionation<ResponseType>(url: string | null, token?: string) {
+export function useGETPagionation<ResponseType>(
+  url: string | null,
+  token?: string,
+  metaParam?: boolean
+) {
   const fetcher = async ([url, token]: any) => {
     //if (!token) throw new Error('No token provided');
     const limit = 100;
@@ -40,7 +44,8 @@ export function useGETPagionation<ResponseType>(url: string | null, token?: stri
     const allData: ResponseType[] = [];
     while (true) {
       if (offset > 10000) throw new Error('Too many rows');
-      const urlWithOffset = `${url}?offset=${offset}&limit=${limit}`;
+      let urlWithOffset = `${url}?offset=${offset}&limit=${limit}`;
+      if (metaParam) urlWithOffset += '&meta=true';
 
       try {
         const res = await fetch(urlWithOffset, {
@@ -89,11 +94,11 @@ export function usePOST<BodyType, ResponseType>(
 
 // GET HELPERS
 export function useProjects() {
-  return useGET<Project[]>('/api/project');
+  return useGET<GetProject[]>('/api/project');
 }
 
 export function useProject(id: number) {
-  return useGET<Project>(`/api/project/${id}`);
+  return useGET<GetProject>(`/api/project/${id}`);
 }
 
 interface DataResponse {
@@ -105,7 +110,7 @@ export function useData(
   what: 'submissions' | 'reviewers',
   params: Record<string, any> = {}
 ): DataPage {
-  const limit = params.limit || 10;
+  const limit = params.limit || 6;
   const [offset, setOffset] = useState(0);
 
   const urlParams = new URLSearchParams({
@@ -148,15 +153,12 @@ export function useData(
 }
 export function useAllData<ResponseType>(
   projectId: number,
-  what: 'submissions' | 'reviewers' | 'submissions_meta',
-  token?: string
+  what: 'submissions' | 'reviewers',
+  token?: string,
+  meta?: boolean
 ) {
   let url = `/api/project/${projectId}/data/${what}`;
-  if (what === 'submissions_meta') {
-    url = `/api/project/${projectId}/data/submissions?meta=true`;
-  }
-
-  return useGETPagionation<ResponseType>(url, token);
+  return useGETPagionation<ResponseType>(url, token, meta);
 }
 
 export function useAbstract(projectId: number, submissionId: number | undefined, token: string) {

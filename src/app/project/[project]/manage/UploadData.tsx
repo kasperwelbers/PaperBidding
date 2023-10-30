@@ -23,9 +23,8 @@ export default function UploadData({
   const [selectedTab, setSelectedTab] = useState<Tab>('submissions');
 
   const { data: project, isLoading, error } = useProject(projectId);
-  console.log(project);
-  const submissions = useData(projectId, 'submissions');
-  const references = useData(projectId, 'submissions', { reference: true });
+  const submissions = useData(projectId, 'submissions', { meta: true });
+  const references = useData(projectId, 'submissions', { reference: true, meta: true });
   const volunteers = useData(projectId, 'reviewers', { volunteer: true });
   const data = { submissions, volunteers, references };
 
@@ -42,7 +41,7 @@ export default function UploadData({
   if (!project) return null; //shouldn't happen, but typescript
 
   return (
-    <div className="w-full max-w-lg  ">
+    <div className="w-full max-w-lg flex flex-col h-full min-h-[36rem]">
       <h3 className="text-center">Upload Data</h3>
       <div className="flex flex-wrap gap-3 mb-6">
         {tabs.map((tab: Tab) => {
@@ -62,25 +61,27 @@ export default function UploadData({
           );
         })}
       </div>
-      <div key="submissions" className={selectedTab === 'submissions' ? '' : 'hidden'}>
-        <UploadSubmissions
-          projectId={project.id}
-          modelStatus={modelStatus}
-          dataPage={data.submissions}
-          extractFeatures={extractFeatures}
-        />
-      </div>
-      <div key="volunteers" className={selectedTab === 'volunteers' ? '' : 'hidden'}>
-        <UploadVolunteers projectId={project.id} dataPage={data.volunteers} />
-      </div>
-      <div key="references" className={selectedTab === 'references' ? '' : 'hidden'}>
-        <UploadSubmissions
-          projectId={project.id}
-          modelStatus={modelStatus}
-          dataPage={data.references}
-          extractFeatures={extractFeatures}
-          reference
-        />
+      <div className="flex-auto h-full flex flex-col">
+        <div key="submissions" className={selectedTab === 'submissions' ? 'flex-auto' : 'hidden'}>
+          <UploadSubmissions
+            projectId={project.id}
+            modelStatus={modelStatus}
+            dataPage={data.submissions}
+            extractFeatures={extractFeatures}
+          />
+        </div>
+        <div key="volunteers" className={selectedTab === 'volunteers' ? 'flex-auto' : 'hidden'}>
+          <UploadVolunteers projectId={project.id} dataPage={data.volunteers} />
+        </div>
+        <div key="references" className={selectedTab === 'references' ? 'flex-auto' : 'hidden'}>
+          <UploadSubmissions
+            projectId={project.id}
+            modelStatus={modelStatus}
+            dataPage={data.references}
+            extractFeatures={extractFeatures}
+            reference
+          />
+        </div>
       </div>
     </div>
   );

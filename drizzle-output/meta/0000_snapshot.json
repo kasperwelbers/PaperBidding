@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "eb99ddd0-2666-4d57-bf5a-c45f7a5a668d",
+  "id": "65759693-b919-4d33-bb42-2f1c4e13f6c6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -147,7 +147,22 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "email_idx": {
+          "name": "email_idx",
+          "columns": [
+            "email"
+          ],
+          "isUnique": false
+        },
+        "submission_idx": {
+          "name": "submission_idx",
+          "columns": [
+            "submission_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "authors_project_id_submission_id_submissions_project_id_submission_id_fk": {
           "name": "authors_project_id_submission_id_submissions_project_id_submission_id_fk",
@@ -223,8 +238,8 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "projectManagers": {
-      "name": "projectManagers",
+    "project_admins": {
+      "name": "project_admins",
       "schema": "",
       "columns": {
         "id": {
@@ -253,12 +268,19 @@
             "email"
           ],
           "isUnique": false
+        },
+        "project_idx": {
+          "name": "project_idx",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "projectManagers_project_id_projects_id_fk": {
-          "name": "projectManagers_project_id_projects_id_fk",
-          "tableFrom": "projectManagers",
+        "project_admins_project_id_projects_id_fk": {
+          "name": "project_admins_project_id_projects_id_fk",
+          "tableFrom": "project_admins",
           "tableTo": "projects",
           "columnsFrom": [
             "project_id"
@@ -307,12 +329,6 @@
           "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true
-        },
-        "edit_token": {
-          "name": "edit_token",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {},
@@ -350,9 +366,27 @@
           "primaryKey": false,
           "notNull": true
         },
+        "firstname": {
+          "name": "firstname",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "token": {
           "name": "token",
           "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invitation_sent": {
+          "name": "invitation_sent",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biddings": {
+          "name": "biddings",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
@@ -464,6 +498,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "authors": {
+          "name": "authors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
         "is_reference": {
           "name": "is_reference",
           "type": "boolean",
@@ -472,7 +512,22 @@
           "default": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "project_id_idx": {
+          "name": "project_id_idx",
+          "columns": [
+            "project_id"
+          ],
+          "isUnique": false
+        },
+        "submission_idx": {
+          "name": "submission_idx",
+          "columns": [
+            "submission_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "submissions_project_id_projects_id_fk": {
           "name": "submissions_project_id_projects_id_fk",

@@ -6,14 +6,7 @@ import { useAllData, useProject, useReviewer } from '@/hooks/api';
 import { computeRelevantSubmissions } from '@/lib/computeRelevantSubmissions';
 import { GetSubmission } from '@/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  FaAngleDown,
-  FaAngleUp,
-  FaArrowLeft,
-  FaArrowRight,
-  FaQuestionCircle,
-  FaUnsplash
-} from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from 'react-icons/fa';
 import { GiVote } from 'react-icons/gi';
 import SubmissionItem from './SubmissionItem';
 import useSelection from './useSelection';
@@ -186,7 +179,7 @@ export default function Reviewer({
 
         <div
           ref={popupRef}
-          className={`FocusSelectedPopup absolute left-12 md:left-32 bg-white border-2 rounded bg-primary p-4 ${
+          className={`FocusSelectedPopup absolute z-50 top-5 left-12 md:left-32 bg-white border-2 rounded bg-primary p-4 max-h-[80vh] overflow-auto ${
             showSelected ? '' : 'hidden'
           }`}
         >

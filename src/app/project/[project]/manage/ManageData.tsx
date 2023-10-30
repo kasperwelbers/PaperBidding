@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { DataPage } from '@/types';
 import { useState } from 'react';
 import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
@@ -33,7 +34,7 @@ export default function ManageData({
   if (!dataPage.data) return null;
 
   return (
-    <div className="flex flex-col text-center">
+    <div className="flex flex-col text-center h-full">
       <div className="mb-5">
         <div className="flex flex-col justify-center select-none">
           <strong className="text-primary">{dataPage.n} items</strong>
@@ -89,7 +90,7 @@ export default function ManageData({
           </table>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-auto">
         <span className="flex-auto text-right whitespace-nowrap">
           Type &quot;I am certain&quot; to enable delete
         </span>
@@ -101,13 +102,13 @@ export default function ManageData({
           }}
         ></input>
       </div>
-      <button
+      <Button
         disabled={!canDelete}
         className="bg-red-400 disabled:opacity-50 p-1 rounded mt-2"
         onClick={() => onDelete()}
       >
         Delete Current Data
-      </button>
+      </Button>
     </div>
   );
 }

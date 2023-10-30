@@ -1,8 +1,8 @@
-import React, { CSSProperties, useState } from "react";
+import React, { CSSProperties, useState } from 'react';
 
-import { useCSVReader } from "react-papaparse";
-import { Button } from "./button";
-import { Combobox } from "./combobox";
+import { useCSVReader } from 'react-papaparse';
+import { Button } from './button';
+import { Combobox } from './combobox';
 
 interface Props {
   fields: string[];
@@ -18,18 +18,10 @@ interface SelectedColumns {
   STUPIDLOWERCASE: string;
 }
 
-export default function CSVReader({
-  fields,
-  label,
-  detail,
-  onUpload,
-  defaultFields = {},
-}: Props) {
+export default function CSVReader({ fields, label, detail, onUpload, defaultFields = {} }: Props) {
   const { CSVReader } = useCSVReader();
   const [data, setData] = useState<{ headers: string[]; rows: string[][] }>();
-  const [selectedColumns, setSelectedColumns] = useState<
-    Record<string, SelectedColumns>
-  >({});
+  const [selectedColumns, setSelectedColumns] = useState<Record<string, SelectedColumns>>({});
   const allColumnsSelected = fields.every((field) => selectedColumns[field]);
 
   const prepareUpload = () => {
@@ -62,7 +54,7 @@ export default function CSVReader({
           selectedColumns[key] = {
             id: i,
             name: header,
-            STUPIDLOWERCASE: lowerHeader,
+            STUPIDLOWERCASE: lowerHeader
           };
         }
       }
@@ -72,7 +64,7 @@ export default function CSVReader({
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 h-full">
       <div>
         {/* <h3 className="text-center">Upload Submissions CSV</h3> */}
         <CSVReader onUploadAccepted={onUploadAccepted}>
@@ -90,7 +82,7 @@ export default function CSVReader({
           )}
         </CSVReader>
       </div>
-      <div className={` ${data ? "" : "opacity-50 pointer-events-none"}`}>
+      <div className={` ${data ? '' : 'opacity-50 pointer-events-none'}`}>
         {/* <h3 className="">Select columns</h3> */}
         <div className="grid grid-cols-[1fr,1fr] items-center gap-x-5 gap-y-1">
           {fields.map((field) => {
@@ -100,13 +92,11 @@ export default function CSVReader({
                 <Combobox
                   items={data?.headers || []}
                   label="column"
-                  controlledValue={selectedColumns[field]?.name || ""}
+                  controlledValue={selectedColumns[field]?.name || ''}
                   onSelect={(value) => {
-                    setSelectedColumns(
-                      (selectedColumns: Record<string, SelectedColumns>) => {
-                        return { ...selectedColumns, [field]: value };
-                      }
-                    );
+                    setSelectedColumns((selectedColumns: Record<string, SelectedColumns>) => {
+                      return { ...selectedColumns, [field]: value };
+                    });
                   }}
                 />
               </div>
@@ -114,16 +104,9 @@ export default function CSVReader({
           })}
         </div>
       </div>
-      <div
-        className={` ${
-          allColumnsSelected ? "" : "opacity-50 pointer-events-none"
-        }`}
-      >
+      <div className={` ${allColumnsSelected ? '' : 'opacity-50 pointer-events-none mt-auto'}`}>
         {/* <h3 className="">Upload submissions</h3> */}
-        <Button
-          className="flex-auto w-full "
-          onClick={() => onUpload(prepareUpload() || [])}
-        >
+        <Button className="flex-auto w-full " onClick={() => onUpload(prepareUpload() || [])}>
           Upload
         </Button>
       </div>

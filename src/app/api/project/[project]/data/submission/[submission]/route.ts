@@ -11,8 +11,6 @@ export async function GET(
   const reviewer = await authenticateReviewer(req);
   if (!reviewer) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
 
-  console.log('reviewer', reviewer);
-
   const abstracts = await db
     .select({ abstract: submissions.abstract })
     .from(submissions)

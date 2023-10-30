@@ -1,4 +1,4 @@
-import { GetSubmission, Reviewer, FeatureVector } from '@/types';
+import { GetSubmission, Reviewer, FeatureVector, OwnSubmission } from '@/types';
 
 export function computeRelevantSubmissions(submissions?: GetSubmission[], reviewer?: Reviewer) {
   // sort submissions by relevance to reviewer
@@ -12,11 +12,11 @@ export function computeRelevantSubmissions(submissions?: GetSubmission[], review
       !reviewer.coAuthorSubmissionIds.includes(submission.id)
   );
 
-  const ownSubmissions = submissions.filter((submission) =>
-    reviewer.submissionIds.includes(submission.id)
-  );
+  return rankedSubmissions(filteredSubmissions, reviewer.submissions);
+}
 
-  const rankedSubmissions = filteredSubmissions.map((submission) => {
+export function rankedSubmissions(submissions: any[], ownSubmissions: OwnSubmission[]) {
+  const rankedSubmissions = submissions.map((submission) => {
     submission.meanSimilarity = 0; // start with 0, so that if there are no own submissions, the mean is 0
     for (const ownSubmission of ownSubmissions) {
       submission.meanSimilarity += cosineSimilarity(submission.features, ownSubmission.features);

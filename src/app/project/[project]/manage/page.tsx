@@ -8,12 +8,13 @@ import { useState } from 'react';
 import UploadData from './UploadData';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import ProjectAdmins from './ProjectAdmins';
 
 type Tab = 'submissions' | 'references' | 'volunteers';
 const tabs: Tab[] = ['submissions', 'volunteers', 'references'];
 
 export default function ProjectPage({ params }: { params: { project: number } }) {
-  const { data: project, isLoading, error } = useProject(params.project);
+  const { data: project, isLoading, error, mutate } = useProject(params.project);
   const router = useRouter();
   const [status, setStatus] = useState<Record<string, boolean>>();
   if (isLoading) return <Loading msg="Loading Project" />;
@@ -21,37 +22,41 @@ export default function ProjectPage({ params }: { params: { project: number } })
   if (!project) return null; //shouldn't happen, but typescript
 
   return (
-    <main className="flex flex-wrap justify-center p-10 gap-8">
-      <div className="flex flex-col items-center">
-        <h3>Preparing a project</h3>
-        <div className="max-w-xl py-3">
-          <p>
-            A project requires submissions to bid on. To upload submissions, you should have a CSV
-            file in which each row is an abstract-author pair (so multipe rows per abstract if it
-            has multiple authors).
+    <main className="flex justify-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 p-10 gap-8">
+        <div className="flex flex-col  md:min-h-[32rem] max-w-2xl p-3 px-6">
+          <ProjectAdmins project={project} mutateProject={mutate} />
+
+          <div className="mt-8">
+            <h3 className="text-left">Preparing a project</h3>
+            <div className="py-3">
+              <p>
+                First upload a <b>submissions</b> CSV. By default, every submission author is
+                considered as a possible reviewer. Alternatively, you can upload a CSV file with a
+                CSV of <b>volunteers</b>.
+              </p>
+              <p>
+                Reviewers will be asked to bid on submissions, which will be sorted by similarity to
+                their own submissions. If you have submissions from previous projects, you can
+                upload them as <b>reference</b> submissions to improve this automatic matching.
+              </p>
+            </div>
+          </div>
+          <p className="text-red-600 mt-auto">
+            {!status || status.submissions ? '' : 'Need to upload submissions first'}
           </p>
-          <p>
-            By default, every submission author is considered as a possible reviewer. Alternatively,
-            you can upload a CSV file with a list of volunteers.
-          </p>
-          <p>
-            Reviewers will be asked to bid on submissions, which will be sorted by similarity to
-            their own submissions. If you have submissions from previous projects, you can upload
-            them as reference submissions to improve this automatic matching.
-          </p>
+          <Button
+            disabled={!status?.submissions}
+            className="w-full "
+            onClick={() => router.push(`/project/${project.id}/manage/bidding`)}
+          >
+            Manage bidding
+          </Button>
         </div>
-        <Button
-          disabled={!status?.submissions}
-          className="w-full"
-          onClick={() => router.push(`/project/${project.id}/manage/bidding`)}
-        >
-          Manage bidding
-        </Button>
-        <p className="text-red-600">
-          {!status || status.submissions ? '' : 'Need to upload submissions first'}
-        </p>
+        <div className="border-2 border-primary p-3 rounded-lg flex justify-center items-center h-full">
+          <UploadData projectId={params.project} setStatus={setStatus} />
+        </div>
       </div>
-      <UploadData projectId={params.project} setStatus={setStatus} />
     </main>
   );
 }

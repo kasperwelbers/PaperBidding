@@ -34,9 +34,18 @@ export interface DataPage {
 export interface Reviewer {
   id: number;
   email: string;
+  firstname: string;
   bids: number[];
   submissionIds: number[];
   coAuthorSubmissionIds: number[];
+  submissions: OwnSubmission[];
+}
+
+export interface OwnSubmission {
+  id: number;
+  title?: string;
+  submissionId: string;
+  features: FeatureVector;
 }
 
 export interface GetReviewer {
@@ -46,6 +55,17 @@ export interface GetReviewer {
   link: string;
   invitationSent: string;
   biddings: number[];
+  manualBiddings: number;
+  coAuthors: string[];
+  submissions: OwnSubmission[];
+}
+
+export interface GetProject {
+  id: number;
+  name: string;
+  created: string;
+  creator: string;
+  admins: string[];
 }
 
 export interface GetSubmission {
@@ -61,9 +81,11 @@ export interface GetMetaSubmission {
   submissionId: string;
   biddings?: Bidding[];
   reviewers: string[];
+  authors: string[];
 }
 
 export interface Bidding {
   reviewer: string;
   rank: number;
+  method: 'auto' | 'manual';
 }

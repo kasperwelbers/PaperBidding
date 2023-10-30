@@ -10,6 +10,7 @@ import { Session } from 'next-auth';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { GetProject } from '@/types';
 
 export default function Home() {
   const session = useSession();
@@ -24,7 +25,15 @@ export default function Home() {
         </h4>
       </div>
       {session?.data?.user?.email ? (
-        <h5 className="mt-8 p-4">Welcome {session.data.user.email}!</h5>
+        <div className="mt-8 p-4 flex  items-center justify-center">
+          <h5 className="">Welcome {session.data.user.email}!</h5>
+          <Button
+            className="py-0 ml-3 mb-3 bg-secondary text-primary hover:text-secondary"
+            onClick={() => signOut()}
+          >
+            Sign-out
+          </Button>
+        </div>
       ) : null}
       <div className="flex flex-col lg:flex-row gap-12 mt-6 px-4">
         {session.status === 'loading' ? <Loading msg="Loading..." /> : null}
@@ -65,7 +74,7 @@ function SignInForm() {
 }
 
 interface createProjectFormProps {
-  projects?: Project[];
+  projects?: GetProject[];
 }
 
 function CreateProjectForm({ projects }: createProjectFormProps) {
@@ -106,7 +115,7 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
           minLength={3}
           onChange={(e) => {
             e.target.setCustomValidity('');
-            if (projects?.find((p: Project) => p.name === e.target.value)) {
+            if (projects?.find((p: GetProject) => p.name === e.target.value)) {
               e.target.setCustomValidity('Project already exists');
             }
             if (!/^[a-zA-Z0-9_ -]+$/.test(e.target.value)) {
@@ -126,14 +135,14 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
 
 interface SelectProjectProps {
   session: Session;
-  projects?: Project[];
+  projects?: GetProject[];
   loadingProjects: boolean;
 }
 
 function SelectProject({ session, projects, loadingProjects }: SelectProjectProps) {
   const router = useRouter();
 
-  function onSelect(project: Project) {
+  function onSelect(project: GetProject) {
     router.push(`/project/${project.id}/manage`);
   }
 
