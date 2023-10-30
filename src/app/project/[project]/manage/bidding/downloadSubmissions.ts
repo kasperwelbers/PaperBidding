@@ -97,17 +97,17 @@ export default function downloadSubmissions(
   }
   if (which === 'reviewers') {
     const data: Record<string, Record<string, string>> = {};
-    let maxCols = 0;
+    let maxSubmissions = 0;
     for (const submission of submissions) {
       for (const reviewer of submission.reviewers) {
         if (!data[reviewer]) data[reviewer] = { reviewer };
         const nSubmissions = Object.keys(data[reviewer]).length - 1;
-        maxCols = Math.max(maxCols, nSubmissions);
+        maxSubmissions = Math.max(maxSubmissions, nSubmissions);
         data[reviewer]['submission_' + (nSubmissions + 1)] = submission.submissionId;
       }
     }
     return Object.values(data).map((row) => {
-      for (let i = Object.keys(row).length - 1; i < maxCols; i++) {
+      for (let i = Object.keys(row).length - 1; i <= maxSubmissions; i++) {
         if (!row['submission_' + (i + 1)]) row['submission_' + (i + 1)] = '';
       }
       return row;
