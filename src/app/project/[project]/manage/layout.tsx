@@ -19,7 +19,7 @@ export default function ProjectLayout({
 
   useEffect(() => {
     if (error && error.message === 'Not signed in') router.push('/');
-  }, [error]);
+  }, [error, router]);
 
   const projectName = project?.name || '';
 

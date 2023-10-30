@@ -34,7 +34,6 @@ export default function Bidding({ params }: { params: { project: number } }) {
     <div className="grid grid-cols-1 md:grid-cols-2 items-center md:items-start justify-center mt-6 w-full">
       <div className="p-5 pt-0 whitespace-nowrap overflow-auto">
         <Link
-          as="button"
           href={`/project/${params.project}/manage`}
           className=" block w-min border-primary border-2 rounded flex items-center  gap-3 whitespace-nowrap p-2"
         >

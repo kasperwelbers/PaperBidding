@@ -81,7 +81,7 @@ export interface GetMetaSubmission {
   submissionId: string;
   biddings?: Bidding[];
   reviewers: string[];
-  authors: string[];
+  authors: Author[];
 }
 
 export interface Bidding {
