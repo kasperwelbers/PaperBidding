@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import db, { projects, projectAdmins } from '@/drizzle/schema';
-import { authenticate, isSuperAdmin } from '@/lib/authenticate';
-import { eq } from 'drizzle-orm';
-import cryptoRandomString from 'crypto-random-string';
+import { authenticate, canEditProject } from '@/lib/authenticate';
 
-export async function POST(req: Request) {
-  const { email, canCreateProject } = await authenticate();
+export async function POST(req: Request, { params }: { params: { project: number } }) {
+  const { email } = await authenticate();
   if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
-  if (!canCreateProject) return NextResponse.json({}, { status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit) return NextResponse.json({}, { status: 403 });
 
   const { to, html } = await req.json();
 

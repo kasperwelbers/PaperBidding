@@ -10,10 +10,11 @@ import { useCSVDownloader } from 'react-papaparse';
 import { sendInvitation } from './sendInvitation';
 
 interface Props {
+  projectId: number;
   reviewers: GetReviewer[];
 }
 
-export default function Invitations({ reviewers }: Props) {
+export default function Invitations({ projectId, reviewers }: Props) {
   const { CSVDownloader, Type } = useCSVDownloader();
   const modalRef = useRef<HTMLDivElement>(null);
   const [sendModal, setSendModal] = useState(false);
@@ -56,18 +57,19 @@ export default function Invitations({ reviewers }: Props) {
           sendModal ? '' : 'hidden'
         }`}
       >
-        <EmailModal reviewers={reviewers} clickSend={clickSend} />
+        <EmailModal projectId={projectId} reviewers={reviewers} clickSend={clickSend} />
       </div>
     </div>
   );
 }
 
 interface EmailModalProps {
+  projectId: number;
   reviewers: GetReviewer[];
   clickSend: (e: any) => void;
 }
 
-function EmailModal({ reviewers, clickSend }: EmailModalProps) {
+function EmailModal({ projectId, reviewers, clickSend }: EmailModalProps) {
   const [text1, setText1] = useState(text1Default);
   const [text2, setText2] = useState(text2Default);
 
@@ -90,7 +92,7 @@ function EmailModal({ reviewers, clickSend }: EmailModalProps) {
         </div>
         <Textarea value={text2} onChange={(e) => setText2(e.target.value)} rows={4} />
         <div className="mt-8">
-          <SendTestEmail reviewers={reviewers} text1={text1} text2={text2} />
+          <SendTestEmail projectId={projectId} reviewers={reviewers} text1={text1} text2={text2} />
         </div>
       </div>
     </div>
@@ -98,17 +100,18 @@ function EmailModal({ reviewers, clickSend }: EmailModalProps) {
 }
 
 interface SendTestEmailProps {
+  projectId: number;
   reviewers: GetReviewer[];
   text1: string;
   text2: string;
 }
 
-function SendTestEmail({ reviewers, text1, text2 }: SendTestEmailProps) {
+function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProps) {
   const [email, setEmail] = useState('');
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    sendInvitation(email, reviewers[0].firstname, reviewers[0].link, text1, text2).then(
+    sendInvitation(projectId, email, reviewers[0].firstname, reviewers[0].link, text1, text2).then(
       (success) => {
         if (success) alert('Email sent!');
         else alert('Something went wrong, email not sent');

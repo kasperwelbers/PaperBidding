@@ -134,7 +134,7 @@ export default function Reviewer({
         >
           <div className="flex flex-col">
             <div className="relative flex gap-3 items-start select-none">
-              <h5>Select X submissions that you would be willing to review </h5>
+              <h5>Select 10 submissions that you would be willing to review </h5>
               <div className="peer">
                 <FaQuestionCircle className="w-6 h-6   text-blue-600" />
               </div>

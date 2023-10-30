@@ -1,11 +1,12 @@
 export async function sendInvitation(
+  projectId: number,
   email: string,
   firstname: string,
   link: string,
   text1: string,
   text2: string
 ) {
-  const response = await fetch('/api/invitation', {
+  const response = await fetch(`/api/project/${projectId}/invitation`, {
     body: JSON.stringify({
       to: email,
       html: createHTML(firstname, link, text1, text2)

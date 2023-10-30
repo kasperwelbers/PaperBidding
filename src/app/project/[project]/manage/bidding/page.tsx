@@ -68,7 +68,7 @@ export default function Bidding({ params }: { params: { project: number } }) {
               submission and the submission per reviewer.
             </p>
           </div>
-          <Invitations reviewers={reviewers || []} />
+          <Invitations projectId={params.project} reviewers={reviewers || []} />
         </div>
       </div>
       <div className="relative ">
