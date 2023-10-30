@@ -108,16 +108,18 @@ interface SendTestEmailProps {
 
 function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProps) {
   const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    sendInvitation(projectId, email, reviewers[0].firstname, reviewers[0].link, text1, text2).then(
-      (success) => {
+    setSending(true);
+    sendInvitation(projectId, email, reviewers[0].firstname, reviewers[0].link, text1, text2)
+      .then((success) => {
         if (success) alert('Email sent!');
         else alert('Something went wrong, email not sent');
         setEmail('');
-      }
-    );
+      })
+      .finally(() => setSending(false));
   }
 
   return (
@@ -130,8 +132,13 @@ function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProp
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button className="border-2 border-primary bg-secondary px-3 py-1 rounded mt-2">
-        Send test email
+      <button
+        disabled={sending}
+        className={`border-2 border-primary  px-3 py-1 rounded mt-2 ${
+          sending ? 'bg-secondary text-primary' : 'bg-primary text-secondary'
+        }`}
+      >
+        {sending ? 'Sending test email...' : 'Send test email'}
       </button>
     </form>
   );
