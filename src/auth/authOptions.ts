@@ -2,18 +2,22 @@ import { NextAuthOptions } from 'next-auth';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import db from '@/drizzle/schema';
 import { canCreateProject } from '@/lib/authenticate';
-import EmailProvider from 'next-auth/providers/email';
-import crypto from 'node:crypto';
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   adapter: DrizzleAdapter(db),
-
   providers: [
-    EmailProvider({
+    {
+      id: 'email',
+      type: 'email',
+      from: 'ignored',
+      server: {},
+      maxAge: 24 * 60 * 60,
+      name: 'Email',
+      options: {},
       async sendVerificationRequest(params) {
-        const { identifier, provider, token, theme } = params;
+        const { identifier, token, theme } = params;
         const url = new URL(params.url);
         // url.searchParams.delete("token") // uncomment if you want the user to type this manually
         const signInURL = new URL(`/auth/email?${url.searchParams}`, url.origin);
@@ -41,7 +45,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error(JSON.stringify(errors));
         }
       }
-    })
+    }
   ],
   callbacks: {
     async session({ session, user }) {
