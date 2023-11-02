@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "65759693-b919-4d33-bb42-2f1c4e13f6c6",
+  "id": "db86d4c9-239e-4704-ba90-89c36276d9cf",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -321,12 +321,6 @@
         "creator": {
           "name": "creator",
           "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "read_token": {
-          "name": "read_token",
-          "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true
         }
