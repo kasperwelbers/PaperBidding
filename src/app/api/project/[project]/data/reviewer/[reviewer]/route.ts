@@ -28,6 +28,18 @@ export async function GET(
 
   const submissionExternalIds = ownSubmissions.map((s: Submission) => s.submissionId);
 
+  if (submissionExternalIds.length === 0) {
+    return NextResponse.json({
+      id: reviewer.id,
+      email: reviewer.email,
+      firstname: reviewer.firstname,
+      bids: [],
+      submissionIds: [],
+      submissions: [],
+      coAuthorSubmissionIds: []
+    });
+  }
+
   const coAuthors = db
     .selectDistinct({ email: authors.email })
     .from(authors)
