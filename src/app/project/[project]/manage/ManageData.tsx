@@ -77,7 +77,7 @@ export default function ManageData({
                     }
                     return (
                       <td
-                        className="pr-3 whitespace-nowrap max-w-[20rem] overflow-hidden overflow-ellipsis"
+                        className="pr-3 py-1 whitespace-nowrap max-w-[20rem] overflow-hidden overflow-ellipsis"
                         key={key}
                       >
                         <span title={value}>{value}</span>

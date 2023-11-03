@@ -99,15 +99,17 @@ export async function POST(req: Request, { params }: { params: { project: number
       });
     }
 
-    const firstauthor = row.authors[0];
-    newReviewers.push({
-      projectId: params.project,
-      email: firstauthor.email,
-      firstname: firstauthor.firstname,
-      secret: cryptoRandomString({ length: 32, type: 'url-safe' }),
-      biddings: [],
-      importedFrom: reference ? 'reference' : 'submission'
-    });
+    if (!reference) {
+      const firstauthor = row.authors[0];
+      newReviewers.push({
+        projectId: params.project,
+        email: firstauthor.email,
+        firstname: firstauthor.firstname,
+        secret: cryptoRandomString({ length: 32, type: 'url-safe' }),
+        biddings: [],
+        importedFrom: 'submission'
+      });
+    }
   }
 
   if (reference) {
@@ -124,8 +126,8 @@ export async function POST(req: Request, { params }: { params: { project: number
         set: { isReference: false }
       });
   }
-  await db.insert(authors).values(newAuthors);
-  await db.insert(reviewers).values(newReviewers);
+  if (newAuthors.length > 0) await db.insert(authors).values(newAuthors);
+  if (newReviewers.length > 0) await db.insert(reviewers).values(newReviewers);
   return NextResponse.json({ status: 201 });
 }
 

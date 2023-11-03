@@ -199,6 +199,7 @@ function fillMissingBiddings(
 
     for (let bidding_i = 0; bidding_i < 20; bidding_i++) {
       if (reviewer.biddings[bidding_i]) continue;
+      if (ranked_i >= ranked.length) break;
 
       if (reviewer.biddings.includes(ranked[ranked_i].id)) {
         bidding_i--;
