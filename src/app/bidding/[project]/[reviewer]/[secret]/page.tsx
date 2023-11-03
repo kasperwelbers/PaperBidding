@@ -144,18 +144,21 @@ export default function Reviewer({
                 <h5 className="mb-1">What is this about?</h5>
                 <p>
                   We ask you to bid on more submissions that you will need to review, so that we can
-                  assign submissions to you that match your interests and expertise
+                  assign submissions to you that match your interests and expertise. You can bid on
+                  as many submissions as you want. The 10 is just a guideline.
                 </p>
                 <h5 className="mb-1">How will I find submissions that I&apos;m interested in?</h5>
                 <p>
-                  The submissions are ordered based on similarity to your own (earlier) submissions
+                  The submissions are ordered based on similarity to your own submissions (from this
+                  year or earlier years). If you do not bid, this order is used to assign
+                  submissions to you, but bidding gives you higher priority.
                 </p>
                 <h5 className="mb-1">How does this thing work?</h5>
 
                 <p>
                   Click on the title of a submission to see the abstract. Check the checkbox to bid
-                  on a submission. Selected submissions are listed on the left. Click on a selected
-                  submission to see an optionally unselect it.
+                  on a submission. Selected submissions are listed on the left. Here you can also
+                  change the ranking or delete bids.
                 </p>
               </div>
             </div>

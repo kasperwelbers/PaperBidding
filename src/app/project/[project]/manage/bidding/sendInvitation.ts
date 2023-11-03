@@ -4,12 +4,14 @@ export async function sendInvitation(
   firstname: string,
   link: string,
   text1: string,
-  text2: string
+  text2: string,
+  test?: boolean
 ) {
   const response = await fetch(`/api/project/${projectId}/invitation`, {
     body: JSON.stringify({
       to: email,
-      html: createHTML(firstname, link, text1, text2)
+      html: createHTML(firstname, link, text1, text2),
+      test
     }),
     headers: {
       Authorization: `${process.env.MIDDLECAT_MAIL_TOKEN}`,

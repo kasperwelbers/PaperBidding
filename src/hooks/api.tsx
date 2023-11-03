@@ -1,9 +1,8 @@
-import useSWR, { Fetcher } from 'swr';
+import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { useSearchParams } from 'next/navigation';
 import { Project } from '@/drizzle/schema';
 import { useRef, useState } from 'react';
-import { DataPage, Reviewer, GetProject } from '@/types';
+import { DataPage, Reviewer, GetProject, GetInvitation } from '@/types';
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -95,6 +94,10 @@ export function usePOST<BodyType, ResponseType>(
 // GET HELPERS
 export function useProjects() {
   return useGET<GetProject[]>('/api/project');
+}
+
+export function useInvitations() {
+  return useGET<GetInvitation[]>('/api/invitations');
 }
 
 export function useProject(id: number) {

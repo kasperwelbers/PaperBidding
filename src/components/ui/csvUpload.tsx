@@ -84,11 +84,11 @@ export default function CSVReader({ fields, label, detail, onUpload, defaultFiel
       </div>
       <div className={` ${data ? '' : 'opacity-50 pointer-events-none'}`}>
         {/* <h3 className="">Select columns</h3> */}
-        <div className="grid grid-cols-[1fr,1fr] items-center gap-x-5 gap-y-1">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr,1fr]  items-center gap-x-5 gap-y-1">
           {fields.map((field) => {
             return (
               <div key={field} className="contents">
-                <div className="font-bold">{field}</div>
+                <div className="font-bold text-center">{field}</div>
                 <Combobox
                   items={data?.headers || []}
                   label="column"

@@ -3,18 +3,22 @@
 import { Button } from '@/components/ui/button';
 
 import { GetReviewer } from '@/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 
 import { useCSVDownloader } from 'react-papaparse';
 import { sendInvitation } from './sendInvitation';
+import { Loading } from '@/components/ui/loading';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface Props {
   projectId: number;
   reviewers: GetReviewer[];
+  mutateReviewers: () => void;
 }
 
-export default function Invitations({ projectId, reviewers }: Props) {
+export default function Invitations({ projectId, reviewers, mutateReviewers }: Props) {
   const { CSVDownloader, Type } = useCSVDownloader();
   const modalRef = useRef<HTMLDivElement>(null);
   const [sendModal, setSendModal] = useState(false);
@@ -57,7 +61,12 @@ export default function Invitations({ projectId, reviewers }: Props) {
           sendModal ? '' : 'hidden'
         }`}
       >
-        <EmailModal projectId={projectId} reviewers={reviewers} clickSend={clickSend} />
+        <EmailModal
+          projectId={projectId}
+          reviewers={reviewers}
+          mutateReviewers={mutateReviewers}
+          clickSend={clickSend}
+        />
       </div>
     </div>
   );
@@ -66,10 +75,11 @@ export default function Invitations({ projectId, reviewers }: Props) {
 interface EmailModalProps {
   projectId: number;
   reviewers: GetReviewer[];
+  mutateReviewers: () => void;
   clickSend: (e: any) => void;
 }
 
-function EmailModal({ projectId, reviewers, clickSend }: EmailModalProps) {
+function EmailModal({ projectId, reviewers, mutateReviewers, clickSend }: EmailModalProps) {
   const [text1, setText1] = useState(text1Default);
   const [text2, setText2] = useState(text2Default);
 
@@ -91,8 +101,15 @@ function EmailModal({ projectId, reviewers, clickSend }: EmailModalProps) {
           </p>
         </div>
         <Textarea value={text2} onChange={(e) => setText2(e.target.value)} rows={4} />
-        <div className="mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
           <SendTestEmail projectId={projectId} reviewers={reviewers} text1={text1} text2={text2} />
+          <SendBulkEmail
+            projectId={projectId}
+            reviewers={reviewers}
+            text1={text1}
+            text2={text2}
+            mutateReviewers={mutateReviewers}
+          />
         </div>
       </div>
     </div>
@@ -113,7 +130,7 @@ function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProp
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSending(true);
-    sendInvitation(projectId, email, reviewers[0].firstname, reviewers[0].link, text1, text2)
+    sendInvitation(projectId, email, reviewers[0].firstname, reviewers[0].link, text1, text2, true)
       .then((success) => {
         if (success) alert('Email sent!');
         else alert('Something went wrong, email not sent');
@@ -122,24 +139,136 @@ function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProp
       .finally(() => setSending(false));
   }
 
+  if (sending) return <Loading msg={`Sending test email to ${email}`} />;
+
   return (
     <form className="flex flex-col justify-center" onSubmit={onSubmit}>
+      <h3 className="text-center">Send test email</h3>
+
       <input
-        className="border-2 border-primary px-3 py-1 rounded mt-2"
+        className="border-2 border-primary px-3 py-1 rounded mt-auto"
         type="email"
         name="email"
         placeholder="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button
-        disabled={sending}
-        className={`border-2 border-primary  px-3 py-1 rounded mt-2 ${
-          sending ? 'bg-secondary text-primary' : 'bg-primary text-secondary'
-        }`}
+      <Button disabled={sending} className={`border-2 border-primary  px-3 py-1 rounded mt-2`}>
+        Send test email
+      </Button>
+    </form>
+  );
+}
+
+interface SendBulkEmailProps {
+  projectId: number;
+  reviewers: GetReviewer[];
+  text1: string;
+  text2: string;
+  mutateReviewers: () => void;
+}
+
+function SendBulkEmail({
+  projectId,
+  reviewers,
+  text1,
+  text2,
+  mutateReviewers
+}: SendBulkEmailProps) {
+  const [who, setWho] = useState('');
+  const [progress, setProgress] = useState<number | null>(null);
+
+  const uninvited = useMemo(() => {
+    return reviewers.filter((r) => !r.invitationSent);
+  }, [reviewers]);
+  const recipients = who === 'uninvited' ? uninvited : reviewers;
+
+  function start(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setProgress(0);
+  }
+
+  function cancel(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+    e.preventDefault();
+    setProgress(null);
+  }
+
+  useEffect(() => {
+    if (progress === null) return;
+    if (progress >= recipients.length) {
+      mutateReviewers();
+      setProgress(null);
+    } else {
+      const recipient = recipients[progress];
+      if (recipient.invitationSent) {
+        const date = new Date(recipient.invitationSent);
+        if (date.getTime() > Date.now() - 24 * 60 * 60 * 1000) {
+          setProgress(progress + 1);
+          return;
+        }
+      }
+      sendInvitation(
+        projectId,
+        recipient.email,
+        reviewers[0].firstname,
+        reviewers[0].link,
+        text1,
+        text2
+      ).then((success) => {
+        if (success) {
+          setProgress(progress + 1);
+        } else {
+          alert(
+            `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per 24 hours, so you don't have to worry about spamming them`
+          );
+          mutateReviewers();
+          setProgress(null);
+        }
+      });
+    }
+  }, [recipients, progress, mutateReviewers, projectId, reviewers, text1, text2]);
+
+  if (progress !== null) {
+    return (
+      <div className="flex flex-col ">
+        <h2 className="text-center mt-0">
+          {progress + 1} / {recipients?.length}
+        </h2>
+        <span className="italic text-center"> {recipients?.[progress]?.email}</span>
+        <Button onClick={cancel} variant="destructive" className="mt-auto w-full">
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="flex flex-col justify-center" onSubmit={start}>
+      <h3 className="text-center">Send bulk email</h3>
+
+      <RadioGroup
+        orientation="horizontal"
+        className="grid grid-cols-2 mt-auto h-10"
+        value={who}
+        onValueChange={(v) => setWho(v)}
       >
-        {sending ? 'Sending test email...' : 'Send test email'}
-      </button>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="uninvited" id="option-one" />
+          <Label htmlFor="option-one">Only uninvited ({uninvited.length})</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="everyone" id="option-two" />
+          <Label htmlFor="option-two">Everyone ({reviewers.length})</Label>
+        </div>
+      </RadioGroup>
+
+      <Button
+        disabled={who === ''}
+        variant={who === '' ? 'secondary' : 'default'}
+        className={`border-2 border-primary  px-3 py-1 rounded mt-2 `}
+      >
+        {who === '' ? 'select recipients' : 'Send emails'}
+      </Button>
     </form>
   );
 }

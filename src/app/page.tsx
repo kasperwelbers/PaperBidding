@@ -5,16 +5,19 @@ import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
 import { Project } from '@/drizzle/schema';
-import { useCreateProject, useProjects } from '@/hooks/api';
+import { useCreateProject, useInvitations, useProjects } from '@/hooks/api';
 import { Session } from 'next-auth';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { GetProject } from '@/types';
+import Link from 'next/link';
 
 export default function Home() {
   const session = useSession();
   const { data: projects, isLoading } = useProjects();
+  const { data: invitations, isLoading: isLoadingInvitations } = useInvitations();
+  const canCreate = session?.data?.user?.canCreateProject || false;
 
   return (
     <main className="flex min-h-screen flex-col items-center">
@@ -25,35 +28,75 @@ export default function Home() {
         </h4>
       </div>
       {session?.data?.user?.email ? (
-        <div className="mt-8 p-4 flex  items-center justify-center">
-          <h5 className="">Welcome {session.data.user.email}!</h5>
+        <div className="mt-8 p-4 flex flex-col items-center justify-center">
+          <h5 className="">Welcome {session.data.user.email}</h5>
           <Button
-            className="py-0 ml-3 mb-3 bg-secondary text-primary hover:text-secondary"
+            className="py-0 ml-3 mb-4 bg-secondary text-primary hover:text-secondary"
             onClick={() => signOut()}
           >
             Sign-out
           </Button>
         </div>
       ) : null}
+      {session.status === 'authenticated' && invitations ? (
+        <div className="flex flex-col">
+          <h3 className="text-center">Bidding invitations</h3>
+          {invitations?.length ? null : (
+            <span className="text-center italic">{`you dont have any invitations :(`}</span>
+          )}
+          <div className=" max-w-lg">
+            {invitations.map((invitation) => {
+              return (
+                <Button key={invitation.link} className="w-full">
+                  <Link href={invitation.link}>{invitation.label}</Link>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-col lg:flex-row gap-12 mt-6 px-4">
         {session.status === 'loading' ? <Loading msg="Loading..." /> : null}
-        {session.status === 'authenticated' ? (
-          <SelectProject session={session.data} projects={projects} loadingProjects={isLoading} />
-        ) : null}
         {session.status === 'unauthenticated' ? <SignInForm /> : null}
-        {session?.data?.user?.canCreateProject ? <CreateProjectForm projects={projects} /> : null}
+        {session.status === 'authenticated' ? (
+          <AdminPanel canCreate={canCreate} projects={projects} loadingProjects={isLoading} />
+        ) : null}
       </div>
     </main>
   );
 }
 
+interface AdminPanelProps {
+  canCreate: boolean;
+  projects: GetProject[] | undefined;
+  loadingProjects: boolean;
+}
+
+function AdminPanel({ canCreate, projects, loadingProjects }: AdminPanelProps) {
+  return (
+    <div className="flex flex-col gap-12 mt-6 p-5 rounded border-2 border-primary">
+      <h3 className="text-center">Project management</h3>
+      <div className="flex flex-col lg:flex-row gap-12">
+        {projects?.length ? (
+          <SelectProject projects={projects} loadingProjects={loadingProjects} />
+        ) : null}
+        {canCreate ? <CreateProjectForm projects={projects} /> : null}
+      </div>
+    </div>
+  );
+}
+
 function SignInForm() {
   const [email, setEmail] = useState('');
+  const [signingIn, setSigningIn] = useState(false);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setSigningIn(true);
     signIn('email', { email });
   }
+
+  if (signingIn) return <Loading msg={`Sending sign-in email to ${email}`} />;
 
   return (
     <form className="flex flex-col justify-center" onSubmit={onSubmit}>
@@ -134,12 +177,11 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
 }
 
 interface SelectProjectProps {
-  session: Session;
   projects?: GetProject[];
   loadingProjects: boolean;
 }
 
-function SelectProject({ session, projects, loadingProjects }: SelectProjectProps) {
+function SelectProject({ projects, loadingProjects }: SelectProjectProps) {
   const router = useRouter();
 
   function onSelect(project: GetProject) {
@@ -147,7 +189,7 @@ function SelectProject({ session, projects, loadingProjects }: SelectProjectProp
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col items-center">
       <h4>Select project </h4>
       {loadingProjects ? (
         <p className="text-center animate-bounce mt-10">loading projects...</p>

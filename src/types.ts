@@ -68,6 +68,11 @@ export interface GetProject {
   admins: string[];
 }
 
+export interface GetInvitation {
+  label: string;
+  link: string;
+}
+
 export interface GetSubmission {
   id: number;
   title: string;

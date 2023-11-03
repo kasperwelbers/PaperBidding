@@ -18,7 +18,8 @@ export default function Bidding({ params }: { params: { project: number } }) {
   const {
     data: reviewers,
     isLoading: reviewersLoading,
-    error: reviewersError
+    error: reviewersError,
+    mutate: mutateReviewers
   } = useAllData<GetReviewer>(params.project, 'reviewers');
   const {
     data: submissions,
@@ -67,7 +68,11 @@ export default function Bidding({ params }: { params: { project: number } }) {
               submission and the submission per reviewer.
             </p>
           </div>
-          <Invitations projectId={params.project} reviewers={reviewers || []} />
+          <Invitations
+            projectId={params.project}
+            reviewers={reviewers || []}
+            mutateReviewers={mutateReviewers}
+          />
         </div>
       </div>
       <div className="relative ">

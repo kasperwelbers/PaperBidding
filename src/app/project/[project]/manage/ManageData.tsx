@@ -90,7 +90,7 @@ export default function ManageData({
           </table>
         </div>
       </div>
-      <div className="flex gap-2 mt-auto">
+      <div className="flex flex-wrap gap-2 mt-auto">
         <span className="flex-auto text-right whitespace-nowrap">
           Type &quot;I am certain&quot; to enable delete
         </span>
