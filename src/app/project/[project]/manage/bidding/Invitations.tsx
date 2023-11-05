@@ -210,8 +210,8 @@ function SendBulkEmail({
       sendInvitation(
         projectId,
         recipient.email,
-        reviewers[0].firstname,
-        reviewers[0].link,
+        recipient.firstname,
+        recipient.link,
         text1,
         text2
       ).then((success) => {
