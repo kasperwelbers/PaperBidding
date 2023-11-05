@@ -20,10 +20,10 @@ export async function POST(req: Request, { params }: { params: { project: number
   if (!test) {
     // Can only send emails to reviewers that exist (except for testing)
     if (!reviewer) return NextResponse.json({}, { status: 404 });
-    // Check if invitation was sent in the last 24 hours. If so, skip and return 201
+    // Check if invitation was sent in the last 1 hour. If so, skip and return 201
     if (reviewer.invitationSent) {
       const date = new Date(reviewer.invitationSent);
-      if (date.getTime() > Date.now() - 24 * 60 * 60 * 1000) {
+      if (date.getTime() > Date.now() - 1 * 60 * 60 * 1000) {
         return NextResponse.json({}, { status: 201 });
       }
     }

@@ -202,7 +202,7 @@ function SendBulkEmail({
       const recipient = recipients[progress];
       if (recipient.invitationSent) {
         const date = new Date(recipient.invitationSent);
-        if (date.getTime() > Date.now() - 24 * 60 * 60 * 1000) {
+        if (date.getTime() > Date.now() - 1 * 60 * 60 * 1000) {
           setProgress(progress + 1);
           return;
         }
@@ -219,7 +219,7 @@ function SendBulkEmail({
           setProgress(progress + 1);
         } else {
           alert(
-            `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per 24 hours, so you don't have to worry about spamming them`
+            `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per hour, so you don't have to worry about spamming them`
           );
           mutateReviewers();
           setProgress(null);
