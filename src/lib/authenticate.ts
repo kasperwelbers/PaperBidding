@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server';
-import db, { admins, projects, reviewers, projectAdmins } from '@/drizzle/schema';
-import { eq, and } from 'drizzle-orm';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth/authOptions';
+import { NextResponse } from "next/server";
+import db, {
+  admins,
+  projects,
+  reviewers,
+  projectAdmins,
+} from "@/drizzle/schema";
+import { eq, and } from "drizzle-orm";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth/authOptions";
 
 export async function authenticate() {
   const session = await getServerSession(authOptions);
@@ -19,7 +24,12 @@ export async function canEditProject(email: string, projectId: number) {
   const projectAdmin = await db
     .select()
     .from(projectAdmins)
-    .where(and(eq(projectAdmins.projectId, projectId), eq(projectAdmins.email, email)));
+    .where(
+      and(
+        eq(projectAdmins.projectId, projectId),
+        eq(projectAdmins.email, email),
+      ),
+    );
   return projectAdmin.length > 0;
 }
 
@@ -30,10 +40,10 @@ export async function canCreateProject(email: string) {
 }
 
 export async function authenticateReviewer(req: Request) {
-  const token = req.headers.get('Authorization');
+  const token = req.headers.get("Authorization");
   if (!token) return undefined;
 
-  const [id, secret] = token.split('/');
+  const [id, secret] = token.split("/");
   const reviewer = await db
     .select()
     .from(reviewers)

@@ -1,68 +1,110 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-import { Input } from '@/components/ui/input';
-import { Loading } from '@/components/ui/loading';
-import { Project } from '@/drizzle/schema';
-import { useCreateProject, useInvitations, useProjects } from '@/hooks/api';
-import { Session } from 'next-auth';
-import { signIn, signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { GetProject } from '@/types';
-import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { Input } from "@/components/ui/input";
+import { Loading } from "@/components/ui/loading";
+import { Project } from "@/drizzle/schema";
+import { useCreateProject, useInvitations, useProjects } from "@/hooks/api";
+import { Session } from "next-auth";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { GetProject } from "@/types";
+import Link from "next/link";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { User } from "lucide-react";
+import { MdAccountCircle } from "react-icons/md";
+import { FaSignOutAlt } from "react-icons/fa";
 
 export default function Home() {
   const session = useSession();
   const { data: projects, isLoading } = useProjects();
-  const { data: invitations, isLoading: isLoadingInvitations } = useInvitations();
+  const { data: invitations, isLoading: isLoadingInvitations } =
+    useInvitations();
   const canCreate = session?.data?.user?.canCreateProject || false;
+  console.log(session.data);
 
   return (
     <main className="flex min-h-screen flex-col items-center">
       <div className="w-full bg-secondary p-8 border-b-2 border-primary">
-        <h1 className="text-5xl font-bold mb-2 text-center">Paper Bidding</h1>
-        <h4 className="text-center mt-4 mb-0">
+        <SignOutButton />
+        <h1 className="text-3xl md:text-5xl font-bold mb-2 text-center">
+          Paper Bidding
+        </h1>
+        <h4 className="text-xl md:text-2xl text-center mt-4 mb-0">
           Paper bidding website of the ICA Computational Methods Division
         </h4>
       </div>
-      {session?.data?.user?.email ? (
-        <div className="mt-8 p-4 flex flex-col items-center justify-center">
-          <h5 className="">Welcome {session.data.user.email}</h5>
+      <div
+        className={`mt-10 p-3 grid gap-6 ${canCreate ? "grid-cols-1 lg:grid-cols-2" : ""}`}
+      >
+        <div className="flex flex-col lg:flex-row gap-12 ">
+          {session.status === "loading" ? <Loading msg="Loading..." /> : null}
+          {session.status === "unauthenticated" ? <SignInForm /> : null}
+          {session.status === "authenticated" ? (
+            <AdminPanel
+              canCreate={canCreate}
+              projects={projects}
+              loadingProjects={isLoading}
+            />
+          ) : null}
+        </div>
+        <div>
+          {isLoadingInvitations ? (
+            <Loading msg="Loading invitations..." />
+          ) : null}
+          {session.status === "authenticated" && invitations ? (
+            <div className="flex flex-col">
+              <h3 className="text-center">Bidding invitations</h3>
+              {invitations?.length ? null : (
+                <span className="text-center italic">{`you dont have any current invitations :(`}</span>
+              )}
+              <div className=" max-w-lg">
+                {invitations.map((invitation) => {
+                  return (
+                    <Button key={invitation.link} className="w-full">
+                      <Link href={invitation.link}>{invitation.label}</Link>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function SignOutButton() {
+  const session = useSession();
+  if (session.status !== "authenticated") return null;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button className="absolute right-1 top-1 py-0 ml-3 mb-4 bg-secondary text-primary hover:text-secondary">
+          <MdAccountCircle size={32} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <div className="text-center">
+          {session.data.user.email}
           <Button
-            className="py-0 ml-3 mb-4 bg-secondary text-primary hover:text-secondary"
+            className="flex gap-3 items-center justify-center mx-auto"
+            variant="ghost"
             onClick={() => signOut()}
           >
             Sign-out
+            <FaSignOutAlt size={16} />
           </Button>
         </div>
-      ) : null}
-      {session.status === 'authenticated' && invitations ? (
-        <div className="flex flex-col">
-          <h3 className="text-center">Bidding invitations</h3>
-          {invitations?.length ? null : (
-            <span className="text-center italic">{`you dont have any invitations :(`}</span>
-          )}
-          <div className=" max-w-lg">
-            {invitations.map((invitation) => {
-              return (
-                <Button key={invitation.link} className="w-full">
-                  <Link href={invitation.link}>{invitation.label}</Link>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-      <div className="flex flex-col lg:flex-row gap-12 mt-6 px-4">
-        {session.status === 'loading' ? <Loading msg="Loading..." /> : null}
-        {session.status === 'unauthenticated' ? <SignInForm /> : null}
-        {session.status === 'authenticated' ? (
-          <AdminPanel canCreate={canCreate} projects={projects} loadingProjects={isLoading} />
-        ) : null}
-      </div>
-    </main>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -74,11 +116,14 @@ interface AdminPanelProps {
 
 function AdminPanel({ canCreate, projects, loadingProjects }: AdminPanelProps) {
   return (
-    <div className="flex flex-col gap-12 mt-6 p-5 rounded border-2 border-primary">
+    <div className="flex flex-col gap-12 p-6  rounded border-2 border-primary">
       <h3 className="text-center">Project management</h3>
       <div className="flex flex-col lg:flex-row gap-12">
         {projects?.length ? (
-          <SelectProject projects={projects} loadingProjects={loadingProjects} />
+          <SelectProject
+            projects={projects}
+            loadingProjects={loadingProjects}
+          />
         ) : null}
         {canCreate ? <CreateProjectForm projects={projects} /> : null}
       </div>
@@ -87,13 +132,13 @@ function AdminPanel({ canCreate, projects, loadingProjects }: AdminPanelProps) {
 }
 
 function SignInForm() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [signingIn, setSigningIn] = useState(false);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSigningIn(true);
-    signIn('email', { email });
+    signIn("email", { email });
   }
 
   if (signingIn) return <Loading msg={`Sending sign-in email to ${email}`} />;
@@ -124,7 +169,7 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
   const { trigger: createProject } = useCreateProject();
   const [creating, setCreating] = useState(false);
   const router = useRouter();
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
 
   function onSelect(project: Project) {
     router.push(`/project/${project.id}/manage`);
@@ -147,7 +192,7 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
             })
             .finally(() => {
               setCreating(false);
-              setName('');
+              setName("");
             });
         }}
       >
@@ -157,13 +202,13 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
           value={name}
           minLength={3}
           onChange={(e) => {
-            e.target.setCustomValidity('');
+            e.target.setCustomValidity("");
             if (projects?.find((p: GetProject) => p.name === e.target.value)) {
-              e.target.setCustomValidity('Project already exists');
+              e.target.setCustomValidity("Project already exists");
             }
             if (!/^[a-zA-Z0-9_ -]+$/.test(e.target.value)) {
               e.target.setCustomValidity(
-                'Only letters, numbers, dashes, underscores and spaces are allowed'
+                "Only letters, numbers, dashes, underscores and spaces are allowed",
               );
             }
             setName(e.target.value);
@@ -195,7 +240,11 @@ function SelectProject({ projects, loadingProjects }: SelectProjectProps) {
         <p className="text-center animate-bounce mt-10">loading projects...</p>
       ) : (
         <>
-          <Combobox items={projects || []} label={'project'} onSelect={onSelect} />
+          <Combobox
+            items={projects || []}
+            label={"project"}
+            onSelect={onSelect}
+          />
         </>
       )}
     </div>

@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "db86d4c9-239e-4704-ba90-89c36276d9cf",
+  "id": "8efd971e-a88b-455f-8145-e4c9f89d6da2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {

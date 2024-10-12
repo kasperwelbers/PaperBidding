@@ -1,19 +1,24 @@
-import useSWR from 'swr';
-import useSWRMutation from 'swr/mutation';
-import { Project } from '@/drizzle/schema';
-import { useRef, useState } from 'react';
-import { DataPage, Reviewer, GetProject, GetInvitation } from '@/types';
+import useSWR from "swr";
+import useSWRMutation from "swr/mutation";
+import { Project } from "@/drizzle/schema";
+import { useRef, useState } from "react";
+import { DataPage, Reviewer, GetProject, GetInvitation } from "@/types";
+import { useSession } from "next-auth/react";
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
  * - sets a type parameter for the return type
  */
 export function useGET<ResponseType>(url: string | null, token?: string) {
-  const fetcher = ([url, token]: any) => {
-    //if (!token) throw new Error('No token provided');
+  const session = useSession();
+  const auth = !!token || session.status === "authenticated";
+
+  const fetcher = ([url, token, auth]: any) => {
+    if (!auth) throw new Error("Not authenticated");
+
     return fetch(url, {
-      method: 'GET',
-      headers: { Authorization: token }
+      method: "GET",
+      headers: { Authorization: token },
     }).then((res) => {
       if (res.ok) {
         return res.json();
@@ -23,8 +28,8 @@ export function useGET<ResponseType>(url: string | null, token?: string) {
     });
   };
 
-  return useSWR<ResponseType>(url ? [url, token] : null, fetcher, {
-    revalidateOnFocus: false
+  return useSWR<ResponseType>(url ? [url, token, auth] : null, fetcher, {
+    revalidateOnFocus: false,
   });
 }
 
@@ -33,23 +38,26 @@ export function useGET<ResponseType>(url: string | null, token?: string) {
 export function useGETPagionation<ResponseType>(
   url: string | null,
   token?: string,
-  metaParam?: boolean
+  metaParam?: boolean,
 ) {
-  const fetcher = async ([url, token]: any) => {
-    //if (!token) throw new Error('No token provided');
+  const session = useSession();
+  const auth = !!token || session.status === "authenticated";
+
+  const fetcher = async ([url, token, auth]: any) => {
+    if (!auth) throw new Error("Not authenticated");
     const limit = 100;
     let offset = 0;
 
     const allData: ResponseType[] = [];
     while (true) {
-      if (offset > 10000) throw new Error('Too many rows');
+      if (offset > 10000) throw new Error("Too many rows");
       let urlWithOffset = `${url}?offset=${offset}&limit=${limit}`;
-      if (metaParam) urlWithOffset += '&meta=true';
+      if (metaParam) urlWithOffset += "&meta=true";
 
       try {
         const res = await fetch(urlWithOffset, {
-          method: 'GET',
-          headers: { Authorization: token }
+          method: "GET",
+          headers: { Authorization: token },
         });
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
@@ -58,14 +66,14 @@ export function useGETPagionation<ResponseType>(
         offset += limit;
       } catch (e) {
         console.log(e);
-        throw new Error('Failed to get data');
+        throw new Error("Failed to get data");
       }
     }
     return allData;
   };
 
-  return useSWR<ResponseType[]>(url ? [url, token] : null, fetcher, {
-    revalidateOnFocus: false
+  return useSWR<ResponseType[]>(url ? [url, token, auth] : null, fetcher, {
+    revalidateOnFocus: false,
   });
 }
 
@@ -77,27 +85,31 @@ export function useGETPagionation<ResponseType>(
  */
 export function usePOST<BodyType, ResponseType>(
   url: string,
-  method: string = 'POST',
-  token?: string
+  method: string = "POST",
+  token?: string,
 ) {
-  function fetcher([url, token]: any, { arg }: { arg: BodyType }) {
+  const session = useSession();
+  const auth = !!token || session.status === "authenticated";
+
+  function fetcher([url, token, auth]: any, { arg }: { arg: BodyType }) {
+    if (!auth) throw new Error("Not authenticated");
     return fetch(url, {
       method: method,
       headers: { Authorization: `${token}` },
-      body: JSON.stringify(arg)
+      body: JSON.stringify(arg),
     });
   }
 
-  return useSWRMutation([url, token], fetcher);
+  return useSWRMutation([url, token, auth], fetcher);
 }
 
 // GET HELPERS
 export function useProjects() {
-  return useGET<GetProject[]>('/api/project');
+  return useGET<GetProject[]>("/api/project");
 }
 
 export function useInvitations() {
-  return useGET<GetInvitation[]>('/api/invitations');
+  return useGET<GetInvitation[]>("/api/invitations");
 }
 
 export function useProject(id: number) {
@@ -110,8 +122,8 @@ interface DataResponse {
 }
 export function useData(
   projectId: number,
-  what: 'submissions' | 'reviewers',
-  params: Record<string, any> = {}
+  what: "submissions" | "reviewers",
+  params: Record<string, any> = {},
 ): DataPage {
   const limit = params.limit || 6;
   const [offset, setOffset] = useState(0);
@@ -119,7 +131,7 @@ export function useData(
   const urlParams = new URLSearchParams({
     ...params,
     offset: String(offset),
-    limit: String(limit)
+    limit: String(limit),
   });
   const urlParamsString = urlParams.toString();
   let url: string = `/api/project/${projectId}/data/${what}/?${urlParamsString}`;
@@ -151,45 +163,62 @@ export function useData(
     nextPage,
     prevPage,
     isLoading,
-    error: error?.message || ''
+    error: error?.message || "",
   };
 }
 export function useAllData<ResponseType>(
   projectId: number,
-  what: 'submissions' | 'reviewers',
+  what: "submissions" | "reviewers",
   token?: string,
-  meta?: boolean
+  meta?: boolean,
 ) {
   let url = `/api/project/${projectId}/data/${what}`;
   return useGETPagionation<ResponseType>(url, token, meta);
 }
 
-export function useAbstract(projectId: number, submissionId: number | undefined, token: string) {
-  const url = submissionId ? `/api/project/${projectId}/data/submission/${submissionId}` : null;
+export function useAbstract(
+  projectId: number,
+  submissionId: number | undefined,
+  token: string,
+) {
+  const url = submissionId
+    ? `/api/project/${projectId}/data/submission/${submissionId}`
+    : null;
   return useGET<{ abstract: string }>(url, token);
 }
 
-export function useReviewer(projectId: number, reviewerId: number, token: string) {
-  return useGET<Reviewer>(`/api/project/${projectId}/data/reviewer/${reviewerId}`, token);
+export function useReviewer(
+  projectId: number,
+  reviewerId: number,
+  token: string,
+) {
+  return useGET<Reviewer>(
+    `/api/project/${projectId}/data/reviewer/${reviewerId}`,
+    token,
+  );
 }
 
 // POST HELPERS
 export function useCreateProject() {
-  return usePOST<{ name: string }, Project>('/api/project');
+  return usePOST<{ name: string }, Project>("/api/project");
 }
 
-export function usePostBiddings(projectId: number, reviewerId: number, token: string) {
+export function usePostBiddings(
+  projectId: number,
+  reviewerId: number,
+  token: string,
+) {
   return usePOST<{}, { selected: number[] }>(
     `/api/project/${projectId}/data/reviewer/${reviewerId}/bid`,
-    'POST',
-    token
+    "POST",
+    token,
   );
 }
 
 export function useUploadData(
   projectId: number,
-  what: 'submissions' | 'reviewers',
-  params?: Record<string, any>
+  what: "submissions" | "reviewers",
+  params?: Record<string, any>,
 ) {
   let url: string = `/api/project/${projectId}/data/${what}`;
   if (params) {
@@ -203,8 +232,8 @@ export function useUploadData(
 
 export function useDeleteData(
   projectId: number,
-  what: 'submissions' | 'reviewers',
-  params?: Record<string, any>
+  what: "submissions" | "reviewers",
+  params?: Record<string, any>,
 ) {
   let url: string = `/api/project/${projectId}/data/${what}`;
   if (params) {
@@ -213,5 +242,5 @@ export function useDeleteData(
     url += `?${urlParamsString}`;
   }
 
-  return usePOST<any, Project>(url, 'DELETE');
+  return usePOST<any, Project>(url, "DELETE");
 }
