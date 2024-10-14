@@ -1,14 +1,23 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { useSearchParams } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function EmailSignin() {
+export default function EmailSigninPage() {
+  return (
+    <Suspense>
+      <EmailSignin />
+    </Suspense>
+  );
+}
+
+function EmailSignin() {
   const searchParams = useSearchParams();
 
-  const token = searchParams.get('token') || '';
-  const callbackUrl = searchParams.get('callbackUrl') || '';
-  const email = searchParams.get('email') || '';
+  const token = searchParams.get("token") || "";
+  const callbackUrl = searchParams.get("callbackUrl") || "";
+  const email = searchParams.get("email") || "";
 
   return (
     <main className="flex min-h-screen flex-col items-center">
