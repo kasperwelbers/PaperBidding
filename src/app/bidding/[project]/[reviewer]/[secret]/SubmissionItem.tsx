@@ -1,9 +1,7 @@
-'use client';
-
-import { useAbstract } from '@/hooks/api';
-import { GetSubmission } from '@/types';
-import { SetStateAction, useState, Dispatch } from 'react';
-import { FaChevronDown, FaChevronRight, FaClock } from 'react-icons/fa';
+import { useAbstract } from "@/hooks/api";
+import { GetSubmission } from "@/types";
+import { SetStateAction, useState, Dispatch } from "react";
+import { FaChevronDown, FaChevronRight, FaClock } from "react-icons/fa";
 
 interface SubmissionProps {
   projectId: number;
@@ -11,7 +9,7 @@ interface SubmissionProps {
   token: string;
   submission?: GetSubmission;
   selected: number[];
-  setSelected: Dispatch<SetStateAction<number[]>>;
+  setSelected: (selected: number[]) => void;
 }
 
 export default function SubmissionItem({
@@ -20,11 +18,15 @@ export default function SubmissionItem({
   token,
   submission,
   selected,
-  setSelected
+  setSelected,
 }: SubmissionProps) {
   const [submissionId, setSubmissionId] = useState<number>();
   const [showAbstract, setShowAbstract] = useState(false);
-  const { data: abstractData, isLoading } = useAbstract(projectId, submissionId, token);
+  const { data: abstractData, isLoading } = useAbstract(
+    projectId,
+    submissionId,
+    token,
+  );
 
   async function onClick() {
     if (!submission) return;
@@ -69,7 +71,7 @@ export default function SubmissionItem({
       {/* <div className="flex flex-col"> */}
       <h6
         className={`cursor-pointer mb-0 hyphens-auto break-words whitespace-break-spaces ${
-          showAbstract ? '' : 'font-normal'
+          showAbstract ? "" : "font-normal"
         }`}
         onClick={onClick}
       >
@@ -77,12 +79,20 @@ export default function SubmissionItem({
       </h6>
       {/* </div> */}
       <div className="h-4 w-4 mt-1 cursor-pointer" onClick={onClick}>
-        {isLoading ? <FaClock /> : showAbstract ? <FaChevronDown /> : <FaChevronRight />}
+        {isLoading ? (
+          <FaClock />
+        ) : showAbstract ? (
+          <FaChevronDown />
+        ) : (
+          <FaChevronRight />
+        )}
       </div>
       <div className={` flex items-center col-start-2 col-end-4 m-0 mt-1`}>
         <div
           className={`grid  ${
-            showAbstract && abstractData ? 'grid-rows-[15rem]' : 'grid-rows-[0rem]'
+            showAbstract && abstractData
+              ? "grid-rows-[15rem]"
+              : "grid-rows-[0rem]"
           }  relative transition-all overflow-hidden  text-justify  whitespace-break-spaces hyphens-auto break-words  ${fadeOutBefore} ${fadeOutAfter}`}
         >
           {abstractData ? (

@@ -1,45 +1,44 @@
-'use client';
+"use client";
 
-import { Error } from '@/components/ui/error';
-import { Loading } from '@/components/ui/loading';
-import { useAllData, useProject, useReviewer } from '@/hooks/api';
-import { computeRelevantSubmissions } from '@/lib/computeRelevantSubmissions';
-import { GetSubmission } from '@/types';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from 'react-icons/fa';
-import { GiVote } from 'react-icons/gi';
-import SubmissionItem from './SubmissionItem';
-import useSelection from './useSelection';
-import CurrentSelection from './CurrentSelection';
-
+import { Error } from "@/components/ui/error";
+import { Loading } from "@/components/ui/loading";
+import { useAllData, useProject, useReviewer } from "@/hooks/api";
+import { computeRelevantSubmissions } from "@/lib/computeRelevantSubmissions";
+import { GetSubmission } from "@/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from "react-icons/fa";
+import { GiVote } from "react-icons/gi";
+import SubmissionItem from "./SubmissionItem";
+import useSelection from "./useSelection";
+import CurrentSelection from "./CurrentSelection";
 export default function Reviewer({
-  params
+  params,
 }: {
   params: { project: number; reviewer: number; secret: number };
 }) {
-  const token = params.reviewer + '/' + params.secret;
+  const token = params.reviewer + "/" + params.secret;
 
   const {
     data: submissions,
     isLoading,
-    error
-  } = useAllData<GetSubmission>(params.project, 'submissions', token);
+    error,
+  } = useAllData<GetSubmission>(params.project, "submissions", token);
   const {
     data: reviewer,
     isLoading: isLoadingReviewer,
-    error: errorReviewer
+    error: errorReviewer,
   } = useReviewer(params.project, params.reviewer, token);
 
   const { selected, setSelected, selectionStatus } = useSelection(
     params.project,
     params.reviewer,
-    token
+    token,
   );
 
   const [showSelected, setShowSelected] = useState(false);
   const [page, setPage] = useState(1);
   const { data: project } = useProject(params.project);
-  const projectName = project?.name || '';
+  const projectName = project?.name || "";
   const popupRef = useRef<HTMLDivElement>(null);
 
   const relevantSubmissions = useMemo(() => {
@@ -51,8 +50,8 @@ export default function Reviewer({
       if (popupRef.current?.contains(e.target as Node)) return;
       setShowSelected(false);
     }
-    window.addEventListener('mousedown', closePopup);
-    return () => window.removeEventListener('mousedown', closePopup);
+    window.addEventListener("mousedown", closePopup);
+    return () => window.removeEventListener("mousedown", closePopup);
   }, [popupRef]);
 
   if (isLoading) return <Loading msg="Loading Submissions" />;
@@ -61,8 +60,8 @@ export default function Reviewer({
   if (errorReviewer) return <Error msg={errorReviewer.message} />;
   if (!relevantSubmissions) return <Loading msg="Ranking Submissions" />;
   if (!submissions) return <Loading msg="Loading Submissions" />;
-  if (selectionStatus === 'loading') return <Loading msg="Loading Selection" />;
-  if (selectionStatus === 'error')
+  if (selectionStatus === "loading") return <Loading msg="Loading Selection" />;
+  if (selectionStatus === "error")
     return <Error msg="Error Loading Selection. Please reload page" />;
 
   const nPages = Math.ceil(relevantSubmissions?.length / 10 || 0);
@@ -81,8 +80,8 @@ export default function Reviewer({
       <FaArrowLeft
         className={`w-6 h-6  ${
           page === 1
-            ? 'cursor-default text-gray-300'
-            : 'cursor-pointer text-blue-500 hover:text-blue-700'
+            ? "cursor-default text-gray-300"
+            : "cursor-pointer text-blue-500 hover:text-blue-700"
         }`}
         onClick={prevPage}
       />
@@ -92,8 +91,8 @@ export default function Reviewer({
       <FaArrowRight
         className={`w-6 h-6  ${
           page === nPages
-            ? 'cursor-default text-gray-300'
-            : 'cursor-pointer text-blue-500 hover:text-blue-700'
+            ? "cursor-default text-gray-300"
+            : "cursor-pointer text-blue-500 hover:text-blue-700"
         }`}
         onClick={nextPage}
       />
@@ -105,7 +104,7 @@ export default function Reviewer({
       <header className="flex  z-20 px-1 sticky top-0 w-full justify-center bg-foreground  text-white">
         <div className="flex flex-col md:flex-row w-full justify-between">
           <div className="flex flex-wrap md:flex-col p-2 gap-x-3 justify-between ">
-            <h5 className="m-0">{projectName.replaceAll('_', ' ')}</h5>
+            <h5 className="m-0">{projectName.replaceAll("_", " ")}</h5>
             <span className="italic text-sm">{reviewer?.email}</span>
           </div>
         </div>
@@ -129,12 +128,14 @@ export default function Reviewer({
         </div>
         <div
           className={`flex justify-center h-full overflow-auto max-h-full ${
-            showSelected ? 'blur-[2px] opacity-50 pointer-events-none' : ''
+            showSelected ? "blur-[2px] opacity-50 pointer-events-none" : ""
           }`}
         >
           <div className="flex flex-col">
             <div className="relative flex gap-3 items-start select-none">
-              <h5>Select 10 submissions that you would be willing to review </h5>
+              <h5>
+                Select 10 submissions that you would be willing to review{" "}
+              </h5>
               <div className="peer">
                 <FaQuestionCircle className="w-6 h-6   text-blue-600" />
               </div>
@@ -143,22 +144,27 @@ export default function Reviewer({
               >
                 <h5 className="mb-1">What is this about?</h5>
                 <p>
-                  We ask you to bid on more submissions that you will need to review, so that we can
-                  assign submissions to you that match your interests and expertise. You can bid on
-                  as many submissions as you want. The 10 is just a guideline.
+                  We ask you to bid on more submissions that you will need to
+                  review, so that we can assign submissions to you that match
+                  your interests and expertise. You can bid on as many
+                  submissions as you want. The 10 is just a guideline.
                 </p>
-                <h5 className="mb-1">How will I find submissions that I&apos;m interested in?</h5>
+                <h5 className="mb-1">
+                  How will I find submissions that I&apos;m interested in?
+                </h5>
                 <p>
-                  The submissions are ordered based on similarity to your own submissions (from this
-                  year or earlier years). If you do not bid, this order is used to assign
-                  submissions to you, but bidding gives you higher priority.
+                  The submissions are ordered based on similarity to your own
+                  submissions (from this year or earlier years). If you do not
+                  bid, this order is used to assign submissions to you, but
+                  bidding gives you higher priority.
                 </p>
                 <h5 className="mb-1">How does this thing work?</h5>
 
                 <p>
-                  Click on the title of a submission to see the abstract. Check the checkbox to bid
-                  on a submission. Selected submissions are listed on the left. Here you can also
-                  change the ranking or delete bids.
+                  Click on the title of a submission to see the abstract. Check
+                  the checkbox to bid on a submission. Selected submissions are
+                  listed on the left. Here you can also change the ranking or
+                  delete bids.
                 </p>
               </div>
             </div>
@@ -183,7 +189,7 @@ export default function Reviewer({
         <div
           ref={popupRef}
           className={`FocusSelectedPopup absolute z-50 top-5 left-12 md:left-32 bg-white border-2 rounded bg-primary p-4 max-h-[80vh] overflow-auto ${
-            showSelected ? '' : 'hidden'
+            showSelected ? "" : "hidden"
           }`}
         >
           <CurrentSelection

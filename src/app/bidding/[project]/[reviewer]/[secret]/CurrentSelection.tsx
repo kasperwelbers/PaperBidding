@@ -1,16 +1,14 @@
-'use client';
-
-import { GetSubmission } from '@/types';
-import SubmissionItem from './SubmissionItem';
+import { GetSubmission } from "@/types";
+import SubmissionItem from "./SubmissionItem";
 
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { useEffect, useState } from 'react';
+  SelectValue,
+} from "@/components/ui/select";
+import { useEffect, useState } from "react";
 
 interface Props {
   selected: number[];
@@ -27,12 +25,12 @@ export default function CurrentSelection({
   projectId,
   reviewerId,
   token,
-  submissions
+  submissions,
 }: Props) {
   return (
     <>
       <h3>Current Selection</h3>
-      {selected.length === 0 ? 'No submissions selected' : null}
+      {selected.length === 0 ? "No submissions selected" : null}
       {selected.map((id, i) => {
         return (
           <div key={id} className="flex  gap-3">
@@ -77,12 +75,12 @@ function Reorder({ i, selected, setSelected }: ReorderProps) {
       e.stopPropagation();
     }
     if (open) {
-      document.addEventListener('mousedown', blockmouseevents);
-      document.addEventListener('touchstart', blockmouseevents);
+      document.addEventListener("mousedown", blockmouseevents);
+      document.addEventListener("touchstart", blockmouseevents);
     }
     return () => {
-      document.removeEventListener('mousedown', blockmouseevents);
-      document.removeEventListener('touchstart', blockmouseevents);
+      document.removeEventListener("mousedown", blockmouseevents);
+      document.removeEventListener("touchstart", blockmouseevents);
     };
   }, [open]);
 
@@ -95,7 +93,9 @@ function Reorder({ i, selected, setSelected }: ReorderProps) {
     >
       <SelectTrigger
         className="w-10 flex justify-center"
-        ref={(ref) => ref?.addEventListener('touchend', (e) => e.preventDefault())}
+        ref={(ref) =>
+          ref?.addEventListener("touchend", (e) => e.preventDefault())
+        }
       >
         <SelectValue placeholder={i + 1}>{i + 1}</SelectValue>
       </SelectTrigger>

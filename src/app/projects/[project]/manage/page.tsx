@@ -61,7 +61,9 @@ export default function ProjectPage({
           <Button
             disabled={!status?.submissions}
             className="w-full "
-            onClick={() => router.push(`/project/${project.id}/manage/bidding`)}
+            onClick={() =>
+              router.push(`/projects/${project.id}/manage/bidding`)
+            }
           >
             Manage bidding
           </Button>

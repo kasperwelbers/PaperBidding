@@ -105,7 +105,7 @@ export function usePOST<BodyType, ResponseType>(
 
 // GET HELPERS
 export function useProjects() {
-  return useGET<GetProject[]>("/api/project");
+  return useGET<GetProject[]>("/api/projects");
 }
 
 export function useInvitations() {
@@ -113,7 +113,7 @@ export function useInvitations() {
 }
 
 export function useProject(id: number) {
-  return useGET<GetProject>(`/api/project/${id}`);
+  return useGET<GetProject>(`/api/projects/${id}`);
 }
 
 interface DataResponse {
@@ -134,7 +134,7 @@ export function useData(
     limit: String(limit),
   });
   const urlParamsString = urlParams.toString();
-  let url: string = `/api/project/${projectId}/data/${what}/?${urlParamsString}`;
+  let url: string = `/api/projects/${projectId}/data/${what}/?${urlParamsString}`;
 
   const { data, mutate, isLoading, error } = useGET<DataResponse>(url);
   const staleData = useRef<DataResponse>();
@@ -156,7 +156,7 @@ export function useData(
 
   return {
     data: staleData.current?.rows,
-    n: staleData.current?.meta.count,
+    n: Number(staleData.current?.meta.count),
     page,
     reset,
     setPage,
@@ -172,7 +172,7 @@ export function useAllData<ResponseType>(
   token?: string,
   meta?: boolean,
 ) {
-  let url = `/api/project/${projectId}/data/${what}`;
+  let url = `/api/projects/${projectId}/data/${what}`;
   return useGETPagionation<ResponseType>(url, token, meta);
 }
 
@@ -182,7 +182,7 @@ export function useAbstract(
   token: string,
 ) {
   const url = submissionId
-    ? `/api/project/${projectId}/data/submission/${submissionId}`
+    ? `/api/projects/${projectId}/data/submission/${submissionId}`
     : null;
   return useGET<{ abstract: string }>(url, token);
 }
@@ -193,14 +193,14 @@ export function useReviewer(
   token: string,
 ) {
   return useGET<Reviewer>(
-    `/api/project/${projectId}/data/reviewer/${reviewerId}`,
+    `/api/projects/${projectId}/data/reviewers/${reviewerId}`,
     token,
   );
 }
 
 // POST HELPERS
 export function useCreateProject() {
-  return usePOST<{ name: string }, Project>("/api/project");
+  return usePOST<{ name: string }, Project>("/api/projects");
 }
 
 export function usePostBiddings(
@@ -209,7 +209,7 @@ export function usePostBiddings(
   token: string,
 ) {
   return usePOST<{}, { selected: number[] }>(
-    `/api/project/${projectId}/data/reviewer/${reviewerId}/bid`,
+    `/api/projects/${projectId}/data/reviewers/${reviewerId}/bid`,
     "POST",
     token,
   );
@@ -220,7 +220,7 @@ export function useUploadData(
   what: "submissions" | "reviewers",
   params?: Record<string, any>,
 ) {
-  let url: string = `/api/project/${projectId}/data/${what}`;
+  let url: string = `/api/projects/${projectId}/data/${what}`;
   if (params) {
     const urlParams = new URLSearchParams({ ...params });
     const urlParamsString = urlParams.toString();
@@ -235,7 +235,7 @@ export function useDeleteData(
   what: "submissions" | "reviewers",
   params?: Record<string, any>,
 ) {
-  let url: string = `/api/project/${projectId}/data/${what}`;
+  let url: string = `/api/projects/${projectId}/data/${what}`;
   if (params) {
     const urlParams = new URLSearchParams({ ...params });
     const urlParamsString = urlParams.toString();

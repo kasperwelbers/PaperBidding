@@ -11,38 +11,69 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GetProject } from "@/types";
+import Markdown from "react-markdown";
 import Link from "next/link";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { User } from "lucide-react";
+import { Eye, EyeOff, User } from "lucide-react";
 import { MdAccountCircle } from "react-icons/md";
-import { FaSignOutAlt } from "react-icons/fa";
+import { FaSignOutAlt, FaTrash } from "react-icons/fa";
+
+const infoDefault = `
+## Welcome!
+
+This is the paper bidding system for the ICA Computational Methods Division.
+`;
+
+const infoLogin = `
+Please sign in to get started.
+`;
+
+const infoNoAdmin = `
+You are not registered as a division planner, so you will only see projects
+to which you have been invited, and cannot create new projects.
+If you do not see your project, please ask the division planner to invite you.
+
+If you are a division planner and want to create a new project,
+please ask Kasper to give you access.
+`;
+
+const infoAdmin = `
+Select a project to manage it, or create a new project.
+`;
 
 export default function Home() {
   const session = useSession();
   const { data: projects, isLoading } = useProjects();
-  const { data: invitations, isLoading: isLoadingInvitations } =
-    useInvitations();
-  const canCreate = session?.data?.user?.canCreateProject || false;
-  console.log(session.data);
+  const canCreate = !!session?.data?.user?.canCreateProject;
+
+  function info() {
+    if (session.status !== "authenticated") return infoLogin;
+    if (!canCreate) return infoNoAdmin;
+    return infoAdmin;
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center">
-      <div className="w-full bg-secondary p-8 border-b-2 border-primary">
-        <SignOutButton />
-        <h1 className="text-3xl md:text-5xl font-bold mb-2 text-center">
-          Paper Bidding
-        </h1>
-        <h4 className="text-xl md:text-2xl text-center mt-4 mb-0">
-          Paper bidding website of the ICA Computational Methods Division
-        </h4>
-      </div>
+      <header className="w-full bg-primary flex justify-center">
+        <div className="flex z-20 px-4 lg:px-10 py-1 max-w-7xl sticky top-0 w-full justify-center items-center  text-white">
+          <div className="flex flex-col md:flex-row w-full justify-between">
+            <div className="flex flex-wrap md:flex-col py-2 gap-x-3 justify-between ">
+              <h5 className="m-0">ICA Paper bidding</h5>
+            </div>
+          </div>
+          <SignOutButton />
+        </div>
+      </header>
       <div
-        className={`mt-10 p-3 grid gap-6 ${canCreate ? "grid-cols-1 lg:grid-cols-2" : ""}`}
+        className={`mt-12 px-4 lg:px-10 grid gap-6 grid-cols-1 lg:grid-cols-[1fr,max-content] w-full justify-between max-w-7xl`}
       >
+        <div className="max-w-2xl">
+          <Markdown>{infoDefault + info()}</Markdown>
+        </div>
         <div className="flex flex-col lg:flex-row gap-12 ">
           {session.status === "loading" ? <Loading msg="Loading..." /> : null}
           {session.status === "unauthenticated" ? <SignInForm /> : null}
@@ -52,28 +83,6 @@ export default function Home() {
               projects={projects}
               loadingProjects={isLoading}
             />
-          ) : null}
-        </div>
-        <div>
-          {isLoadingInvitations ? (
-            <Loading msg="Loading invitations..." />
-          ) : null}
-          {session.status === "authenticated" && invitations ? (
-            <div className="flex flex-col">
-              <h3 className="text-center">Bidding invitations</h3>
-              {invitations?.length ? null : (
-                <span className="text-center italic">{`you dont have any current invitations :(`}</span>
-              )}
-              <div className=" max-w-lg">
-                {invitations.map((invitation) => {
-                  return (
-                    <Button key={invitation.link} className="w-full">
-                      <Link href={invitation.link}>{invitation.label}</Link>
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
           ) : null}
         </div>
       </div>
@@ -87,7 +96,7 @@ function SignOutButton() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button className="absolute right-1 top-1 py-0 ml-3 mb-4 bg-secondary text-primary hover:text-secondary">
+        <Button className="p-0 m-0 w-min h-min hover:bg-transparent hover:text-white">
           <MdAccountCircle size={32} />
         </Button>
       </PopoverTrigger>
@@ -116,9 +125,8 @@ interface AdminPanelProps {
 
 function AdminPanel({ canCreate, projects, loadingProjects }: AdminPanelProps) {
   return (
-    <div className="flex flex-col gap-12 p-6  rounded border-2 border-primary">
-      <h3 className="text-center">Project management</h3>
-      <div className="flex flex-col lg:flex-row gap-12">
+    <div className="flex flex-col gap-12">
+      <div className="flex  flex-col gap-12">
         {projects?.length ? (
           <SelectProject
             projects={projects}
@@ -141,11 +149,10 @@ function SignInForm() {
     signIn("email", { email });
   }
 
-  if (signingIn) return <Loading msg={`Sending sign-in email to ${email}`} />;
+  if (signingIn) return <Loading msg="Sending..." />;
 
   return (
     <form className="flex flex-col justify-center" onSubmit={onSubmit}>
-      <p>Welcome! Please sign-in to get started</p>
       <input
         className="border-2 border-primary px-3 py-1 rounded mt-2"
         type="email"
@@ -172,14 +179,14 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
   const [name, setName] = useState("");
 
   function onSelect(project: Project) {
-    router.push(`/project/${project.id}/manage`);
+    router.push(`/projects/${project.id}/manage`);
   }
 
   if (creating) return <Loading msg={`Creating new project`} />;
 
   return (
     <div className="w-full">
-      <h4 className="text-center">Create new project</h4>
+      <h4 className="">Create new project</h4>
       <form
         className="flex flex-col gap-2"
         onSubmit={(e) => {
@@ -191,7 +198,6 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
               onSelect(project);
             })
             .finally(() => {
-              setCreating(false);
               setName("");
             });
         }}
@@ -228,24 +234,46 @@ interface SelectProjectProps {
 
 function SelectProject({ projects, loadingProjects }: SelectProjectProps) {
   const router = useRouter();
+  const [showTrash, setShowTrash] = useState(false);
 
   function onSelect(project: GetProject) {
-    router.push(`/project/${project.id}/manage`);
+    router.push(`/projects/${project.id}/manage`);
   }
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <h4>Select project </h4>
+    <div className="w-full flex flex-col ">
+      <div className="flex justify-between items-center">
+        <h4 className="m-0">Projects</h4>
+        <Button
+          variant="ghost"
+          className="flex gap-2 h-8 text-foreground/50"
+          onClick={() => setShowTrash(!showTrash)}
+        >
+          archived {showTrash ? <Eye /> : <EyeOff />}
+        </Button>
+      </div>
       {loadingProjects ? (
         <p className="text-center animate-bounce mt-10">loading projects...</p>
       ) : (
-        <>
-          <Combobox
-            items={projects || []}
-            label={"project"}
-            onSelect={onSelect}
-          />
-        </>
+        <div className="mt-3 flex flex-col gap-1">
+          {projects?.map((project) => {
+            if (!showTrash && project.archived) return null;
+            return (
+              <div
+                key={project.id}
+                className="flex justify-between items-center gap-2"
+              >
+                <Button
+                  variant="secondary"
+                  className=" w-full h-8  font-bold justify-start"
+                  onClick={() => onSelect(project)}
+                >
+                  {project.name}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "strictFunctionTypes": false,
+    "strictFunctionTypes": true,
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,

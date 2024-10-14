@@ -1,41 +1,51 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Error } from '@/components/ui/error';
-import { Loading } from '@/components/ui/loading';
-import { useAllData } from '@/hooks/api';
-import { GetReviewer, GetMetaSubmission, Bidding } from '@/types';
-import { useState } from 'react';
-import { FaArrowLeft, FaEye } from 'react-icons/fa';
-import { useCSVDownloader } from 'react-papaparse';
-import Invitations from './Invitations';
-import downloadSubmissions from './downloadSubmissions';
-import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Error } from "@/components/ui/error";
+import { Loading } from "@/components/ui/loading";
+import { useAllData } from "@/hooks/api";
+import { GetReviewer, GetMetaSubmission, Bidding } from "@/types";
+import { useState } from "react";
+import { FaArrowLeft, FaEye } from "react-icons/fa";
+import { useCSVDownloader } from "react-papaparse";
+import Invitations from "./Invitations";
+import downloadSubmissions from "./downloadSubmissions";
+import Link from "next/link";
 
-export default function Bidding({ params }: { params: { project: number } }) {
+export default function BiddingPage({
+  params,
+}: {
+  params: { project: number };
+}) {
   const { CSVDownloader, Type } = useCSVDownloader();
 
   const {
     data: reviewers,
     isLoading: reviewersLoading,
     error: reviewersError,
-    mutate: mutateReviewers
-  } = useAllData<GetReviewer>(params.project, 'reviewers');
+    mutate: mutateReviewers,
+  } = useAllData<GetReviewer>(params.project, "reviewers");
   const {
     data: submissions,
     isLoading: submissionsLoading,
-    error: submissionsError
-  } = useAllData<GetMetaSubmission>(params.project, 'submissions', undefined, true);
+    error: submissionsError,
+  } = useAllData<GetMetaSubmission>(
+    params.project,
+    "submissions",
+    undefined,
+    true,
+  );
 
   if (reviewersError) return <Error msg={reviewersError.message} />;
   if (submissionsError) return <Error msg={submissionsError.message} />;
-  if (reviewersLoading || submissionsLoading) return <Loading msg="Loading Reviewers" />;
+  if (reviewersLoading || submissionsLoading)
+    return <Loading msg="Loading Reviewers" />;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 items-center md:items-start justify-center mt-6 w-full">
       <div className="p-5 pt-0 whitespace-nowrap overflow-auto">
         <Link
-          href={`/project/${params.project}/manage`}
+          href={`/projects/${params.project}/manage`}
           className=" block w-min border-primary border-2 rounded flex items-center  gap-3 whitespace-nowrap p-2"
         >
           <FaArrowLeft /> Go Back
@@ -49,7 +59,13 @@ export default function Bidding({ params }: { params: { project: number } }) {
                 className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors "
                 filename={`submission_biddings_${params.project}.csv`}
                 bom={true}
-                data={() => downloadSubmissions(reviewers || [], submissions || [], 'submissions')}
+                data={() =>
+                  downloadSubmissions(
+                    reviewers || [],
+                    submissions || [],
+                    "submissions",
+                  )
+                }
               >
                 per submission
               </CSVDownloader>
@@ -58,14 +74,20 @@ export default function Bidding({ params }: { params: { project: number } }) {
                 className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors "
                 filename={`reviewer_biddings_${params.project}.csv`}
                 bom={true}
-                data={() => downloadSubmissions(reviewers || [], submissions || [], 'reviewers')}
+                data={() =>
+                  downloadSubmissions(
+                    reviewers || [],
+                    submissions || [],
+                    "reviewers",
+                  )
+                }
               >
                 per reviewer
               </CSVDownloader>
             </div>
             <p className="whitespace-normal">
-              Three reviewers are assigned to every submission. You can get both the reviewers per
-              submission and the submission per reviewer.
+              Three reviewers are assigned to every submission. You can get both
+              the reviewers per submission and the submission per reviewer.
             </p>
           </div>
           <Invitations
@@ -93,7 +115,9 @@ export default function Bidding({ params }: { params: { project: number } }) {
                 return (
                   <tr key={reviewer.email}>
                     <td>{reviewer.email}</td>
-                    <td className="text-right">{reviewer.invitationSent || 'Not yet'}</td>
+                    <td className="text-right">
+                      {reviewer.invitationSent || "Not yet"}
+                    </td>
                     <td className="text-right">{reviewer?.biddings?.length}</td>
                     <td className="text-right">
                       <a href={reviewer.link}>

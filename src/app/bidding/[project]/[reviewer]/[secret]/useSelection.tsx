@@ -1,27 +1,35 @@
-'use client';
+"use client";
 
-import { usePostBiddings } from '@/hooks/api';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePostBiddings } from "@/hooks/api";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export default function useSelection(projectId: number, reviewerId: number, token: string) {
+export default function useSelection(
+  projectId: number,
+  reviewerId: number,
+  token: string,
+) {
   const [selected, setSelectedState] = useState<number[]>([]);
-  const [selectionStatus, setSelectionStatus] = useState('loading');
-  const { trigger: postSelection } = usePostBiddings(projectId, reviewerId, token);
+  const [selectionStatus, setSelectionStatus] = useState("loading");
+  const { trigger: postSelection } = usePostBiddings(
+    projectId,
+    reviewerId,
+    token,
+  );
 
   useEffect(() => {
-    const url = `/api/project/${projectId}/data/reviewer/${reviewerId}/bid`;
+    const url = `/api/projects/${projectId}/data/reviewers/${reviewerId}/bid`;
     fetch(url, {
-      method: 'GET',
-      headers: { Authorization: token }
+      method: "GET",
+      headers: { Authorization: token },
     })
       .then((res) => res.json())
       .then(({ selection }) => {
-        setSelectedState(selection);
-        setSelectionStatus('ready');
+        setSelectedState(selection || []);
+        setSelectionStatus("ready");
       })
       .catch((e) => {
         console.error(e);
-        setSelectionStatus('error');
+        setSelectionStatus("error");
       });
   }, [projectId, reviewerId, token]);
 
@@ -39,7 +47,7 @@ export default function useSelection(projectId: number, reviewerId: number, toke
         return selected;
       });
     },
-    [postSelection, setSelectedState]
+    [postSelection, setSelectedState],
   );
 
   return { selected, setSelected, selectionStatus };

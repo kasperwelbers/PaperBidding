@@ -1,24 +1,28 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { FaCheck, FaChevronDown } from 'react-icons/fa';
+import * as React from "react";
+import { FaCheck, FaChevronDown } from "react-icons/fa";
 
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem
-} from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export function Combobox({
   items,
   label,
   controlledValue,
-  onSelect
+  onSelect,
 }: {
   items: any[];
   label: string;
@@ -26,12 +30,13 @@ export function Combobox({
   onSelect?: (item: any) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState('');
+  const [value, setValue] = React.useState("");
   React.useEffect(() => {
     if (controlledValue) setValue(controlledValue);
   }, [controlledValue]);
 
-  if (items.length === 0) return <p className="text-center">No {label}s found</p>;
+  if (items.length === 0)
+    return <p className="text-center">No {label}s found</p>;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -42,7 +47,7 @@ export function Combobox({
           aria-expanded={open}
           className="w-full justify-between text-left"
         >
-          <div className="whitespace-nowrap overflow-hidden overflow-ellipsis">
+          <div className="whitespace-nowrap overflow-hidden max-w-full overflow-ellipsis">
             {value || `Select ${label}...`}
           </div>
           {value ? (
@@ -58,7 +63,7 @@ export function Combobox({
           <CommandEmpty>No {label} found.</CommandEmpty>
           <CommandGroup className="max-h-48 overflow-auto">
             {items.map((item, index) => {
-              if (typeof item === 'string') item = { id: index, name: item };
+              if (typeof item === "string") item = { id: index, name: item };
 
               // the smdk library that shadcdn forces the value to be lowercase
               // Not a big risk in this app, but definitely not great either
@@ -68,15 +73,17 @@ export function Combobox({
                 <CommandItem
                   key={item.id}
                   onSelect={(currentValue) => {
-                    setValue(currentValue === value ? '' : currentValue);
+                    setValue(currentValue === value ? "" : currentValue);
                     setOpen(false);
                     onSelect?.(item);
                   }}
                 >
                   <FaCheck
                     className={cn(
-                      'mr-2 h-4 w-4',
-                      value === item.STUPIDLOWERCASE ? 'opacity-100' : 'opacity-0'
+                      "mr-2 h-4 w-4",
+                      value === item.STUPIDLOWERCASE
+                        ? "opacity-100"
+                        : "opacity-0",
                     )}
                   />
                   {item.name}

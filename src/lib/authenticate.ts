@@ -4,6 +4,7 @@ import db, {
   projects,
   reviewers,
   projectAdmins,
+  biddings,
 } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { getServerSession } from "next-auth";
@@ -39,15 +40,39 @@ export async function canCreateProject(email: string) {
   return admin.length > 0;
 }
 
+interface AuthenticatedReviewer {
+  projectId: number;
+  id: number;
+  email: string;
+  firstname: string;
+  secret: string;
+  biddings: number[];
+}
+
 export async function authenticateReviewer(req: Request) {
   const token = req.headers.get("Authorization");
   if (!token) return undefined;
 
   const [id, secret] = token.split("/");
   const reviewer = await db
-    .select()
+    .select({
+      projectId: reviewers.projectId,
+      id: reviewers.id,
+      email: reviewers.email,
+      firstname: reviewers.firstname,
+      secret: reviewers.secret,
+      biddings: biddings.submissionIds,
+    })
     .from(reviewers)
-    .where(eq(reviewers.id, Number(id)));
+    .where(eq(reviewers.id, Number(id)))
+    .leftJoin(
+      biddings,
+      and(
+        eq(biddings.projectId, reviewers.projectId),
+        eq(biddings.email, reviewers.email),
+      ),
+    );
+
   let r = reviewer[0];
 
   if (r === undefined) return undefined;

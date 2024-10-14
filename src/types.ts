@@ -1,6 +1,8 @@
 export type FeatureVector = number[];
-export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
-export type FeatureExtractorCallback = (featureVectors: FeatureVector[]) => void;
+export type ModelStatus = "idle" | "loading" | "ready" | "error";
+export type FeatureExtractorCallback = (
+  featureVectors: FeatureVector[],
+) => void;
 export type ProgressCallback = (percent: number) => void;
 
 export interface Submission {
@@ -58,6 +60,13 @@ export interface GetReviewer {
   manualBiddings: number;
   coAuthors: string[];
   submissions: OwnSubmission[];
+  volunteer: boolean;
+}
+
+export interface GetVolunteer {
+  id: number;
+  email: string;
+  firstname: string;
 }
 
 export interface GetProject {
@@ -66,6 +75,7 @@ export interface GetProject {
   created: string;
   creator: string;
   admins: string[];
+  archived: boolean;
 }
 
 export interface GetInvitation {
@@ -92,5 +102,5 @@ export interface GetMetaSubmission {
 export interface Bidding {
   reviewer: string;
   rank: number;
-  method: 'auto' | 'manual';
+  method: "auto" | "manual";
 }

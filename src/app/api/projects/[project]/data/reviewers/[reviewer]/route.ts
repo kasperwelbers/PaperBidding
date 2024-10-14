@@ -1,42 +1,53 @@
-import db, { authors, submissions, Submission } from '@/drizzle/schema';
-import { authenticateReviewer } from '@/lib/authenticate';
+import db, { authors, submissions, Submission } from "@/drizzle/schema";
+import { authenticateReviewer } from "@/lib/authenticate";
 
-import { and, eq, inArray } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { and, eq, inArray } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: { project: number; reviewer: number } }
+  { params }: { params: { project: number; reviewer: number } },
 ) {
   const projectId = Number(params.project);
   const reviewer = await authenticateReviewer(req);
-  if (!reviewer) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+  if (!reviewer)
+    return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
   if (reviewer.projectId !== projectId)
-    return NextResponse.json({}, { status: 404, statusText: 'Invalid project X reviewer' });
+    return NextResponse.json(
+      {},
+      { status: 404, statusText: `Invalid project ${projectId} reviewer` },
+    );
 
   const ownSubmissions = await db
     .select({
       id: submissions.id,
       submissionId: submissions.submissionId,
       title: submissions.title,
-      features: submissions.features
+      features: submissions.features,
     })
     .from(authors)
     .leftJoin(submissions, eq(authors.submissionId, submissions.submissionId))
-    .where(and(eq(authors.projectId, projectId), eq(authors.email, reviewer.email)));
+    .where(
+      and(eq(authors.projectId, projectId), eq(authors.email, reviewer.email)),
+    );
 
-  const submissionExternalIds = ownSubmissions.map((s: Submission) => s.submissionId);
+  const submissionExternalIds: string[] = [];
+  for (let s of ownSubmissions) {
+    if (s.submissionId !== null) {
+      submissionExternalIds.push(s.submissionId);
+    }
+  }
 
   if (submissionExternalIds.length === 0) {
     return NextResponse.json({
       id: reviewer.id,
       email: reviewer.email,
       firstname: reviewer.firstname,
-      bids: [],
+      bids: reviewer.biddings,
       submissionIds: [],
       submissions: [],
-      coAuthorSubmissionIds: []
+      coAuthorSubmissionIds: [],
     });
   }
 
@@ -44,7 +55,7 @@ export async function GET(
     .selectDistinct({ email: authors.email })
     .from(authors)
     .where(inArray(authors.submissionId, submissionExternalIds))
-    .as('coAuthors');
+    .as("coAuthors");
 
   const coAuthorSubmissions = await db
     .selectDistinct({ id: submissions.id })
@@ -56,9 +67,9 @@ export async function GET(
     id: reviewer.id,
     email: reviewer.email,
     firstname: reviewer.firstname,
-    bids: [],
-    submissionIds: ownSubmissions.map((s: Submission) => s.id),
+    bids: reviewer.biddings,
+    submissionIds: ownSubmissions.map((s) => s.id),
     submissions: ownSubmissions,
-    coAuthorSubmissionIds: coAuthorSubmissions.map((s: Submission) => s.id)
+    coAuthorSubmissionIds: coAuthorSubmissions.map((s) => s.id),
   });
 }

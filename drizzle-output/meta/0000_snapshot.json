@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "pg",
-  "id": "8efd971e-a88b-455f-8145-e4c9f89d6da2",
+  "id": "c318a238-5214-417b-81f9-6e556530fc21",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -140,6 +140,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "firstname": {
+          "name": "firstname",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "email": {
           "name": "email",
           "type": "varchar(256)",
@@ -187,46 +199,33 @@
       "name": "bids",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "reviewer_id": {
-          "name": "reviewer_id",
+        "project_id": {
+          "name": "project_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "submission_id": {
-          "name": "submission_id",
-          "type": "integer",
+        "email": {
+          "name": "email",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "biddings": {
+          "name": "biddings",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "bids_reviewer_id_reviewers_id_fk": {
-          "name": "bids_reviewer_id_reviewers_id_fk",
+        "bids_project_id_projects_id_fk": {
+          "name": "bids_project_id_projects_id_fk",
           "tableFrom": "bids",
-          "tableTo": "reviewers",
+          "tableTo": "projects",
           "columnsFrom": [
-            "reviewer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "bids_submission_id_submissions_id_fk": {
-          "name": "bids_submission_id_submissions_id_fk",
-          "tableFrom": "bids",
-          "tableTo": "submissions",
-          "columnsFrom": [
-            "submission_id"
+            "project_id"
           ],
           "columnsTo": [
             "id"
@@ -235,7 +234,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "bids_project_id_email": {
+          "name": "bids_project_id_email",
+          "columns": [
+            "project_id",
+            "email"
+          ]
+        }
+      },
       "uniqueConstraints": {}
     },
     "project_admins": {
@@ -323,6 +330,13 @@
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
+        },
+        "archived": {
+          "name": "archived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -360,6 +374,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "imported_from": {
+          "name": "imported_from",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "firstname": {
           "name": "firstname",
           "type": "varchar(256)",
@@ -368,25 +388,13 @@
         },
         "token": {
           "name": "token",
-          "type": "varchar(32)",
+          "type": "varchar(64)",
           "primaryKey": false,
           "notNull": true
         },
         "invitation_sent": {
           "name": "invitation_sent",
           "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "biddings": {
-          "name": "biddings",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "imported_from": {
-          "name": "imported_from",
-          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": false
         }
@@ -408,7 +416,17 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "reviewers_project_id_email_imported_from_unique": {
+          "name": "reviewers_project_id_email_imported_from_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "email",
+            "imported_from"
+          ]
+        }
+      }
     },
     "session": {
       "name": "session",
@@ -623,6 +641,48 @@
           ]
         }
       },
+      "uniqueConstraints": {}
+    },
+    "volunteers": {
+      "name": "volunteers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "firstname": {
+          "name": "firstname",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "email_idx": {
+          "name": "email_idx",
+          "columns": [
+            "email"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }
   },

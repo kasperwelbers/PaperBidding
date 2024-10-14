@@ -5,38 +5,43 @@ export async function sendInvitation(
   link: string,
   text1: string,
   text2: string,
-  test?: boolean
+  test?: boolean,
 ) {
-  const response = await fetch(`/api/project/${projectId}/invitation`, {
+  const response = await fetch(`/api/projects/${projectId}/invitation`, {
     body: JSON.stringify({
       to: email,
       html: createHTML(firstname, link, text1, text2),
-      test
+      test,
     }),
     headers: {
       Authorization: `${process.env.MIDDLECAT_MAIL_TOKEN}`,
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json",
     },
-    method: 'POST'
+    method: "POST",
   });
 
   return response.ok;
 }
 
-export function createHTML(firstname: string, url: string, text1: string, text2: string) {
+export function createHTML(
+  firstname: string,
+  url: string,
+  text1: string,
+  text2: string,
+) {
   return `
 <p>Dear ${firstname},</p>
 
 ${text1
-  .split('\n\n')
+  .split("\n\n")
   .map((line) => `<p>${line}</p>`)
-  .join('\n')}
+  .join("\n")}
 
 <h4>Please use <a href="${url}">this link right here</a> to start the paper bidding</h4>
 
 ${text2
-  .split('\n\n')
+  .split("\n\n")
   .map((line) => `<p>${line}</p>`)
-  .join('\n')}
+  .join("\n")}
 `;
 }

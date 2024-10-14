@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Project } from '@/drizzle/schema';
-import { GetProject } from '@/types';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Project } from "@/drizzle/schema";
+import { GetProject } from "@/types";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface Props {
   project: GetProject;
@@ -20,9 +20,9 @@ export default function ProjectAdmins({ project, mutateProject }: Props) {
   }, [project]);
 
   async function addAdmin(email: string) {
-    const res = await fetch(`/api/project/${project.id}/admin`, {
-      method: 'POST',
-      body: JSON.stringify({ email })
+    const res = await fetch(`/api/projects/${project.id}/admin`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
     });
     if (res.ok) {
       project.admins.push(email);
@@ -51,7 +51,7 @@ interface createAdminFormProps {
 }
 
 function CreateAdminForm({ admins, addAdmin }: createAdminFormProps) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
 
   return (
     <div className="w-full">
@@ -60,7 +60,7 @@ function CreateAdminForm({ admins, addAdmin }: createAdminFormProps) {
         onSubmit={(e) => {
           e.preventDefault();
           addAdmin(name);
-          setName('');
+          setName("");
         }}
       >
         <Input
@@ -71,9 +71,9 @@ function CreateAdminForm({ admins, addAdmin }: createAdminFormProps) {
           value={name}
           minLength={3}
           onChange={(e) => {
-            e.target.setCustomValidity('');
+            e.target.setCustomValidity("");
             if (admins.includes(e.target.value)) {
-              e.target.setCustomValidity('Admin already exists');
+              e.target.setCustomValidity("Admin already exists");
             }
 
             setName(e.target.value);

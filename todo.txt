@@ -1,0 +1,8 @@
+
+
+
+Drop invitations list from home page. Instead, participants can only get invited via a link, that contains a token to bid in the project. This keeps is simple, and it immediately works for volunteer reviewers. We then don't need to provide access to specific email addresses.
+
+Make select project a simple list. Add button to archive a project so people can keep their list clean. Achived projects can be viewed and restored, but not bid on. Archived projects will be deleted after 1 month.
+
+Drop volunteers upload data thing. Instead, volunteers can just bid on papers.
