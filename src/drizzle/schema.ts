@@ -80,6 +80,8 @@ export const verificationTokens = pgTable(
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 256 }).notNull().unique(),
+  division: varchar("division", { length: 256 }).notNull(),
+  deadline: timestamp("deadline").notNull(),
   created: timestamp("created").notNull().defaultNow(),
   creator: varchar("creator", { length: 256 }).notNull(),
   archived: boolean("archived").notNull().default(false),
@@ -97,11 +99,12 @@ export const projectAdmins = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     email: varchar("email", { length: 256 }).notNull(),
+    isCreator: boolean("is_creator").notNull().default(false),
   },
   (table) => {
     return {
-      emailIdx: index("email_idx").on(table.email),
-      projectIdx: index("project_idx").on(table.projectId),
+      emailIdx: index("projectadmin_email_idx").on(table.email),
+      projectIdx: index("projectadmin_project_idx").on(table.projectId),
     };
   },
 );
@@ -117,9 +120,7 @@ export const submissions = pgTable(
     title: text("title").notNull(),
     abstract: text("abstract").notNull(),
     features: jsonb("features").$type<number[]>().notNull(),
-    authors: jsonb("authors")
-      .$type<{ email: string; firstname: string }[]>()
-      .notNull(),
+    authors: jsonb("authors").$type<string[]>().notNull(),
     isReference: boolean("is_reference").notNull().default(false),
   },
   (table) => {
@@ -138,7 +139,6 @@ export const authors = pgTable(
     projectId: integer("project_id"),
     submissionId: varchar("submission_id", { length: 256 }).notNull(),
     position: integer("position").notNull(),
-    firstname: varchar("firstname", { length: 256 }).notNull(),
     email: varchar("email", { length: 256 }).notNull(),
   },
   (table) => {
@@ -147,23 +147,8 @@ export const authors = pgTable(
         columns: [table.projectId, table.submissionId],
         foreignColumns: [submissions.projectId, submissions.submissionId],
       }).onDelete("cascade"),
-      emailIdx: index("email_idx").on(table.email),
-      submissionIdx: index("submission_idx").on(table.submissionId),
-    };
-  },
-);
-
-export const volunteers = pgTable(
-  "volunteers",
-  {
-    id: serial("id").primaryKey(),
-    projectId: integer("project_id"),
-    firstname: varchar("firstname", { length: 256 }).notNull(),
-    email: varchar("email", { length: 256 }).notNull(),
-  },
-  (table) => {
-    return {
-      emailIdx: index("email_idx").on(table.email),
+      emailIdx: index("authors_email_idx").on(table.email),
+      submissionIdx: index("authors_submission_idx").on(table.submissionId),
     };
   },
 );
@@ -179,7 +164,6 @@ export const reviewers = pgTable(
     importedFrom: varchar("imported_from", {
       enum: ["volunteer", "submission"],
     }),
-    firstname: varchar("firstname", { length: 256 }).notNull(),
     secret: varchar("token", { length: 64 }).notNull(),
     invitationSent: timestamp("invitation_sent", { mode: "date" }),
   },

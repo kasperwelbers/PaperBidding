@@ -1,10 +1,10 @@
 {
-  "version": "5",
-  "dialect": "pg",
-  "id": "c318a238-5214-417b-81f9-6e556530fc21",
+  "id": "fe31443a-7fbd-4f2d-b7f7-62eb89072a23",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "account": {
+    "public.account": {
       "name": "account",
       "schema": "",
       "columns": {
@@ -92,8 +92,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "account_provider_providerAccountId": {
-          "name": "account_provider_providerAccountId",
+        "account_provider_providerAccountId_pk": {
+          "name": "account_provider_providerAccountId_pk",
           "columns": [
             "provider",
             "providerAccountId"
@@ -102,7 +102,7 @@
       },
       "uniqueConstraints": {}
     },
-    "admins": {
+    "public.admins": {
       "name": "admins",
       "schema": "",
       "columns": {
@@ -118,7 +118,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "authors": {
+    "public.authors": {
       "name": "authors",
       "schema": "",
       "columns": {
@@ -146,12 +146,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "firstname": {
-          "name": "firstname",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "email": {
           "name": "email",
           "type": "varchar(256)",
@@ -160,19 +154,35 @@
         }
       },
       "indexes": {
-        "email_idx": {
-          "name": "email_idx",
+        "authors_email_idx": {
+          "name": "authors_email_idx",
           "columns": [
-            "email"
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
-        "submission_idx": {
-          "name": "submission_idx",
+        "authors_submission_idx": {
+          "name": "authors_submission_idx",
           "columns": [
-            "submission_id"
+            {
+              "expression": "submission_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -195,7 +205,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "bids": {
+    "public.bids": {
       "name": "bids",
       "schema": "",
       "columns": {
@@ -235,8 +245,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "bids_project_id_email": {
-          "name": "bids_project_id_email",
+        "bids_project_id_email_pk": {
+          "name": "bids_project_id_email_pk",
           "columns": [
             "project_id",
             "email"
@@ -245,7 +255,7 @@
       },
       "uniqueConstraints": {}
     },
-    "project_admins": {
+    "public.project_admins": {
       "name": "project_admins",
       "schema": "",
       "columns": {
@@ -269,19 +279,35 @@
         }
       },
       "indexes": {
-        "email_idx": {
-          "name": "email_idx",
+        "projectadmin_email_idx": {
+          "name": "projectadmin_email_idx",
           "columns": [
-            "email"
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
-        "project_idx": {
-          "name": "project_idx",
+        "projectadmin_project_idx": {
+          "name": "projectadmin_project_idx",
           "columns": [
-            "project_id"
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -302,7 +328,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "projects": {
+    "public.projects": {
       "name": "projects",
       "schema": "",
       "columns": {
@@ -352,7 +378,7 @@
         }
       }
     },
-    "reviewers": {
+    "public.reviewers": {
       "name": "reviewers",
       "schema": "",
       "columns": {
@@ -379,12 +405,6 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
-        },
-        "firstname": {
-          "name": "firstname",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
         },
         "token": {
           "name": "token",
@@ -428,7 +448,7 @@
         }
       }
     },
-    "session": {
+    "public.session": {
       "name": "session",
       "schema": "",
       "columns": {
@@ -470,7 +490,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "submissions": {
+    "public.submissions": {
       "name": "submissions",
       "schema": "",
       "columns": {
@@ -528,16 +548,32 @@
         "project_id_idx": {
           "name": "project_id_idx",
           "columns": [
-            "project_id"
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "submission_idx": {
           "name": "submission_idx",
           "columns": [
-            "submission_id"
+            {
+              "expression": "submission_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -567,7 +603,7 @@
         }
       }
     },
-    "user": {
+    "public.user": {
       "name": "user",
       "schema": "",
       "columns": {
@@ -607,7 +643,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "verificationToken": {
+    "public.verificationToken": {
       "name": "verificationToken",
       "schema": "",
       "columns": {
@@ -633,8 +669,8 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "verificationToken_identifier_token": {
-          "name": "verificationToken_identifier_token",
+        "verificationToken_identifier_token_pk": {
+          "name": "verificationToken_identifier_token_pk",
           "columns": [
             "identifier",
             "token"
@@ -642,55 +678,14 @@
         }
       },
       "uniqueConstraints": {}
-    },
-    "volunteers": {
-      "name": "volunteers",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "firstname": {
-          "name": "firstname",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "email_idx": {
-          "name": "email_idx",
-          "columns": [
-            "email"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
     }
   },
   "enums": {},
   "schemas": {},
+  "sequences": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   }
 }

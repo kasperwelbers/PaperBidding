@@ -59,7 +59,6 @@ export async function authenticateReviewer(req: Request) {
       projectId: reviewers.projectId,
       id: reviewers.id,
       email: reviewers.email,
-      firstname: reviewers.firstname,
       secret: reviewers.secret,
       biddings: biddings.submissionIds,
     })

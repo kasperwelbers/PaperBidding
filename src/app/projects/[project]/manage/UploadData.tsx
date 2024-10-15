@@ -1,5 +1,3 @@
-"use client";
-
 import { useData, useProject } from "@/hooks/api";
 import UploadSubmissions from "./UploadSubmissions";
 import { Loading } from "@/components/ui/loading";
@@ -15,12 +13,15 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FaCheck, FaUpload } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, CheckSquare, Square } from "lucide-react";
+import Step from "./Step";
 
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
@@ -33,7 +34,6 @@ export default function UploadData({
   setStatus: (status: Record<string, boolean>) => void;
 }) {
   const { modelStatus, extractFeatures } = useFeatureExtractor();
-  const [selectedTab, setSelectedTab] = useState<Tab>("submissions");
 
   const { data: project, isLoading, error } = useProject(projectId);
   const submissions = useData(projectId, "submissions", { meta: true });
@@ -41,8 +41,10 @@ export default function UploadData({
     reference: true,
     meta: true,
   });
-  const volunteers = useData(projectId, "reviewers", { volunteer: true });
+  const volunteers = useData(projectId, "volunteers", { meta: true });
   const data = { submissions, volunteers, references };
+
+  console.log(volunteers);
 
   useEffect(() => {
     if (submissions.isLoading) return;
@@ -56,181 +58,93 @@ export default function UploadData({
   if (error) return <Error msg={error.message} />;
   if (!project) return null; //shouldn't happen, but typescript
 
-  function hintOrStatus(what: "submissions" | "reviewers" | "references") {
-    let msg = "";
-    let done = false;
-    if (what === "submissions") {
-      if (submissions?.n) {
-        done = true;
-        msg = `${submissions.n} submissions`;
-      } else {
-        msg = "Upload the submissions to bid on";
-      }
-    }
-    if (what === "reviewers") {
-      if (volunteers?.n) {
-        done = true;
-        msg = `${volunteers.n} volunteers`;
-      } else {
-        msg = "Upload the volunteers to bid on";
-      }
-    }
-    if (what === "references") {
-      if (references?.n) {
-        done = true;
-        msg = `${references.n} references`;
-      } else {
-        msg = "Upload the references to bid on";
-      }
-    }
-
-    return (
-      <p className="italic opacity-70 flex gap-3 items-center">
-        {done ? <FaCheck color="green" /> : null}
-        {msg}
-      </p>
-    );
-  }
-
   return (
-    <div className="w-full max-w-lg flex flex-col gap-3 h-full min-h-[36rem]">
-      <h3 className="text-center">Upload Data</h3>
-      <div className="flex items-center">
-        <div className="flex-auto">
-          <h4 className="mb-0">Submissions</h4>
-          {hintOrStatus("submissions")}
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>{!!submissions?.n ? <MdSettings /> : <FaUpload />}</Button>
-          </DialogTrigger>
-          <DialogContent onInteractOutside={(e) => e.preventDefault()}>
-            <DialogHeader>
-              <h4>Upload Submissions</h4>
-            </DialogHeader>
-            <UploadSubmissions
-              projectId={project.id}
-              modelStatus={modelStatus}
-              dataPage={data.submissions}
-              extractFeatures={extractFeatures}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <>
+      {/* <h3 className="">Project data</h3> */}
 
-      <div className="flex items-center ">
-        <div className="flex-auto">
-          <h4 className="mb-0">
-            <span className=" text-sm text-yellow-800 opacity-70">
-              optional
-            </span>
-            {"   "}
-            Volunteers
-          </h4>
-          <p className="italic opacity-70">
-            Non-first authors can volunteer to review
-          </p>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>{!!volunteers?.n ? <MdSettings /> : <FaUpload />}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <h4>Upload Submissions</h4>
-            </DialogHeader>
-            <UploadVolunteers
-              projectId={project.id}
-              dataPage={data.volunteers}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="flex items-center ">
-        <div className="flex-auto">
-          <h4 className="mb-0">
-            <span className=" text-sm text-yellow-800 opacity-70">
-              optional
-            </span>{" "}
-            Previous Submissions
-          </h4>
-          <p className="italic opacity-70">
-            More data for auto-assigning reviewers
-          </p>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>{!!references?.n ? <MdSettings /> : <FaUpload />}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <h4>Upload Submissions</h4>
-            </DialogHeader>
-            <UploadSubmissions
-              projectId={project.id}
-              modelStatus={modelStatus}
-              dataPage={data.references}
-              extractFeatures={extractFeatures}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-      {/* <div className="flex flex-wrap gap-3 mb-6">
-        {tabs.map((tab: Tab) => {
-          const buttonColor =
-            tab === selectedTab
-              ? "bg-blue-500 text-white"
-              : "bg-gray-300 text-black";
-
-          return (
-            <div
-              key={tab}
-              className={`flex-auto flex justify-center gap-2 items-center  h-11 rounded ${buttonColor} cursor-pointer px-3 py-2 text-center`}
-              onClick={() => setSelectedTab(tab)}
-            >
-              {tab}
-
-              {data[tab]?.data?.length ? (
-                <MdOutlineCheckBox />
-              ) : (
-                <MdOutlineCheckBoxOutlineBlank />
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex-auto h-full flex flex-col">
-        <div
-          key="submissions"
-          className={selectedTab === "submissions" ? "flex-auto" : "hidden"}
-        >
+      <Dialog>
+        <DialogTrigger asChild>
+          <Step
+            title="Step 1. Upload submissions"
+            hint="Upload a CSV file wih submissions"
+            doneMsg={`Uploaded ${submissions.n} submission${submissions.n === 1 ? "" : "s"}`}
+            done={!!submissions?.n}
+            loading={submissions.isLoading}
+          />
+        </DialogTrigger>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Upload Submissions</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file with columns for the submission ID, Author
+              email(s), Title and Abstract.
+            </DialogDescription>
+          </DialogHeader>
           <UploadSubmissions
             projectId={project.id}
             modelStatus={modelStatus}
             dataPage={data.submissions}
             extractFeatures={extractFeatures}
           />
-        </div>
-        <div
-          key="volunteers"
-          className={selectedTab === "volunteers" ? "flex-auto" : "hidden"}
-        >
+        </DialogContent>
+      </Dialog>
+
+      <Dialog>
+        <DialogTrigger asChild>
+          <Step
+            disabled={!submissions?.n}
+            optional
+            title="Step 2. Add volunteers"
+            hint="Add volunteer reviewers by email"
+            doneMsg={`Assigned ${volunteers.n} volunteer${volunteers.n === 1 ? "" : "s"}`}
+            done={!!volunteers?.n}
+            loading={volunteers.isLoading}
+          />
+        </DialogTrigger>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Add volunteer reviewers</DialogTitle>
+            <DialogDescription>
+              This is optional, because first authors are made reviewers by
+              default, and you can also send a general invitation link for the
+              bidding process, where people can indicate willingness to review
+              by bidding.
+            </DialogDescription>
+          </DialogHeader>
           <UploadVolunteers projectId={project.id} dataPage={data.volunteers} />
-        </div>
-        <div
-          key="references"
-          className={selectedTab === "references" ? "flex-auto" : "hidden"}
-        >
+        </DialogContent>
+      </Dialog>
+
+      <Dialog>
+        <DialogTrigger asChild>
+          <Step
+            disabled={!submissions?.n}
+            optional
+            title="Step 3. Add old submissions"
+            hint="Improve automatic matching"
+            doneMsg={`Uploaded ${references.n} submission${references.n === 1 ? "" : "s"}`}
+            done={!!references?.n}
+            loading={references.isLoading}
+          />
+        </DialogTrigger>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Upload Previous Submissions</DialogTitle>
+            <DialogDescription>
+              Reviewers are automatically matched to abstracts based on
+              similarity to their own submissions. This affects both the bidding
+              process and matching for reviewers that didn't bid. You can upload
+              old ICA submissions to improve accuracy
+            </DialogDescription>
+          </DialogHeader>
           <UploadSubmissions
             projectId={project.id}
             modelStatus={modelStatus}
             dataPage={data.references}
             extractFeatures={extractFeatures}
-            reference
           />
-        </div>
-      </div> */}
-    </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

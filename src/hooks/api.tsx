@@ -4,12 +4,18 @@ import { Project } from "@/drizzle/schema";
 import { useRef, useState } from "react";
 import { DataPage, Reviewer, GetProject, GetInvitation } from "@/types";
 import { useSession } from "next-auth/react";
+import { z } from "zod";
+import { GetProjectSchema } from "@/zodSchemas";
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
  * - sets a type parameter for the return type
  */
-export function useGET<ResponseType>(url: string | null, token?: string) {
+export function useGET<ResponseType>(
+  url: string | null,
+  token?: string,
+  schema?: z.ZodTypeAny,
+) {
   const session = useSession();
   const auth = !!token || session.status === "authenticated";
 
@@ -21,7 +27,16 @@ export function useGET<ResponseType>(url: string | null, token?: string) {
       headers: { Authorization: token },
     }).then((res) => {
       if (res.ok) {
-        return res.json();
+        return res
+          .json()
+          .then((data) => {
+            if (schema) return schema.parse(data);
+            return data;
+          })
+          .catch((e) => {
+            console.error(e);
+            throw new Error("Invalid data");
+          });
       } else {
         throw new Error(res.statusText);
       }
@@ -113,7 +128,7 @@ export function useInvitations() {
 }
 
 export function useProject(id: number) {
-  return useGET<GetProject>(`/api/projects/${id}`);
+  return useGET<GetProject>(`/api/projects/${id}`, undefined, GetProjectSchema);
 }
 
 interface DataResponse {
@@ -122,7 +137,7 @@ interface DataResponse {
 }
 export function useData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: "submissions" | "reviewers" | "volunteers",
   params: Record<string, any> = {},
 ): DataPage {
   const limit = params.limit || 6;
@@ -200,7 +215,14 @@ export function useReviewer(
 
 // POST HELPERS
 export function useCreateProject() {
-  return usePOST<{ name: string }, Project>("/api/projects");
+  return usePOST<{ name: string; division: string; deadline: Date }, Project>(
+    "/api/projects",
+  );
+}
+export function useUpdateProject(projectId: number) {
+  return usePOST<{ name: string; division: string; deadline: Date }, Project>(
+    `/api/projects/${projectId}`,
+  );
 }
 
 export function usePostBiddings(
@@ -217,7 +239,7 @@ export function usePostBiddings(
 
 export function useUploadData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: "submissions" | "reviewers" | "volunteers",
   params?: Record<string, any>,
 ) {
   let url: string = `/api/projects/${projectId}/data/${what}`;
@@ -232,7 +254,7 @@ export function useUploadData(
 
 export function useDeleteData(
   projectId: number,
-  what: "submissions" | "reviewers",
+  what: "submissions" | "reviewers" | "volunteers",
   params?: Record<string, any>,
 ) {
   let url: string = `/api/projects/${projectId}/data/${what}`;

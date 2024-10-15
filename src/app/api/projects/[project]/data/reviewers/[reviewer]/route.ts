@@ -43,7 +43,6 @@ export async function GET(
     return NextResponse.json({
       id: reviewer.id,
       email: reviewer.email,
-      firstname: reviewer.firstname,
       bids: reviewer.biddings,
       submissionIds: [],
       submissions: [],
@@ -66,7 +65,6 @@ export async function GET(
   return NextResponse.json({
     id: reviewer.id,
     email: reviewer.email,
-    firstname: reviewer.firstname,
     bids: reviewer.biddings,
     submissionIds: ownSubmissions.map((s) => s.id),
     submissions: ownSubmissions,

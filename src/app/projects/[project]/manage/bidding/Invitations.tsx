@@ -1,108 +1,99 @@
-'use client';
+import { Button } from "@/components/ui/button";
 
-import { Button } from '@/components/ui/button';
+import { GetReviewer } from "@/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
 
-import { GetReviewer } from '@/types';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Textarea } from '@/components/ui/textarea';
-
-import { useCSVDownloader } from 'react-papaparse';
-import { sendInvitation } from './sendInvitation';
-import { Loading } from '@/components/ui/loading';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useCSVDownloader } from "react-papaparse";
+import { sendInvitation } from "./sendInvitation";
+import { Loading } from "@/components/ui/loading";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Props {
   projectId: number;
+  division: string;
+  deadline: string;
   reviewers: GetReviewer[];
   mutateReviewers: () => void;
 }
 
-export default function Invitations({ projectId, reviewers, mutateReviewers }: Props) {
-  const { CSVDownloader, Type } = useCSVDownloader();
-  const modalRef = useRef<HTMLDivElement>(null);
-  const [sendModal, setSendModal] = useState(false);
-
-  function clickSend(e: any) {
-    e.preventDefault();
-    setSendModal(!sendModal);
-  }
-
+export default function Invitations({
+  projectId,
+  division,
+  deadline,
+  reviewers,
+  mutateReviewers,
+}: Props) {
   return (
-    <div className="grid grid-cols-[1fr,2fr] items-center gap-4 border-2 border-primary rounded-lg p-3">
-      <div>
-        <h3 className="text-center">Invitations</h3>
-        <div className="grid grid-cols-1 gap-2">
-          <CSVDownloader
-            type={Type.Button}
-            className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors"
-            filename={`reviewer_invitations.csv`}
-            bom={true}
-            data={reviewers}
-          >
-            Download
-          </CSVDownloader>
-          <button
-            className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors"
-            onClick={clickSend}
-          >
-            Send
-          </button>
-        </div>
-      </div>
-      <p className="whitespace-normal">
-        To send the invitations, either download the CSV file and send the emails yourself, or send
-        them directly from here. The emails will contain a link to the bidding page
-      </p>
-
-      <div
-        ref={modalRef}
-        className={`fixed z-50 inset-0 flex justify-center items-center bg-[#fff5] backdrop-blur-[5px] ${
-          sendModal ? '' : 'hidden'
-        }`}
-      >
-        <EmailModal
-          projectId={projectId}
-          reviewers={reviewers}
-          mutateReviewers={mutateReviewers}
-          clickSend={clickSend}
-        />
-      </div>
-    </div>
+    <EmailModal
+      projectId={projectId}
+      division={division}
+      deadline={deadline}
+      reviewers={reviewers}
+      mutateReviewers={mutateReviewers}
+    />
   );
 }
 
 interface EmailModalProps {
   projectId: number;
+  division: string;
+  deadline: string;
   reviewers: GetReviewer[];
   mutateReviewers: () => void;
-  clickSend: (e: any) => void;
 }
 
-function EmailModal({ projectId, reviewers, mutateReviewers, clickSend }: EmailModalProps) {
-  const [text1, setText1] = useState(text1Default);
-  const [text2, setText2] = useState(text2Default);
+function EmailModal({
+  projectId,
+  division,
+  deadline,
+  reviewers,
+  mutateReviewers,
+}: EmailModalProps) {
+  const [text1, setText1] = useState(getText1Default(division));
+  const [text2, setText2] = useState(getText2Default(deadline));
+
+  useEffect(() => {
+    setText1(getText1Default(division));
+  }, [division]);
+  useEffect(() => {
+    setText2(getText2Default(deadline));
+  }, [deadline]);
 
   return (
-    <div className="relative overflow-auto m-4 md:m-10 z-50 w-[1000px] h-[1000px] max-h-[90%] max-w-[90%] border-2 border-primary rounded bg-secondary">
-      <div className="sticky top-0 left-0 flex justify-between items-center bg-secondary p-4  border-b-[2px] border-primary">
-        <h3>Send invitation emails</h3>
-        <Button onClick={clickSend}>Cancel</Button>
-      </div>
-      <div className="p-4 md:p-8 pt-[10rem] ">
-        <div className="p-3">
-          <p>Dear [firstname],</p>
+    <div className="relative overflow-auto m-4 2xl:m-10 z-50 border-primary rounded ">
+      <div className="grid grid-cols-1  lg:grid-cols-[1fr,max-content] gap-3">
+        <div className="border p-3 max-w-2xl  bg-secondary">
+          <h4>Email template</h4>
+          <p>You can customize the intro and outro</p>
+          <Textarea
+            name="intro"
+            value={text1}
+            onChange={(e) => setText1(e.target.value)}
+            rows={8}
+          />
+          <div className="p-3 pt-5">
+            <p className="text-sm">
+              To start the paper bidding, please visit{" "}
+              <span className="text-blue-800 underline">
+                this link right here
+              </span>
+            </p>
+          </div>
+          <Textarea
+            value={text2}
+            onChange={(e) => setText2(e.target.value)}
+            rows={6}
+          />
         </div>
-        <Textarea value={text1} onChange={(e) => setText1(e.target.value)} rows={8} />
-        <div className="p-3 pt-5">
-          <p>
-            To start the paper bidding, please visit{' '}
-            <span className="text-blue-800 underline">this link right here</span>
-          </p>
-        </div>
-        <Textarea value={text2} onChange={(e) => setText2(e.target.value)} rows={4} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-          <SendTestEmail projectId={projectId} reviewers={reviewers} text1={text1} text2={text2} />
+        <div className="grid grid-cols-1  mx-auto max-w-xl  gap-8 mt-8">
+          <SendTestEmail
+            projectId={projectId}
+            reviewers={reviewers}
+            text1={text1}
+            text2={text2}
+          />
           <SendBulkEmail
             projectId={projectId}
             reviewers={reviewers}
@@ -123,18 +114,23 @@ interface SendTestEmailProps {
   text2: string;
 }
 
-function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProps) {
-  const [email, setEmail] = useState('');
+function SendTestEmail({
+  projectId,
+  reviewers,
+  text1,
+  text2,
+}: SendTestEmailProps) {
+  const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSending(true);
-    sendInvitation(projectId, email, reviewers[0].firstname, reviewers[0].link, text1, text2, true)
+    sendInvitation(projectId, email, reviewers[0].link, text1, text2, true)
       .then((success) => {
-        if (success) alert('Email sent!');
-        else alert('Something went wrong, email not sent');
-        setEmail('');
+        if (success) alert("Email sent!");
+        else alert("Something went wrong, email not sent");
+        setEmail("");
       })
       .finally(() => setSending(false));
   }
@@ -146,14 +142,17 @@ function SendTestEmail({ projectId, reviewers, text1, text2 }: SendTestEmailProp
       <h3 className="text-center">Send test email</h3>
 
       <input
-        className="border-2 border-primary px-3 py-1 rounded mt-auto"
+        className="border-2 border-primary px-3 py-1 rounded "
         type="email"
         name="email"
         placeholder="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <Button disabled={sending} className={`border-2 border-primary  px-3 py-1 rounded mt-2`}>
+      <Button
+        disabled={sending}
+        className={`border-2 border-primary  px-3 py-1 rounded mt-2`}
+      >
         Send test email
       </Button>
     </form>
@@ -173,15 +172,15 @@ function SendBulkEmail({
   reviewers,
   text1,
   text2,
-  mutateReviewers
+  mutateReviewers,
 }: SendBulkEmailProps) {
-  const [who, setWho] = useState('');
+  const [who, setWho] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
 
   const uninvited = useMemo(() => {
     return reviewers.filter((r) => !r.invitationSent);
   }, [reviewers]);
-  const recipients = who === 'uninvited' ? uninvited : reviewers;
+  const recipients = who === "uninvited" ? uninvited : reviewers;
 
   function start(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -210,23 +209,30 @@ function SendBulkEmail({
       sendInvitation(
         projectId,
         recipient.email,
-        recipient.firstname,
         recipient.link,
         text1,
-        text2
+        text2,
       ).then((success) => {
         if (success) {
           setProgress(progress + 1);
         } else {
           alert(
-            `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per hour, so you don't have to worry about spamming them`
+            `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per hour, so you don't have to worry about spamming them`,
           );
           mutateReviewers();
           setProgress(null);
         }
       });
     }
-  }, [recipients, progress, mutateReviewers, projectId, reviewers, text1, text2]);
+  }, [
+    recipients,
+    progress,
+    mutateReviewers,
+    projectId,
+    reviewers,
+    text1,
+    text2,
+  ]);
 
   if (progress !== null) {
     return (
@@ -234,8 +240,15 @@ function SendBulkEmail({
         <h2 className="text-center mt-0">
           {progress + 1} / {recipients?.length}
         </h2>
-        <span className="italic text-center"> {recipients?.[progress]?.email}</span>
-        <Button onClick={cancel} variant="destructive" className="mt-auto w-full">
+        <span className="italic text-center">
+          {" "}
+          {recipients?.[progress]?.email}
+        </span>
+        <Button
+          onClick={cancel}
+          variant="destructive"
+          className="mt-auto w-full"
+        >
           Cancel
         </Button>
       </div>
@@ -248,13 +261,15 @@ function SendBulkEmail({
 
       <RadioGroup
         orientation="horizontal"
-        className="grid grid-cols-2 mt-auto h-10"
+        className="flex flex-wrap  h-10"
         value={who}
         onValueChange={(v) => setWho(v)}
       >
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="uninvited" id="option-one" />
-          <Label htmlFor="option-one">Only uninvited ({uninvited.length})</Label>
+          <Label htmlFor="option-one">
+            Only uninvited ({uninvited.length})
+          </Label>
         </div>
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="everyone" id="option-two" />
@@ -263,24 +278,27 @@ function SendBulkEmail({
       </RadioGroup>
 
       <Button
-        disabled={who === ''}
-        variant={who === '' ? 'secondary' : 'default'}
+        disabled={who === ""}
+        variant={who === "" ? "secondary" : "default"}
         className={`border-2 border-primary  px-3 py-1 rounded mt-2 `}
       >
-        {who === '' ? 'select recipients' : 'Send emails'}
+        {who === "" ? "select recipients" : "Send emails"}
       </Button>
     </form>
   );
 }
 
-const text1Default = `First of all, thanks for being part of the Computational Methods division!
+function getText1Default(division: string) {
+  return `Dear member of the ${division} division,
 
-You are receiving this email because you volunteered to review for the Computational Methods group, 
-or you submitted as first author to us, in which case we expect you to review as well.
+The ICA submissions are in, and it's time to review!
 
-As a reviewer, you can indicate which papers to review in a process known as 'paper bidding'.
-The abstracts are sorted by similarity to your own submissions from this and previous years,
-to help you find the papers that best fit your expertise.`;
-const text2Default = `We will assign all papers for review on [date]. All reviews should be due by [date].
+To help us assign the right reviewers to the right papers, we ask you to indicate which papers match your expertise and interest. The following link shows you the abstracts sorted by similarity to your own work. Please take a few minutes to indicate which papers you would like to review.
+
+`;
+}
+function getText2Default(deadline: string) {
+  return `The deadline for indicating your preferences is ${deadline}. If you do not bid on any papers, you will automatically be matched to remaining papers based on similarity to your own submissions.
 
 Happy bidding!`;
+}

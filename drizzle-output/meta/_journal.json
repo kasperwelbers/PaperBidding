@@ -1,12 +1,26 @@
 {
-  "version": "5",
-  "dialect": "pg",
+  "version": "7",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1728912348469,
-      "tag": "0000_plain_morbius",
+      "version": "7",
+      "when": 1728974481873,
+      "tag": "0000_loose_ezekiel",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1728985619599,
+      "tag": "0001_open_machine_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1728988338432,
+      "tag": "0002_classy_zeigeist",
       "breakpoints": true
     }
   ]

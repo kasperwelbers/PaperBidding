@@ -1,11 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Project } from "@/drizzle/schema";
 import { GetProject } from "@/types";
+import { Plus, Trash, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaPlus } from "react-icons/fa";
 
 interface Props {
   project: GetProject;
@@ -29,18 +37,67 @@ export default function ProjectAdmins({ project, mutateProject }: Props) {
       mutateProject({ ...project });
     }
   }
+  async function rmAdmin(email: string) {
+    const res = await fetch(`/api/projects/${project.id}/admin`, {
+      method: "DELETE",
+      body: JSON.stringify({ email }),
+    });
+    if (res.ok) {
+      project.admins = project.admins.filter((admin) => admin != email);
+      mutateProject({ ...project });
+    }
+  }
 
   return (
-    <div className="grid grid-cols-2 gap-3 w-full">
+    <div className="mt-3">
       <div className="text-left flex-auto">
-        <h3>Project admins</h3>
-        <ul className="text-sm overflow-auto">
-          {admins.map((admin) => {
-            return <li key={admin}>{admin}</li>;
-          })}
-        </ul>
+        <div className="flex items-center  gap-1">
+          <h6 className="m-0">Admins</h6>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8" size="icon">
+                <FaPlus size={16} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <CreateAdminForm admins={admins} addAdmin={addAdmin} />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
-      <CreateAdminForm admins={admins} addAdmin={addAdmin} />
+      <div className="overflow-auto">
+        {admins.map((admin) => {
+          return (
+            <li className="flex gap-3 items-center" key={admin}>
+              {admin}{" "}
+              <Button
+                size="icon"
+                className={`${admin == project.creator ? "hidden" : ""} w-6 h-6`}
+                variant="ghost"
+              >
+                <Popover>
+                  <PopoverTrigger>
+                    <X size={16} />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="flex flex-col gap-3">
+                      <p>
+                        {" "}
+                        Are you sure you want to remove{" "}
+                        <span className="font-bold text-primary">
+                          {admin}
+                        </span>{" "}
+                        as an admin?
+                      </p>
+                      <Button onClick={(e) => rmAdmin(admin)}>Yes</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </Button>
+            </li>
+          );
+        })}
+      </div>
     </div>
   );
 }

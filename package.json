@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "migrate": "drizzle-kit generate:pg && tsx src/drizzle/migrate.ts",
+    "migrate": "drizzle-kit generate && tsx src/drizzle/migrate.ts",
     "studio": "drizzle-kit studio",
     "watch": "tsc -watch",
     "secret": "openssl rand -base64 32"
@@ -48,7 +48,7 @@
     "tailwindcss": "3.3.3",
     "tailwindcss-animate": "^1.0.6",
     "typescript": "5.1.6",
-    "zod": "^3.21.4"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "dotenv": "^16.3.1",

@@ -8,7 +8,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-
   adapter: DrizzleAdapter(db),
   providers: [
     {
@@ -16,7 +15,7 @@ export const authOptions: NextAuthOptions = {
       type: "email",
       from: "ignored",
       server: {},
-      maxAge: 24 * 60 * 60,
+      maxAge: 30 * 24 * 60 * 60,
       name: "Email",
       options: {},
       async sendVerificationRequest(params) {

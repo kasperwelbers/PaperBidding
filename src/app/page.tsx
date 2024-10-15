@@ -21,6 +21,14 @@ import {
 import { Eye, EyeOff, User } from "lucide-react";
 import { MdAccountCircle } from "react-icons/md";
 import { FaSignOutAlt, FaTrash } from "react-icons/fa";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const infoDefault = `
 ## Welcome!
@@ -58,7 +66,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center">
-      <header className="w-full bg-primary flex justify-center">
+      <header className="min-h-[3.5rem] w-full bg-primary flex justify-center">
         <div className="flex z-20 px-4 lg:px-10 py-1 max-w-7xl sticky top-0 w-full justify-center items-center  text-white">
           <div className="flex flex-col md:flex-row w-full justify-between">
             <div className="flex flex-wrap md:flex-col py-2 gap-x-3 justify-between ">
@@ -177,6 +185,11 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
   const [creating, setCreating] = useState(false);
   const router = useRouter();
   const [name, setName] = useState("");
+  const [division, setDivision] = useState("");
+  const [deadline, setDeadline] = useState(() => {
+    const year = new Date().getFullYear();
+    return `${year}-11-10`;
+  });
 
   function onSelect(project: Project) {
     router.push(`/projects/${project.id}/manage`);
@@ -185,45 +198,87 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
   if (creating) return <Loading msg={`Creating new project`} />;
 
   return (
-    <div className="w-full">
-      <h4 className="">Create new project</h4>
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setCreating(true);
-          createProject({ name: name })
-            .then(async (res) => {
-              const project = await res.json();
-              onSelect(project);
-            })
-            .finally(() => {
-              setName("");
-            });
-        }}
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>Create new project</Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-sm"
+        onInteractOutside={(e) => e.preventDefault()}
       >
-        <Input
-          placeholder="Project name"
-          className="w-full"
-          value={name}
-          minLength={3}
-          onChange={(e) => {
-            e.target.setCustomValidity("");
-            if (projects?.find((p: GetProject) => p.name === e.target.value)) {
-              e.target.setCustomValidity("Project already exists");
-            }
-            if (!/^[a-zA-Z0-9_ -]+$/.test(e.target.value)) {
-              e.target.setCustomValidity(
-                "Only letters, numbers, dashes, underscores and spaces are allowed",
-              );
-            }
-            setName(e.target.value);
+        <DialogHeader>
+          <DialogTitle>Create new project</DialogTitle>
+          <DialogDescription>
+            Specify the name of the project, the ICA division, and the deadline
+            for the paper bidding. (You can change all of these later)
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-6"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setCreating(true);
+            createProject({ name, division, deadline: new Date(deadline) })
+              .then(async (res) => {
+                const project = await res.json();
+                onSelect(project);
+              })
+              .finally(() => {
+                setName("");
+              });
           }}
-          required
-        ></Input>
-        <Button>create</Button>
-      </form>
-    </div>
+        >
+          <div className="grid grid-cols-[6rem,1fr] gap-3 items-center">
+            <label htmlFor="name">Name</label>
+            <Input
+              name="name"
+              placeholder="Project name"
+              className="w-full"
+              value={name}
+              minLength={3}
+              onChange={(e) => {
+                e.target.setCustomValidity("");
+                if (
+                  projects?.find((p: GetProject) => p.name === e.target.value)
+                ) {
+                  e.target.setCustomValidity("Project already exists");
+                }
+                if (!/^[a-zA-Z0-9_ -]+$/.test(e.target.value)) {
+                  e.target.setCustomValidity(
+                    "Only letters, numbers, dashes, underscores and spaces are allowed",
+                  );
+                }
+                setName(e.target.value);
+              }}
+              required
+            ></Input>
+            <label htmlFor="division">Division</label>
+            <Input
+              name="division"
+              placeholder="Division name"
+              className="w-full"
+              value={division}
+              minLength={3}
+              onChange={(e) => {
+                setDivision(e.target.value);
+              }}
+              required
+            ></Input>
+            <label htmlFor="deadline">Deadline</label>
+            <Input
+              name="deadline"
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              required
+            ></Input>
+          </div>
+          <Button disabled={!division || !deadline || !name}>
+            Create project
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -3,6 +3,7 @@ import db, { projects, projectAdmins } from "@/drizzle/schema";
 import { authenticate, isSuperAdmin } from "@/lib/authenticate";
 import { eq } from "drizzle-orm";
 import cryptoRandomString from "crypto-random-string";
+import { NewProjectSchema } from "@/zodSchemas";
 
 export async function GET(req: Request) {
   const { email } = await authenticate();
@@ -29,21 +30,22 @@ export async function POST(req: Request) {
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
   if (!canCreateProject) return NextResponse.json({}, { status: 403 });
 
-  const { name } = await req.json();
+  const body = await req.json();
+  const newProject = NewProjectSchema.parse(body);
 
   try {
-    const newProject = await db
+    const project = await db
       .insert(projects)
       .values({
-        name: name,
+        ...newProject,
         creator: email,
       })
       .returning();
     await db.insert(projectAdmins).values({
-      projectId: newProject[0].id,
+      projectId: project[0].id,
       email: email,
     });
-    return NextResponse.json(newProject[0], { status: 201 });
+    return NextResponse.json(project[0], { status: 201 });
   } catch (e) {
     return NextResponse.json({}, { status: 400 });
   }

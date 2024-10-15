@@ -83,8 +83,8 @@ export default function CSVReader({
                 className="w-full h-full flex flex-col hover:text-white bg-white text-black border-2 border-dotted border-gray-700"
                 {...getRootProps()}
               >
-                <h3 className="mb-1">CSV</h3>
-                <p>{detail}</p>
+                <h5 className="mb-0">Click here to select file</h5>
+                {/* <p>{detail}</p> */}
               </Button>
               {/* <div className="flex-auto max-w-[400px] text-[1rem] leading-[1.2rem]">{detail}</div> */}
             </div>

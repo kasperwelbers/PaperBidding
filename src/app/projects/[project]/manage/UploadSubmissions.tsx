@@ -10,8 +10,7 @@ import ManageData from "./ManageData";
 
 const submissionFields = [
   { field: "id", label: "ID" },
-  { field: "author_email", label: "Author Email" },
-  { field: "author_firstname", label: "Author First Name" },
+  { field: "author_email", label: "Author Email(s)" },
   { field: "title", label: "Title" },
   { field: "abstract", label: "Abstract" },
 ];
@@ -19,7 +18,6 @@ const submissionFields = [
 const defaultFields = {
   id: "control id",
   author_email: "(e-mail)",
-  author_firstname: "(First name)",
   title: "title",
   abstract: "abstract",
 };
@@ -65,18 +63,13 @@ export default function UploadSubmissions({
         if (!submissionMap.has(row.id)) {
           submissionMap.set(row.id, {
             id: row.id,
-            authors: [
-              { email: row.author_email, firstname: row.author_firstname },
-            ],
+            authors: [row.author_email],
             title: row.title,
             abstract: row.abstract,
             features: [],
           });
         } else {
-          submissionMap.get(row.id)?.authors.push({
-            email: row.author_email,
-            firstname: row.author_firstname,
-          });
+          submissionMap.get(row.id)?.authors.push(row.author_email);
         }
       }
       const submissions: ProcessedSubmission[] = [...submissionMap.values()];
@@ -101,7 +94,7 @@ export default function UploadSubmissions({
               setStatus({
                 loading: `Uploading ${Math.min(i + batchSize, submissions.length)}/${
                   submissions.length
-                }}`,
+                }`,
                 error: "",
               });
               await uploadSubmissions({ data: batch });

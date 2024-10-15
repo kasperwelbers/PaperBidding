@@ -56,11 +56,15 @@ export default function ManageData({
           <table className="table-auto text-left">
             <thead>
               <tr className="">
-                {Object.keys(dataPage.data[0]).map((key) => (
-                  <th className="pr-3" key={key}>
-                    {key}
-                  </th>
-                ))}
+                {Object.keys(dataPage.data[0]).map((key) => {
+                  if (key === "id") return null;
+                  if (key === "features") return null;
+                  return (
+                    <th className="pr-3" key={key}>
+                      {key}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="min-h-[18rem]">
@@ -68,8 +72,16 @@ export default function ManageData({
                 <tr key={i}>
                   {Object.keys(row).map((key) => {
                     let value: string;
+                    if (key === "id") return null;
+                    if (key === "features") return null;
                     if (typeof row[key] === "object") {
-                      value = JSON.stringify(row[key]);
+                      if (key === "features") {
+                        value = `vector (${row[key].length})`;
+                      } else if (key === "authors") {
+                        value = row[key].join(", ");
+                      } else {
+                        value = JSON.stringify(row[key]);
+                      }
                     } else if (typeof row[key] === "boolean") {
                       value = row[key] ? "true" : "false";
                     } else {
@@ -77,7 +89,7 @@ export default function ManageData({
                     }
                     return (
                       <td
-                        className="pr-3 py-1 whitespace-nowrap max-w-[12rem] overflow-hidden overflow-ellipsis"
+                        className="pr-3 py-1 whitespace-nowrap max-w-[18rem] overflow-hidden overflow-ellipsis"
                         key={key}
                       >
                         <span title={value}>{value}</span>
@@ -91,23 +103,24 @@ export default function ManageData({
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mt-auto">
-        <span className="flex-auto text-right whitespace-nowrap">
+        <span className="flex-auto text-right whitespace-nowrap opacity-70">
           Type &quot;I am certain&quot; to enable delete
         </span>
         <input
-          className="border-2 rounded border-gray-400 px-2 text-center w-20 flex-auto"
+          className="border-2 rounded border-gray-400 px-2 text-center w-36 min-w-0 ml-auto"
           onChange={(e) => {
-            if (e.target.value === "I am certain") setCanDelete(true);
+            if (e.target.value.toLowerCase() === "i am certain")
+              setCanDelete(true);
             else setCanDelete(false);
           }}
         ></input>
       </div>
       <Button
         disabled={!canDelete}
-        className="bg-red-400 disabled:opacity-50 p-1 rounded mt-2"
+        className="ml-auto bg-red-400 disabled:opacity-50 p-1 rounded mt-2 w-36"
         onClick={() => onDelete()}
       >
-        Delete Current Data
+        Delete Data
       </Button>
     </div>
   );

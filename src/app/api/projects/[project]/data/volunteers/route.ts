@@ -33,7 +33,6 @@ export async function GET(
     .selectDistinctOn([reviewers.email], {
       id: reviewers.id,
       email: reviewers.email,
-      firstname: reviewers.firstname,
     })
     .from(reviewers)
     .where(
@@ -63,7 +62,6 @@ export async function GET(
       rows[row.email] = {
         id: row.id,
         email: row.email,
-        firstname: row.firstname,
       };
     }
   }
@@ -92,15 +90,46 @@ export async function POST(
       status: 400,
     });
 
-  const newReviewers: NewReviewer[] = validData.data.map((d: any) => ({
-    email: d.email,
-    firstname: d.firstname,
-    projectId: params.project,
-    importedFrom: "volunteer",
-    biddings: [],
-    secret: createUserSecret(params.project, d.email),
-  }));
-  await db.insert(reviewers).values(newReviewers);
+  const currentVolunteers = (
+    await db
+      .select({ email: reviewers.email })
+      .from(reviewers)
+      .where(
+        and(
+          eq(reviewers.projectId, params.project),
+          eq(reviewers.importedFrom, "volunteer"),
+        ),
+      )
+  ).map((r) => r.email);
+  const deleteReviewers = new Set(currentVolunteers);
+
+  const newReviewers: NewReviewer[] = [];
+  for (let d of validData.data) {
+    if (currentVolunteers.includes(d.email)) {
+      deleteReviewers.delete(d.email);
+    } else {
+      newReviewers.push({
+        email: d.email,
+        projectId: params.project,
+        importedFrom: "volunteer",
+        secret: createUserSecret(params.project, d.email),
+      });
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    if (newReviewers.length > 0)
+      await tx.insert(reviewers).values(newReviewers);
+    if (deleteReviewers.size)
+      await tx
+        .delete(reviewers)
+        .where(
+          and(
+            eq(reviewers.projectId, params.project),
+            inArray(reviewers.email, Array.from(deleteReviewers)),
+          ),
+        );
+  });
   return NextResponse.json({ status: 201 });
 }
 
@@ -115,8 +144,6 @@ export async function DELETE(
   const canEdit = await canEditProject(email, params.project);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
-
-  const searchParams = new URL(req.url).searchParams;
 
   await db
     .delete(reviewers)

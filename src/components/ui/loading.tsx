@@ -15,7 +15,7 @@ export function Loading({
       )}
     >
       <span className="loader"></span>
-      <h2 className="text-2xl font-bold mt-3">{msg || "Loading..."}</h2>
+      <h2 className="text-xl mt-3">{msg || "Loading..."}</h2>
     </div>
   );
 }

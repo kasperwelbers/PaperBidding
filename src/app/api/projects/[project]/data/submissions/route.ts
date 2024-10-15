@@ -119,8 +119,7 @@ export async function POST(
       projectId: params.project,
       submissionId: row.id,
       position: i,
-      firstname: author.firstname,
-      email: author.email,
+      email: author,
     }));
     for (let author of addNewAuthors) newAuthors.push(author);
 
@@ -128,10 +127,9 @@ export async function POST(
       const firstauthor = row.authors[0];
       newReviewers.push({
         projectId: params.project,
-        email: firstauthor.email,
+        email: firstauthor,
         importedFrom: "submission",
-        firstname: firstauthor.firstname,
-        secret: createUserSecret(params.project, firstauthor.email),
+        secret: createUserSecret(params.project, firstauthor),
       });
     }
   }

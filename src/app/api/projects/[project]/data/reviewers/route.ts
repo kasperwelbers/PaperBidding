@@ -33,7 +33,6 @@ export async function GET(
     .selectDistinctOn([reviewers.email], {
       id: reviewers.id,
       email: reviewers.email,
-      firstname: reviewers.firstname,
       link: reviewers.secret,
       invitationSent: reviewers.invitationSent,
       biddings: biddings.submissionIds,
@@ -85,9 +84,8 @@ export async function GET(
       rows[row.email] = {
         id: row.id,
         email: row.email,
-        firstname: row.firstname,
         link: domain + `/bidding/${params.project}/${row.id}/${row.link}`,
-        invitationSent: String(row.invitationSent),
+        invitationSent: row.invitationSent,
         biddings: row.biddings || [],
         manualBiddings: row.biddings?.length || 0,
         volunteer: row.importedFrom === "volunteer",
@@ -103,8 +101,8 @@ export async function GET(
       });
 
       for (let author of row.submission.authors) {
-        if (!rows[row.email].coAuthors.includes(author.email)) {
-          rows[row.email].coAuthors.push(author.email);
+        if (!rows[row.email].coAuthors.includes(author)) {
+          rows[row.email].coAuthors.push(author);
         }
       }
     }
