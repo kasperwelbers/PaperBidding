@@ -133,8 +133,8 @@ export default function UploadData({
             <DialogDescription>
               Reviewers are automatically matched to abstracts based on
               similarity to their own submissions. This affects both the bidding
-              process and matching for reviewers that didn't bid. You can upload
-              old ICA submissions to improve accuracy
+              process and matching for reviewers that did not bid. You can
+              upload old ICA submissions to improve accuracy
             </DialogDescription>
           </DialogHeader>
           <UploadSubmissions

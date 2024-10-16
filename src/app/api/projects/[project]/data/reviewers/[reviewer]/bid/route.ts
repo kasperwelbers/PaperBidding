@@ -37,6 +37,7 @@ export async function POST(
         projectId: params.project,
         email: rev.email,
         submissionIds: selected,
+        updated: new Date(),
       })
       .onConflictDoUpdate({
         target: [biddings.projectId, biddings.email],

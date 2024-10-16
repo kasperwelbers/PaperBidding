@@ -20,6 +20,7 @@ import { neon } from "@neondatabase/serverless";
 import postgres from "postgres";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
+import { ByReviewer, BySubmission } from "@/types";
 
 config({ path: ".env.local" });
 
@@ -51,7 +52,9 @@ export const accounts = pgTable(
     session_state: text("session_state"),
   },
   (account) => ({
-    compoundKey: primaryKey(account.provider, account.providerAccountId),
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
   }),
 );
 
@@ -71,7 +74,7 @@ export const verificationTokens = pgTable(
     expires: timestamp("expires", { mode: "date" }).notNull(),
   },
   (vt) => ({
-    compoundKey: primaryKey(vt.identifier, vt.token),
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
   }),
 );
 
@@ -182,10 +185,29 @@ export const biddings = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     email: varchar("email", { length: 256 }).notNull(),
     submissionIds: jsonb("biddings").$type<number[]>().notNull(),
+    updated: timestamp("updated").notNull().defaultNow(),
   },
   (table) => {
     return {
-      pk: primaryKey(table.projectId, table.email),
+      pk: primaryKey({ columns: [table.projectId, table.email] }),
+    };
+  },
+);
+
+export const assignments = pgTable(
+  "assignment",
+  {
+    id: serial("id").primaryKey(),
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    byReviewer: jsonb("byReviewer").$type<ByReviewer[]>().notNull(),
+    bySubmission: jsonb("bySubmission").$type<BySubmission[]>().notNull(),
+    updated: timestamp("updated").notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      unqProject: unique().on(table.projectId),
     };
   },
 );

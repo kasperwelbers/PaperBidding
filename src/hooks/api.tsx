@@ -2,7 +2,15 @@ import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import { Project } from "@/drizzle/schema";
 import { useRef, useState } from "react";
-import { DataPage, Reviewer, GetProject, GetInvitation } from "@/types";
+import {
+  DataPage,
+  Reviewer,
+  GetProject,
+  GetInvitation,
+  GetAssignments,
+  ByReviewer,
+  BySubmission,
+} from "@/types";
 import { useSession } from "next-auth/react";
 import { z } from "zod";
 import { GetProjectSchema } from "@/zodSchemas";
@@ -213,6 +221,10 @@ export function useReviewer(
   );
 }
 
+export function useAssignments(projectId: number) {
+  return useGET<GetAssignments>(`/api/projects/${projectId}/assignments`);
+}
+
 // POST HELPERS
 export function useCreateProject() {
   return usePOST<{ name: string; division: string; deadline: Date }, Project>(
@@ -265,4 +277,11 @@ export function useDeleteData(
   }
 
   return usePOST<any, Project>(url, "DELETE");
+}
+
+export function useUploadAssignments(projectId: number) {
+  return usePOST<
+    { byReviewer: ByReviewer[]; bySubmission: BySubmission[] },
+    Project
+  >(`/api/projects/${projectId}/assignments`);
 }

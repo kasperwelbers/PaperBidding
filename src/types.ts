@@ -85,12 +85,19 @@ export interface GetSubmission {
   meanSimilarity?: number;
 }
 
+export interface RankedReviewer {
+  email: string;
+  rank: number;
+  method: "auto" | "manual";
+}
+
 export interface GetMetaSubmission {
   id: number;
   title: string;
   submissionId: string;
   biddings?: Bidding[];
-  reviewers: string[];
+  reviewers: RankedReviewer[];
+  backupReviewers: RankedReviewer[];
   authors: string[];
 }
 
@@ -98,4 +105,23 @@ export interface Bidding {
   reviewer: string;
   rank: number;
   method: "auto" | "manual";
+}
+
+export interface BySubmission {
+  submission_id: string;
+  title: string;
+  authors: string;
+  [key: string]: string;
+}
+
+export interface ByReviewer {
+  reviewer: string;
+  [key: string]: string;
+}
+
+export interface GetAssignments {
+  byReviewer: ByReviewer[];
+  bySubmission: BySubmission[];
+  lastUpdate: Date;
+  lastBid: Date;
 }
