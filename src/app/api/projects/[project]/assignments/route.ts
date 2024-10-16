@@ -1,4 +1,4 @@
-import { assignments, biddings } from "@/drizzle/schema";
+import db, { assignments, biddings } from "@/drizzle/schema";
 import { authenticate, canEditProject } from "@/lib/authenticate";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
