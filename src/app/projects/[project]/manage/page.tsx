@@ -124,9 +124,9 @@ interface updateProjectFormProps {
 }
 
 function UpdateProjectForm({ project }: updateProjectFormProps) {
+  const [open, setOpen] = useState(false);
   const { data: projects, isLoading } = useProjects();
-  const { trigger: createProject } = useUpdateProject(project.id);
-  const [creating, setCreating] = useState(false);
+  const { trigger: updateProject } = useUpdateProject(project.id);
   const router = useRouter();
   const [name, setName] = useState(project.name);
   const [division, setDivision] = useState(project.division);
@@ -139,16 +139,14 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
     setDivision(project.division);
     setDeadline(project.deadline.toISOString().split("T")[0]);
   }, [project]);
-  console.log(deadline);
 
-  function onSelect(project: Project) {
-    router.push(`/projects/${project.id}/manage`);
-  }
-
-  if (creating) return <Loading msg={`Creating new project`} />;
+  const changed =
+    project.name !== name ||
+    project.division !== division ||
+    project.deadline.toISOString().split("T")[0] !== deadline;
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="icon" variant="ghost">
           <MdSettings size={30} />
@@ -166,15 +164,13 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
           className="flex flex-col gap-6"
           onSubmit={(e) => {
             e.preventDefault();
-            setCreating(true);
-            createProject({ name, division, deadline: new Date(deadline) })
-              .then(async (res) => {
-                const project = await res.json();
-                onSelect(project);
-              })
-              .finally(() => {
-                setName("");
-              });
+            updateProject({
+              name,
+              division,
+              deadline: new Date(deadline),
+            }).then(async (res) => {
+              setOpen(false);
+            });
           }}
         >
           <div className="grid grid-cols-[6rem,1fr] gap-3 items-center">
@@ -222,7 +218,9 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
               required
             ></Input>
           </div>
-          <Button disabled={!division || !deadline || !name}>Update </Button>
+          <Button disabled={!division || !deadline || !name || !changed}>
+            Update{" "}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

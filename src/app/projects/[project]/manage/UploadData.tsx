@@ -72,7 +72,10 @@ export default function UploadData({
             loading={submissions.isLoading}
           />
         </DialogTrigger>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent
+          className="flex items-center flex-col"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Upload Submissions</DialogTitle>
             <DialogDescription>
@@ -101,7 +104,10 @@ export default function UploadData({
             loading={volunteers.isLoading}
           />
         </DialogTrigger>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent
+          className="flex items-center flex-col"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Add volunteer reviewers</DialogTitle>
             <DialogDescription>
@@ -127,7 +133,10 @@ export default function UploadData({
             loading={references.isLoading}
           />
         </DialogTrigger>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent
+          className="flex items-center flex-col"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Upload Previous Submissions</DialogTitle>
             <DialogDescription>

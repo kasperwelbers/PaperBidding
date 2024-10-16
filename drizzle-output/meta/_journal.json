@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1728974481873,
-      "tag": "0000_loose_ezekiel",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1728985619599,
-      "tag": "0001_open_machine_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1728988338432,
-      "tag": "0002_classy_zeigeist",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1729070079008,
-      "tag": "0003_unusual_master_chief",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1729070539360,
-      "tag": "0004_flimsy_stone_men",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1729073055325,
-      "tag": "0005_harsh_argent",
+      "when": 1729091074204,
+      "tag": "0000_rich_smasher",
       "breakpoints": true
     }
   ]

@@ -21,6 +21,7 @@ import { FaArrowLeft, FaEye } from "react-icons/fa";
 import { useCSVDownloader } from "react-papaparse";
 import makeAssignments from "./makeAssignments";
 import Link from "next/link";
+import { Dot } from "lucide-react";
 
 export default function BiddingPage({
   params,
@@ -104,7 +105,6 @@ export default function BiddingPage({
           bySubmission={data?.bySubmission}
           projectId={params.project}
         />
-        d
       </div>
       <div className="p-5 pt-0  whitespace-nowrap overflow-auto">
         <div className="flex flex-col gap-8 ">
@@ -146,7 +146,10 @@ function ReviewersBySubmission({
       <div className="flex flex-col gap-6">
         {bySubmission.map((d) => {
           return (
-            <div key={d.submission_id} className="flex flex-col gap-3">
+            <div
+              key={d.submission_id}
+              className="flex flex-col gap-3 border-b pb-3"
+            >
               <div className="flex gap-3">
                 <div className="px-3 py-1 h-min  bg-primary text-primary-foreground rounded">
                   {d.submission_id}
@@ -158,8 +161,15 @@ function ReviewersBySubmission({
               <div className="flex flex-col gap-1 ml-6">
                 {Object.keys(d).map((k) => {
                   if (!k.includes("reviewer_")) return null;
+                  const rank = d[k.replace("reviewer_", "reviewer.rank_")];
                   if (!d[k]) return null;
-                  return <li key={k}>{d[k]}</li>;
+                  return (
+                    <div key={k} className="flex">
+                      <Dot />
+                      {d[k]}
+                      <div className="opacity-60 ml-auto">{rank}</div>
+                    </div>
+                  );
                 })}
               </div>
             </div>
@@ -195,7 +205,7 @@ function SubmissionsByReviewer({
       <div className="flex flex-col gap-6">
         {byReviewer.map((d) => {
           return (
-            <div key={d.reviewer} className="flex flex-col gap-3">
+            <div key={d.reviewer} className="flex flex-col gap-3 border-b pb-3">
               <div className="flex items-center gap-3">
                 <div className="px-3 py-1 bg-primary text-primary-foreground rounded">
                   {d.reviewer}
@@ -204,7 +214,15 @@ function SubmissionsByReviewer({
               <div className="flex flex-col gap-1 ml-6">
                 {Object.keys(d).map((k) => {
                   if (!k.includes("submission_")) return null;
+                  const rank = d[k.replace("submission_", "submission.rank_")];
                   if (!d[k]) return null;
+                  return (
+                    <div key={k} className="flex">
+                      <Dot />
+                      {d[k]}
+                      <div className="opacity-60 ml-auto">{rank}</div>
+                    </div>
+                  );
                   return <li key={k}>{d[k]}</li>;
                 })}
               </div>

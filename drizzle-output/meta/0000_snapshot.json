@@ -1,5 +1,5 @@
 {
-  "id": "fe31443a-7fbd-4f2d-b7f7-62eb89072a23",
+  "id": "0ea3c6d9-4a23-495d-88fe-5b5ebf4daafc",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -118,6 +118,69 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "public.assignment": {
+      "name": "assignment",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byReviewer": {
+          "name": "byReviewer",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bySubmission": {
+          "name": "bySubmission",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "assignment_project_id_projects_id_fk": {
+          "name": "assignment_project_id_projects_id_fk",
+          "tableFrom": "assignment",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "assignment_project_id_unique": {
+          "name": "assignment_project_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id"
+          ]
+        }
+      }
+    },
     "public.authors": {
       "name": "authors",
       "schema": "",
@@ -226,6 +289,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -276,6 +346,13 @@
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
+        },
+        "is_creator": {
+          "name": "is_creator",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
@@ -341,6 +418,18 @@
         "name": {
           "name": "name",
           "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "division": {
+          "name": "division",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deadline": {
+          "name": "deadline",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
