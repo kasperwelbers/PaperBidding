@@ -8,6 +8,8 @@ import {
   BySubmission,
 } from "@/types";
 
+type ReviewerAssignments = Map<string, { submission: number; pRank: number }[]>;
+
 export default function makeAssignments(
   reviewers: GetReviewer[],
   submissions: GetMetaSubmission[],
@@ -22,7 +24,7 @@ export default function makeAssignments(
 
   // keep track of submissions per reviewer, ordered by rank
   // use later to balance assignments
-  const reviewerAssignments = new Map<string, number[]>();
+  const reviewerAssignments: ReviewerAssignments = new Map();
 
   // copy so we don't mutate the original
   submissions = submissions.map((submission) => ({ ...submission }));
@@ -40,11 +42,15 @@ export default function makeAssignments(
     for (const internalId of reviewer.biddings) {
       if (!biddingMap.has(internalId)) biddingMap.set(internalId, []);
 
+      if (reviewer.email.includes("annie")) console.log(reviewer);
+      const method = i >= reviewer.manualBiddings ? "auto" : "manual";
+
       const biddingsArray = biddingMap.get(internalId);
       biddingsArray?.push({
         reviewer: reviewer.email,
-        method: i >= reviewer.manualBiddings ? "auto" : "manual",
+        method,
         rank: 1 + i++,
+        pRank: method === "manual" ? i : i + autoPenalty,
       });
     }
   }
@@ -67,23 +73,35 @@ export default function makeAssignments(
     );
 
     biddings.sort((a: Bidding, b: Bidding) => {
-      const rankA = a.method === "manual" ? a.rank : a.rank + autoPenalty;
-      const rankB = b.method === "manual" ? b.rank : b.rank + autoPenalty;
-      return rankA - rankB;
+      return a.pRank - b.pRank;
     });
 
     // assign bests matches
     submission.reviewers = biddings
       .slice(0, reviewersPerSubmission)
-      .map((b) => ({ email: b.reviewer, rank: b.rank, method: b.method }));
+      .map((b) => ({
+        email: b.reviewer,
+        rank: b.rank,
+        method: b.method,
+        pRank: b.pRank,
+      }));
+
     submission.reviewers.forEach((reviewer) => {
-      reviewerAssignments.get(reviewer.email)?.push(submission.id);
+      reviewerAssignments.get(reviewer.email)?.push({
+        submission: submission.id,
+        pRank: reviewer.pRank,
+      });
     });
 
     // assign backup reviewers (for balancing out later on)
     submission.backupReviewers = biddings
       .slice(reviewersPerSubmission)
-      .map((b) => ({ email: b.reviewer, rank: b.rank, method: b.method }));
+      .map((b) => ({
+        email: b.reviewer,
+        rank: b.rank,
+        method: b.method,
+        pRank: b.pRank,
+      }));
   }
 
   submissions = fillRemaining(
@@ -141,7 +159,7 @@ export default function makeAssignments(
 
 function balanceSubmissionsPerReviewer(
   submissions: GetMetaSubmission[],
-  reviewerAssignments: Map<string, number[]>,
+  reviewerAssignments: ReviewerAssignments,
   reviewersPerSubmission: number,
 ) {
   // balance out the number of submissions per reviewer.
@@ -154,12 +172,17 @@ function balanceSubmissionsPerReviewer(
   const maxCount = Math.floor((total * reviewersPerSubmission) / reviewers);
 
   const reassignMap: Map<number, string[]> = new Map();
-  for (let [reviewer, submissions] of reviewerAssignments) {
-    const toMany = submissions.length - maxCount;
+  for (let [reviewer, assignments] of reviewerAssignments) {
+    const toMany = assignments.length - maxCount;
     if (toMany <= 0) continue;
 
-    // reassign submissions, from lowest ranking to highest
-    const sIds = submissions.reverse();
+    // determine which reviewers need to be reassigned, starting with their lowest matches
+    const sIds = assignments
+      .sort((a, b) => {
+        return b.pRank - a.pRank;
+      })
+      .map((s) => s.submission);
+
     for (let i = 0; i < toMany; i++) {
       const sId = sIds[i];
 
@@ -177,7 +200,9 @@ function balanceSubmissionsPerReviewer(
       for (let backup of s.backupReviewers) {
         const count = reviewerAssignments.get(backup.email)?.length || 0;
         if (count >= maxCount) continue;
-        reviewerAssignments.get(backup.email)?.push(s.id);
+        reviewerAssignments
+          .get(backup.email)
+          ?.push({ submission: s.id, pRank: backup.pRank });
         return backup;
       }
       return reviewer;
@@ -188,7 +213,7 @@ function balanceSubmissionsPerReviewer(
 
 function fillRemaining(
   submissions: GetMetaSubmission[],
-  reviewerAssignments: Map<string, number[]>,
+  reviewerAssignments: ReviewerAssignments,
   reviewersPerSubmission: number,
   forbiddenAssignments: Record<string, number[]>,
 ) {
@@ -204,7 +229,10 @@ function fillRemaining(
       if (!submission.reviewers[i]) {
         const add = pickNext(remaining, submission, forbiddenAssignments);
         submission.reviewers[i] = add;
-        reviewerAssignments.get(add.email)?.push(submission.id);
+        reviewerAssignments.get(add.email)?.push({
+          submission: submission.id,
+          pRank: add.pRank,
+        });
       }
     }
   }
@@ -224,9 +252,9 @@ function pickNext(
     const pick = remaining[i];
     remaining.splice(i, 1);
     remaining.push(pick);
-    return { email: pick, method: "auto", rank: 999 };
+    return { email: pick, method: "auto", rank: 999, pRank: 999 };
   }
-  return { email: "", method: "auto", rank: 999 };
+  return { email: "", method: "auto", rank: 999, pRank: 999 };
 }
 
 function getForbiddingAssignments(
@@ -290,4 +318,10 @@ function fillMissingBiddings(
   }
 
   return reviewers;
+}
+
+function penalizedRank(reviewer: RankedReviewer, autoPenalty: number) {
+  return reviewer.method === "auto"
+    ? reviewer.rank + autoPenalty
+    : reviewer.rank;
 }

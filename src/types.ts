@@ -88,6 +88,7 @@ export interface GetSubmission {
 export interface RankedReviewer {
   email: string;
   rank: number;
+  pRank: number;
   method: "auto" | "manual";
 }
 
@@ -104,6 +105,7 @@ export interface GetMetaSubmission {
 export interface Bidding {
   reviewer: string;
   rank: number;
+  pRank: number;
   method: "auto" | "manual";
 }
 
