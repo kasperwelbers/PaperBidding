@@ -7,7 +7,7 @@ import db, {
   biddings,
 } from "@/drizzle/schema";
 import { authenticate, canEditProject } from "@/lib/authenticate";
-import { createUserSecret } from "@/lib/createUserSecret";
+import { createUserSecret } from "@/lib/createSecret";
 import { GetReviewer, GetVolunteer } from "@/types";
 import { ReviewersSchema } from "@/zodSchemas";
 import { and, sql, eq, inArray } from "drizzle-orm";

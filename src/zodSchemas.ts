@@ -40,3 +40,31 @@ export const BidsSchema = z.object({
   submission: z.number(),
   delete: z.boolean().optional(),
 });
+
+export const ByReviewer = z
+  .object({
+    reviewer: z.string(),
+  })
+  .catchall(z.string());
+
+export const BySubmission = z
+  .object({
+    submission_id: z.string(),
+    title: z.string(),
+    authors: z.string(),
+  })
+  .catchall(z.string());
+
+export const AssignmentsSchema = z.object({
+  byReviewer: z.array(ByReviewer),
+  bySubmission: z.array(BySubmission),
+  settings: z.object({
+    autoPenalty: z.number(),
+    reviewersPerSubmission: z.number(),
+  }),
+});
+
+export const GetAssignmentsSchema = AssignmentsSchema.extend({
+  lastUpdate: z.coerce.date(),
+  lastBid: z.coerce.date(),
+});

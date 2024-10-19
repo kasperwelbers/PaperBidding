@@ -7,13 +7,12 @@ import {
   Reviewer,
   GetProject,
   GetInvitation,
-  GetAssignments,
   ByReviewer,
   BySubmission,
 } from "@/types";
 import { useSession } from "next-auth/react";
 import { z } from "zod";
-import { GetProjectSchema } from "@/zodSchemas";
+import { GetAssignmentsSchema, GetProjectSchema } from "@/zodSchemas";
 
 /** Wrapper for useSWR that:
  * - adds the token for authentication
@@ -27,30 +26,24 @@ export function useGET<ResponseType>(
   const session = useSession();
   const auth = !!token || session.status === "authenticated";
 
-  const fetcher = ([url, token, auth]: any) => {
+  const fetcher = async ([url, token, auth]: any) => {
     if (!auth) throw new Error("Not authenticated");
 
-    return fetch(url, {
-      method: "GET",
-      headers: { Authorization: token },
-    }).then((res) => {
-      if (res.ok) {
-        return res
-          .json()
-          .then((data) => {
-            if (schema) return schema.parse(data);
-            return data;
-          })
-          .catch((e) => {
-            console.error(e);
-            throw new Error("Invalid data");
-          });
-      } else {
-        throw new Error(res.statusText);
-      }
-    });
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: token },
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      console.log(data);
+      if (schema) return schema.parse(data);
+      return data;
+    } catch (e) {
+      console.error(e);
+      throw new Error("Failed to get data");
+    }
   };
-
   return useSWR<ResponseType>(url ? [url, token, auth] : null, fetcher, {
     revalidateOnFocus: false,
   });
@@ -222,7 +215,11 @@ export function useReviewer(
 }
 
 export function useAssignments(projectId: number) {
-  return useGET<GetAssignments>(`/api/projects/${projectId}/assignments`);
+  return useGET<z.infer<typeof GetAssignmentsSchema>>(
+    `/api/projects/${projectId}/assignments`,
+    undefined,
+    GetAssignmentsSchema,
+  );
 }
 
 // POST HELPERS

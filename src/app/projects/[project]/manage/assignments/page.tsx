@@ -22,6 +22,8 @@ import { useCSVDownloader } from "react-papaparse";
 import makeAssignments from "./makeAssignments";
 import Link from "next/link";
 import { Dot } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function BiddingPage({
   params,
@@ -32,6 +34,8 @@ export default function BiddingPage({
     byReviewer: ByReviewer[];
     bySubmission: BySubmission[];
   }>();
+  const [perSubmission, setPerSubmission] = useState(3);
+  const [autoPenalty, setAutoPenalty] = useState(5);
 
   const {
     data: project,
@@ -68,6 +72,8 @@ export default function BiddingPage({
         byReviewer: assignments.byReviewer,
         bySubmission: assignments.bySubmission,
       });
+      setPerSubmission(assignments.settings.reviewersPerSubmission);
+      setAutoPenalty(assignments.settings.autoPenalty);
     }
   }, [assignments]);
 
@@ -79,24 +85,56 @@ export default function BiddingPage({
 
   function updateAssignments() {
     if (!reviewers || !submissions) return;
-    const data = makeAssignments(reviewers, submissions);
+    const data = makeAssignments(
+      reviewers,
+      submissions,
+      perSubmission,
+      autoPenalty,
+    );
     uploadAssignments(data);
     setData(data);
   }
 
   return (
     <div className="grid max-w-7xl mx-auto grid-cols-1 lg:grid-cols-2 items-center lg:items-start justify-center mt-6 w-full">
-      <div className="col-span-2 flex flex-col gap-3  mb-6 items-center mx-auto">
-        <Button
-          onClick={(e) => updateAssignments()}
-          disabled={assignmentsLoading}
-        >
-          {data ? "Update" : "Compute"} assignments
-        </Button>
-        <div className="h-6">
-          {assignments
-            ? `Last updated: ${new Date(assignments.lastUpdate).toLocaleString()}`
-            : null}
+      <div className="col-span-2 flex flex-col gap-3  mb-6 ml-auto px-5">
+        <div className="flex gap-3 items-start">
+          <div className="grid grid-cols-2 gap-1 items-center">
+            <Label htmlFor="perSubmission">Reviewers per submission</Label>
+
+            <Input
+              name="perSubmission"
+              type="number"
+              className="w-16"
+              value={perSubmission}
+              min={1}
+              max={10}
+              onChange={(e) => setPerSubmission(parseInt(e.target.value))}
+            />
+            <Label htmlFor="autoPenalty">no-bid penalty</Label>
+            <Input
+              name="autoPenalty"
+              type="number"
+              className="w-16"
+              value={autoPenalty}
+              min={0}
+              max={100}
+              onChange={(e) => setAutoPenalty(parseInt(e.target.value))}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-1">
+            <Button
+              onClick={(e) => updateAssignments()}
+              disabled={assignmentsLoading}
+            >
+              {data ? "Update" : "Compute"} assignments
+            </Button>
+            <div className="h-6">
+              {assignments
+                ? `Last updated: ${new Date(assignments.lastUpdate).toLocaleString()}`
+                : null}
+            </div>
+          </div>
         </div>
       </div>
       <div className="p-5 pt-0  whitespace-nowrap overflow-auto">

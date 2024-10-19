@@ -1,5 +1,6 @@
 import db, { assignments, biddings } from "@/drizzle/schema";
 import { authenticate, canEditProject } from "@/lib/authenticate";
+import { AssignmentsSchema } from "@/zodSchemas";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -19,6 +20,7 @@ export async function GET(
     .select({
       byReviewer: assignments.byReviewer,
       bySubmission: assignments.bySubmission,
+      settings: assignments.settings,
       updated: assignments.updated,
     })
     .from(assignments)
@@ -36,6 +38,7 @@ export async function GET(
   const res = {
     byReviewer: a[0].byReviewer,
     bySubmission: a[0].bySubmission,
+    settings: a[0].settings,
     lastUpdate: a[0].updated,
     lastBid: lastBid[0]?.updated,
   };
@@ -54,18 +57,21 @@ export async function POST(
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
-  const { byReviewer, bySubmission } = await req.json();
+  const { byReviewer, bySubmission, settings } = AssignmentsSchema.parse(
+    await req.json(),
+  );
   await db
     .insert(assignments)
     .values({
       projectId: params.project,
       byReviewer,
       bySubmission,
+      settings,
       updated: new Date(),
     })
     .onConflictDoUpdate({
       target: [assignments.projectId],
-      set: { byReviewer, bySubmission, updated: new Date() },
+      set: { byReviewer, bySubmission, settings, updated: new Date() },
     });
 
   return NextResponse.json({}, { status: 201 });

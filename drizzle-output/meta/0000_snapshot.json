@@ -1,5 +1,5 @@
 {
-  "id": "0ea3c6d9-4a23-495d-88fe-5b5ebf4daafc",
+  "id": "fdc2e5e4-9006-493f-a7e1-b0cd4b3924cf",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -145,6 +145,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "setting": {
+          "name": "setting",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"reviewersPerSubmission\":3,\"autoPenalty\":5}'::jsonb"
         },
         "updated": {
           "name": "updated",
@@ -452,6 +459,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "secret_version": {
+          "name": "secret_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         }
       },
       "indexes": {},

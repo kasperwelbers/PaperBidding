@@ -121,9 +121,7 @@ export interface ByReviewer {
   [key: string]: string;
 }
 
-export interface GetAssignments {
-  byReviewer: ByReviewer[];
-  bySubmission: BySubmission[];
-  lastUpdate: Date;
-  lastBid: Date;
+export interface AssignmentSettings {
+  reviewersPerSubmission: number;
+  autoPenalty: number;
 }

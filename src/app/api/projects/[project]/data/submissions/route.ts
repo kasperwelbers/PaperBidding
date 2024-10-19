@@ -12,7 +12,7 @@ import {
   canEditProject,
 } from "@/lib/authenticate";
 import { SubmissionsSchema } from "@/zodSchemas";
-import { createUserSecret } from "@/lib/createUserSecret";
+import { createUserSecret } from "@/lib/createSecret";
 import cryptoRandomString from "crypto-random-string";
 import { sql, and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";

@@ -73,7 +73,7 @@ export default function UploadData({
           />
         </DialogTrigger>
         <DialogContent
-          className="flex items-center flex-col"
+          className="flex flex-col gap-3 "
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
@@ -83,12 +83,32 @@ export default function UploadData({
               email(s), Title and Abstract.
             </DialogDescription>
           </DialogHeader>
-          <UploadSubmissions
-            projectId={project.id}
-            modelStatus={modelStatus}
-            dataPage={data.submissions}
-            extractFeatures={extractFeatures}
-          />
+          <div className="text-left mt-3">
+            <h6>How to get this CSV file</h6>
+            <li>
+              Go to{" "}
+              <a
+                target="_blank"
+                rel="noreferrer"
+                href="https://ica2025.abstractcentral.com"
+                className="underline text-blue-900"
+              >
+                ScholarOne
+              </a>{" "}
+              and open the <b>Admin</b> tab
+            </li>
+            <li>
+              Go to <b>Search</b>
+            </li>
+          </div>
+          <div className="flex items-center mt-6 mx-auto">
+            <UploadSubmissions
+              projectId={project.id}
+              modelStatus={modelStatus}
+              dataPage={data.submissions}
+              extractFeatures={extractFeatures}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

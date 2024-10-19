@@ -13,12 +13,9 @@ type ReviewerAssignments = Map<string, { submission: number; pRank: number }[]>;
 export default function makeAssignments(
   reviewers: GetReviewer[],
   submissions: GetMetaSubmission[],
+  reviewersPerSubmission: number,
+  autoPenalty: number,
 ) {
-  const reviewersPerSubmission = 3; // TODO: make this a parameter
-  // for automatically added biddings, add penalty so matching is favoured
-  // for reviewers that bidded manually
-  const autoPenalty = 5; // TODO: make this a parameter
-
   const biddingMap = new Map<number, Bidding[]>();
   const forbiddenAssignments = getForbiddingAssignments(reviewers, submissions);
 
@@ -154,7 +151,11 @@ export default function makeAssignments(
     }
     return row;
   });
-  return { byReviewer, bySubmission };
+  return {
+    byReviewer,
+    bySubmission,
+    settings: { reviewersPerSubmission, autoPenalty },
+  };
 }
 
 function balanceSubmissionsPerReviewer(

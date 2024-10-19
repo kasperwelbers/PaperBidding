@@ -15,12 +15,13 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "@auth/core/adapters";
+import { randomBytes } from "crypto";
 
 import { neon } from "@neondatabase/serverless";
 import postgres from "postgres";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
-import { ByReviewer, BySubmission } from "@/types";
+import { AssignmentSettings, ByReviewer, BySubmission } from "@/types";
 
 config({ path: ".env.local" });
 
@@ -88,6 +89,7 @@ export const projects = pgTable("projects", {
   created: timestamp("created").notNull().defaultNow(),
   creator: varchar("creator", { length: 256 }).notNull(),
   archived: boolean("archived").notNull().default(false),
+  secretVersion: integer("secret_version").notNull().default(1),
 });
 
 export const admins = pgTable("admins", {
@@ -203,6 +205,10 @@ export const assignments = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     byReviewer: jsonb("byReviewer").$type<ByReviewer[]>().notNull(),
     bySubmission: jsonb("bySubmission").$type<BySubmission[]>().notNull(),
+    settings: jsonb("setting").$type<AssignmentSettings>().notNull().default({
+      reviewersPerSubmission: 3,
+      autoPenalty: 5,
+    }),
     updated: timestamp("updated").notNull().defaultNow(),
   },
   (table) => {

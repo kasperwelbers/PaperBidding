@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ReactNode } from "react";
 import {
   FaCheck,
   FaCheckCircle,
