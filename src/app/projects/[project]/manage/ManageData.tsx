@@ -102,12 +102,14 @@ export default function ManageData({
           </table>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 mt-auto">
-        <span className="flex-auto text-right whitespace-nowrap opacity-70">
-          Type &quot;I am certain&quot; to enable delete
+      <div className="flex flex-wrap gap-2 mt-auto items-center border-t pt-6">
+        <span className="flex-auto text-right opacity-70 max-w-[25rem]">
+          To re-upload data, you need to delete the current data first. Type
+          &quot;I am certain&quot; to enable delete
         </span>
         <input
-          className="border-2 rounded border-gray-400 px-2 text-center w-36 min-w-0 ml-auto"
+          className="border-2 h-10 rounded border-gray-400 px-2  w-36 min-w-0 ml-auto"
+          placeholder="I am certain"
           onChange={(e) => {
             if (e.target.value.toLowerCase() === "i am certain")
               setCanDelete(true);

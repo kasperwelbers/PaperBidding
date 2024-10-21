@@ -33,6 +33,7 @@ export const SubmissionsSchema = z.array(
     abstract: z.string(),
     features: z.array(z.number()),
     authors: z.array(z.string()),
+    institutions: z.array(z.string()),
   }),
 );
 
@@ -66,5 +67,5 @@ export const AssignmentsSchema = z.object({
 
 export const GetAssignmentsSchema = AssignmentsSchema.extend({
   lastUpdate: z.coerce.date(),
-  lastBid: z.coerce.date(),
+  lastBid: z.coerce.date().nullish(),
 });

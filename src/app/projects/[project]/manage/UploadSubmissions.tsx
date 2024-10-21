@@ -7,10 +7,16 @@ import { useState } from "react";
 import { ModelStatus, ProcessedSubmission, DataPage } from "@/types";
 import { SubmissionsSchema } from "@/zodSchemas";
 import ManageData from "./ManageData";
+import {
+  InstitutionData,
+  InstitutionResolver,
+  getInstitution,
+} from "@/hooks/useInstitutionResolver";
 
 const submissionFields = [
   { field: "id", label: "ID" },
   { field: "author_email", label: "Author Email(s)" },
+  { field: "author_institution", label: "Author Institution" },
   { field: "title", label: "Title" },
   { field: "abstract", label: "Abstract" },
 ];
@@ -18,6 +24,7 @@ const submissionFields = [
 const defaultFields = {
   id: "control id",
   author_email: "(e-mail)",
+  author_institution: "institutions (all)",
   title: "title",
   abstract: "abstract",
 };
@@ -31,6 +38,7 @@ interface Props {
     callback: (features: number[][]) => void,
     progressCallback: (percent: number) => void,
   ) => void;
+  institutionResolver: InstitutionResolver;
   reference?: boolean;
 }
 
@@ -39,6 +47,7 @@ export default function UploadSubmissions({
   modelStatus,
   dataPage,
   extractFeatures,
+  institutionResolver,
   reference,
 }: Props) {
   const [status, setStatus] = useState({ loading: "", error: "" });
@@ -57,19 +66,36 @@ export default function UploadSubmissions({
 
   function onUpload(data: Record<string, string>[]) {
     setStatus({ loading: "loading", error: "" });
+
+    if (!institutionResolver.ready) {
+      setStatus({ loading: "", error: "Institution data not loaded" });
+      return;
+    }
+
     try {
       const submissionMap = new Map<string, ProcessedSubmission>();
       for (let row of data) {
+        if (!row.author_email) continue;
+        if (!row.title) continue;
+
+        const email = row.author_email;
+        const institution = institutionResolver.resolve(
+          email,
+          row.author_institution,
+        );
+
         if (!submissionMap.has(row.id)) {
           submissionMap.set(row.id, {
             id: row.id,
-            authors: [row.author_email],
+            authors: [email],
+            institutions: [institution],
             title: row.title,
             abstract: row.abstract,
             features: [],
           });
         } else {
-          submissionMap.get(row.id)?.authors.push(row.author_email);
+          submissionMap.get(row.id)?.authors.push(email);
+          submissionMap.get(row.id)?.institutions.push(institution);
         }
       }
       const submissions: ProcessedSubmission[] = [...submissionMap.values()];

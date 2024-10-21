@@ -160,8 +160,8 @@ function SignInForm() {
   if (signingIn) return <Loading msg="Sending..." />;
 
   return (
-    <form className="flex flex-col justify-center" onSubmit={onSubmit}>
-      <input
+    <form className="flex flex-col gap-1 justify-center" onSubmit={onSubmit}>
+      <Input
         className="border-2 border-primary px-3 py-1 rounded mt-2"
         type="email"
         name="email"
@@ -169,9 +169,7 @@ function SignInForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button className="border-2 border-primary bg-secondary px-3 py-1 rounded mt-2">
-        Send sign-in email
-      </button>
+      <Button disabled={!email}>Send sign-in email</Button>
     </form>
   );
 }

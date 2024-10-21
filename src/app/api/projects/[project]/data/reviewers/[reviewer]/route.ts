@@ -1,7 +1,7 @@
 import db, { authors, submissions, Submission } from "@/drizzle/schema";
 import { authenticateReviewer } from "@/lib/authenticate";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -46,20 +46,25 @@ export async function GET(
       bids: reviewer.biddings,
       submissionIds: [],
       submissions: [],
-      coAuthorSubmissionIds: [],
+      conflictSubmissionIds: [],
     });
   }
 
-  const coAuthors = db
+  const conflictAuthors = db
     .selectDistinct({ email: authors.email })
     .from(authors)
-    .where(inArray(authors.submissionId, submissionExternalIds))
-    .as("coAuthors");
+    .where(
+      or(
+        inArray(authors.submissionId, submissionExternalIds),
+        eq(authors.institution, reviewer.institution),
+      ),
+    )
+    .as("conflictAuthors");
 
-  const coAuthorSubmissions = await db
+  const conflictSubmissions = await db
     .selectDistinct({ id: submissions.id })
     .from(authors)
-    .innerJoin(coAuthors, eq(authors.email, coAuthors.email))
+    .innerJoin(conflictAuthors, eq(authors.email, conflictAuthors.email))
     .leftJoin(submissions, eq(authors.submissionId, submissions.submissionId));
 
   return NextResponse.json({
@@ -68,6 +73,6 @@ export async function GET(
     bids: reviewer.biddings,
     submissionIds: ownSubmissions.map((s) => s.id),
     submissions: ownSubmissions,
-    coAuthorSubmissionIds: coAuthorSubmissions.map((s) => s.id),
+    conflictSubmissionIds: conflictSubmissions.map((s) => s.id),
   });
 }

@@ -66,6 +66,7 @@ export default function CSVReader({
             name: header,
             STUPIDLOWERCASE: lowerHeader,
           };
+          if (lowerHeader === value.toLowerCase()) break;
         }
       }
     }

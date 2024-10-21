@@ -1,6 +1,9 @@
-import { GetSubmission, Reviewer, FeatureVector, OwnSubmission } from '@/types';
+import { GetSubmission, Reviewer, FeatureVector, OwnSubmission } from "@/types";
 
-export function computeRelevantSubmissions(submissions?: GetSubmission[], reviewer?: Reviewer) {
+export function computeRelevantSubmissions(
+  submissions?: GetSubmission[],
+  reviewer?: Reviewer,
+) {
   // sort submissions by relevance to reviewer
   // also filter out the reviewer's own submissions, and submissions by co-authors
   if (!submissions) return undefined;
@@ -9,24 +12,32 @@ export function computeRelevantSubmissions(submissions?: GetSubmission[], review
   const filteredSubmissions = submissions.filter(
     (submission) =>
       !reviewer.submissionIds.includes(submission.id) &&
-      !reviewer.coAuthorSubmissionIds.includes(submission.id)
+      !reviewer.conflictSubmissionIds.includes(submission.id),
   );
 
   return rankedSubmissions(filteredSubmissions, reviewer.submissions);
 }
 
-export function rankedSubmissions(submissions: any[], ownSubmissions: OwnSubmission[]) {
+export function rankedSubmissions(
+  submissions: any[],
+  ownSubmissions: OwnSubmission[],
+) {
   const rankedSubmissions = submissions.map((submission) => {
     submission.meanSimilarity = 0; // start with 0, so that if there are no own submissions, the mean is 0
     for (const ownSubmission of ownSubmissions) {
-      submission.meanSimilarity += cosineSimilarity(submission.features, ownSubmission.features);
+      submission.meanSimilarity += cosineSimilarity(
+        submission.features,
+        ownSubmission.features,
+      );
     }
     submission.meanSimilarity /= Math.max(1, ownSubmissions.length - 1);
 
     return submission;
   });
 
-  return rankedSubmissions.sort((a, b) => (b?.meanSimilarity || 0) - (a?.meanSimilarity || 0));
+  return rankedSubmissions.sort(
+    (a, b) => (b?.meanSimilarity || 0) - (a?.meanSimilarity || 0),
+  );
 }
 
 function cosineSimilarity(a: FeatureVector, b: FeatureVector) {

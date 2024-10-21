@@ -39,7 +39,6 @@ export default function makeAssignments(
     for (const internalId of reviewer.biddings) {
       if (!biddingMap.has(internalId)) biddingMap.set(internalId, []);
 
-      if (reviewer.email.includes("annie")) console.log(reviewer);
       const method = i >= reviewer.manualBiddings ? "auto" : "manual";
 
       const biddingsArray = biddingMap.get(internalId);
@@ -269,11 +268,23 @@ function getForbiddingAssignments(
   for (let submission of submissions) {
     for (let reviewer of reviewers) {
       let forbidden = false;
-      if (submission.authors.includes(reviewer.email)) forbidden = true;
-      for (let coAuthor of reviewer.coAuthors) {
-        if (submission.authors.includes(coAuthor)) {
+      if (submission.authors.includes(reviewer.email)) {
+        forbidden = true;
+      } else {
+        if (submission.institutions.includes(reviewer.institution)) {
           forbidden = true;
-          break;
+          console.log(
+            "forbidden: institution",
+            submission.submissionId,
+            reviewer.email,
+          );
+        }
+        for (let coAuthor of reviewer.coAuthors) {
+          if (submission.authors.includes(coAuthor)) {
+            forbidden = true;
+            console.log("forbidden: co-author");
+            break;
+          }
         }
       }
       if (forbidden) {

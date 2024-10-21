@@ -33,6 +33,7 @@ export async function GET(
     .selectDistinctOn([reviewers.email], {
       id: reviewers.id,
       email: reviewers.email,
+      institution: reviewers.institution,
       link: reviewers.secret,
       invitationSent: reviewers.invitationSent,
       biddings: biddings.submissionIds,
@@ -84,6 +85,7 @@ export async function GET(
       rows[row.email] = {
         id: row.id,
         email: row.email,
+        institution: row.institution,
         link: domain + `/bidding/${params.project}/${row.id}/${row.link}`,
         invitationSent: row.invitationSent,
         biddings: row.biddings || [],

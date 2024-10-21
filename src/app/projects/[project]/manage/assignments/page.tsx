@@ -58,6 +58,7 @@ export default function BiddingPage({
     undefined,
     true,
   );
+  console.log(submissions);
   const {
     data: assignments,
     isLoading: assignmentsLoading,
@@ -97,7 +98,7 @@ export default function BiddingPage({
 
   return (
     <div className="grid max-w-7xl mx-auto grid-cols-1 lg:grid-cols-2 items-center lg:items-start justify-center mt-6 w-full">
-      <div className="col-span-2 flex flex-col gap-3  mb-6 ml-auto px-5">
+      <div className="col-span-1 lg:col-span-2 flex flex-col gap-3  mb-6 ml-auto px-5">
         <div className="flex gap-3 items-start">
           <div className="grid grid-cols-2 gap-1 items-center">
             <Label htmlFor="perSubmission">Reviewers per submission</Label>

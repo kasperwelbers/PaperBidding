@@ -126,6 +126,7 @@ export const submissions = pgTable(
     abstract: text("abstract").notNull(),
     features: jsonb("features").$type<number[]>().notNull(),
     authors: jsonb("authors").$type<string[]>().notNull(),
+    institutions: jsonb("institutions").$type<string[]>().notNull().default([]),
     isReference: boolean("is_reference").notNull().default(false),
   },
   (table) => {
@@ -145,6 +146,7 @@ export const authors = pgTable(
     submissionId: varchar("submission_id", { length: 256 }).notNull(),
     position: integer("position").notNull(),
     email: varchar("email", { length: 256 }).notNull(),
+    institution: text("institution").notNull().default(""),
   },
   (table) => {
     return {
@@ -166,6 +168,7 @@ export const reviewers = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     email: varchar("email", { length: 256 }).notNull(),
+    institution: text("institution").notNull().default(""),
     importedFrom: varchar("imported_from", {
       enum: ["volunteer", "submission"],
     }),

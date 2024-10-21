@@ -49,6 +49,7 @@ export async function GET(
   if (metadata) {
     fields.submissionId = submissions.submissionId;
     fields.authors = submissions.authors;
+    fields.institutions = submissions.institutions;
   }
 
   const rowsPromise = db
@@ -112,6 +113,7 @@ export async function POST(
       abstract: row.abstract,
       features: row.features,
       authors: row.authors,
+      institutions: row.institutions,
       isReference: reference,
     });
 
@@ -120,14 +122,17 @@ export async function POST(
       submissionId: row.id,
       position: i,
       email: author,
+      institution: row.institutions[i],
     }));
     for (let author of addNewAuthors) newAuthors.push(author);
 
     if (!reference) {
       const firstauthor = row.authors[0];
+      const firstinstitution = row.institutions[0];
       newReviewers.push({
         projectId: params.project,
         email: firstauthor,
+        institution: firstinstitution,
         importedFrom: "submission",
         secret: createUserSecret(params.project, firstauthor),
       });

@@ -36,7 +36,6 @@ export function useGET<ResponseType>(
       });
       if (!res.ok) throw new Error(res.statusText);
       const data = await res.json();
-      console.log(data);
       if (schema) return schema.parse(data);
       return data;
     } catch (e) {

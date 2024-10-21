@@ -8,6 +8,7 @@ export type ProgressCallback = (percent: number) => void;
 export interface Submission {
   id: string;
   authors: string[];
+  institutions: string[];
   title: string;
   abstract: string;
 }
@@ -34,7 +35,7 @@ export interface Reviewer {
   firstname: string;
   bids: number[];
   submissionIds: number[];
-  coAuthorSubmissionIds: number[];
+  conflictSubmissionIds: number[];
   submissions: OwnSubmission[];
 }
 
@@ -48,6 +49,7 @@ export interface OwnSubmission {
 export interface GetReviewer {
   id: number;
   email: string;
+  institution: string;
   link: string;
   invitationSent: Date | null;
   biddings: number[];
@@ -100,6 +102,7 @@ export interface GetMetaSubmission {
   reviewers: RankedReviewer[];
   backupReviewers: RankedReviewer[];
   authors: string[];
+  institutions: string[];
 }
 
 export interface Bidding {

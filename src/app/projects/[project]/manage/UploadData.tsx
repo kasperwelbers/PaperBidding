@@ -22,6 +22,7 @@ import { FaCheck, FaUpload } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Check, CheckSquare, Square } from "lucide-react";
 import Step from "./Step";
+import useInstitutionData from "@/hooks/useInstitutionResolver";
 
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
@@ -34,6 +35,7 @@ export default function UploadData({
   setStatus: (status: Record<string, boolean>) => void;
 }) {
   const { modelStatus, extractFeatures } = useFeatureExtractor();
+  const institutionResolver = useInstitutionData();
 
   const { data: project, isLoading, error } = useProject(projectId);
   const submissions = useData(projectId, "submissions", { meta: true });
@@ -44,8 +46,6 @@ export default function UploadData({
   const volunteers = useData(projectId, "volunteers", { meta: true });
   const data = { submissions, volunteers, references };
 
-  console.log(volunteers);
-
   useEffect(() => {
     if (submissions.isLoading) return;
     const status = {
@@ -54,7 +54,8 @@ export default function UploadData({
     setStatus(status);
   }, [submissions.isLoading, submissions.data, setStatus]);
 
-  if (isLoading) return <Loading msg="Loading Project" />;
+  if (isLoading || !institutionResolver.ready)
+    return <Loading msg="Loading Project" />;
   if (error) return <Error msg={error.message} />;
   if (!project) return null; //shouldn't happen, but typescript
 
@@ -66,7 +67,7 @@ export default function UploadData({
         <DialogTrigger asChild>
           <Step
             title="Step 1. Upload submissions"
-            hint="Upload a CSV file wih submissions"
+            hint="Upload submissions CSV (click for instructions)"
             doneMsg={`Uploaded ${submissions.n} submission${submissions.n === 1 ? "" : "s"}`}
             done={!!submissions?.n}
             loading={submissions.isLoading}
@@ -83,23 +84,42 @@ export default function UploadData({
               email(s), Title and Abstract.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-left mt-3">
+          <div className="text-left mt-3 w-max">
             <h6>How to get this CSV file</h6>
-            <li>
-              Go to{" "}
-              <a
-                target="_blank"
-                rel="noreferrer"
-                href="https://ica2025.abstractcentral.com"
-                className="underline text-blue-900"
-              >
-                ScholarOne
-              </a>{" "}
-              and open the <b>Admin</b> tab
-            </li>
-            <li>
-              Go to <b>Search</b>
-            </li>
+            <ul className="list-disc list-inside">
+              <li>
+                Go to{" "}
+                <a
+                  target="_blank"
+                  rel="noreferrer"
+                  href="https://ica2025.abstractcentral.com"
+                  className="underline text-blue-900"
+                >
+                  ScholarOne,
+                </a>{" "}
+                open the <b>Admin</b> tab and go to <b>Search</b>
+              </li>
+              <li>
+                In <b>Select Format</b> select <i>Comma Delimited</i>
+              </li>
+              <li>
+                In <b>Select Search Criteria</b> select <i>Current Category</i>
+              </li>
+              <li>
+                Under <b>Search Criteria</b> use {"  "}
+                <i>Current Category</i> to select your division
+              </li>
+              <li>
+                In <b>Select Display Items</b> add:{"    "}
+                <b className="text-blue-700">ABSTRACT BODY</b>,{"  "}{" "}
+                <b className="text-blue-700">AUTHORS (ADDRES &#38; EMAIL)</b>,
+                {"  "}
+                <b className="text-blue-700">INSTITUTIONS (ALL)</b>
+              </li>
+              <li>
+                No click <b>Run</b> at the bottom
+              </li>
+            </ul>
           </div>
           <div className="flex items-center mt-6 mx-auto">
             <UploadSubmissions
@@ -107,6 +127,7 @@ export default function UploadData({
               modelStatus={modelStatus}
               dataPage={data.submissions}
               extractFeatures={extractFeatures}
+              institutionResolver={institutionResolver}
             />
           </div>
         </DialogContent>
@@ -171,6 +192,7 @@ export default function UploadData({
             modelStatus={modelStatus}
             dataPage={data.references}
             extractFeatures={extractFeatures}
+            institutionResolver={institutionResolver}
           />
         </DialogContent>
       </Dialog>
