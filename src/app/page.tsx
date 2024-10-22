@@ -228,8 +228,13 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
             setCreating(true);
             createProject({ name, division, deadline: new Date(deadline) })
               .then(async (res) => {
+                if (!res.ok) throw new Error("Failed to create project");
                 const project = await res.json();
                 onSelect(project);
+              })
+              .catch((e) => {
+                alert("Failed to create project");
+                setCreating(false);
               })
               .finally(() => {
                 setName("");

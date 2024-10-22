@@ -83,7 +83,7 @@ export const verificationTokens = pgTable(
 
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 256 }).notNull().unique(),
+  name: varchar("name", { length: 256 }).notNull(),
   division: varchar("division", { length: 256 }).notNull(),
   deadline: timestamp("deadline").notNull(),
   created: timestamp("created").notNull().defaultNow(),

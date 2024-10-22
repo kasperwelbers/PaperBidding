@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(project[0], { status: 201 });
   } catch (e) {
+    console.error(e);
     return NextResponse.json({}, { status: 400 });
   }
 }
