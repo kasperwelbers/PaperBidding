@@ -12,7 +12,13 @@ import { authOptions } from "@/auth/authOptions";
 
 export async function authenticate() {
   const session = await getServerSession(authOptions);
-  return session?.user || { email: undefined, canCreateProject: false };
+  return (
+    session?.user || {
+      email: undefined,
+      canCreateProject: false,
+      isSuperAdmin: false,
+    }
+  );
 }
 
 export function isSuperAdmin(email: string) {

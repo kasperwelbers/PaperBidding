@@ -15,6 +15,8 @@ export default function useSelection(
     reviewerId,
     token,
   );
+  const currentSelectionRef = useRef<number[]>(selected);
+  currentSelectionRef.current = selected;
 
   useEffect(() => {
     const url = `/api/projects/${projectId}/data/reviewers/${reviewerId}/bid`;
@@ -35,19 +37,18 @@ export default function useSelection(
 
   const setSelected = useCallback(
     (selected: number[]) => {
-      setSelectedState((prev) => {
-        postSelection({ selected: [...selected] })
-          .then((res) => {
-            if (!res.ok) setSelectedState(prev);
-          })
-          .catch((e) => {
-            console.error(e);
-            setSelectedState(prev);
-          });
-        return selected;
-      });
+      postSelection({ selected: [...selected] })
+        .then((res) => {
+          if (!res.ok) setSelectedState(currentSelectionRef.current);
+        })
+        .catch((e) => {
+          console.error(e);
+          setSelectedState(currentSelectionRef.current);
+        });
+
+      setSelectedState(selected);
     },
-    [postSelection, setSelectedState],
+    [postSelection, setSelectedState, currentSelectionRef],
   );
 
   return { selected, setSelected, selectionStatus };

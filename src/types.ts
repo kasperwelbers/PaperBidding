@@ -29,6 +29,12 @@ export interface DataPage {
   prevPage?: () => void;
 }
 
+export interface Admin {
+  email: string;
+}
+
+export interface NoResponse {}
+
 export interface Reviewer {
   id: number;
   email: string;
@@ -63,7 +69,6 @@ export interface GetVolunteer {
   id: number;
   email: string;
 }
-
 export interface GetProject {
   id: number;
   name: string;

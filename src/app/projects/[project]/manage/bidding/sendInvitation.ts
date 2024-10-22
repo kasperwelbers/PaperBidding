@@ -4,12 +4,14 @@ export async function sendInvitation(
   link: string,
   text1: string,
   text2: string,
+  division: string,
   test?: boolean,
 ) {
   const response = await fetch(`/api/projects/${projectId}/invitation`, {
     body: JSON.stringify({
       to: email,
       html: createHTML(link, text1, text2),
+      division: division,
       test,
     }),
     headers: {

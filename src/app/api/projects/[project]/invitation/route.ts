@@ -1,21 +1,30 @@
-import { NextResponse } from 'next/server';
-import { authenticate, canEditProject } from '@/lib/authenticate';
-import db, { reviewers } from '@/drizzle/schema';
-import { and, eq } from 'drizzle-orm';
+import { NextResponse } from "next/server";
+import { authenticate, canEditProject } from "@/lib/authenticate";
+import db, { reviewers } from "@/drizzle/schema";
+import { and, eq } from "drizzle-orm";
+import { Resend } from "resend";
 
-export async function POST(req: Request, { params }: { params: { project: number } }) {
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function POST(
+  req: Request,
+  { params }: { params: { project: number } },
+) {
   const { email } = await authenticate();
-  if (!email) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
+  if (!email)
+    return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
   const canEdit = await canEditProject(email, params.project);
   if (!canEdit) return NextResponse.json({}, { status: 403 });
 
-  const { to, html, test } = await req.json();
+  const { to, html, test, division } = await req.json();
 
   const [reviewer] = await db
     .select()
     .from(reviewers)
-    .where(and(eq(reviewers.projectId, params.project), eq(reviewers.email, to)));
+    .where(
+      and(eq(reviewers.projectId, params.project), eq(reviewers.email, to)),
+    );
 
   if (!test) {
     // Can only send emails to reviewers that exist (except for testing)
@@ -30,29 +39,23 @@ export async function POST(req: Request, { params }: { params: { project: number
   }
 
   const message = {
-    from: 'ICA-Computational-Methods@middlecat.net',
-    to,
-    subject: 'Paper bidding invitation',
-    html
+    from: "ICA Paper Bidding <paperbidding@ica-cm.com>",
+    to: [to],
+    subject: `ICA Paper bidding for ${division} division`,
+    html,
   };
 
-  const response = await fetch(process.env.MIDDLECAT_MAIL || '', {
-    body: JSON.stringify(message),
-    headers: {
-      Authorization: `${process.env.MIDDLECAT_MAIL_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    method: 'POST'
-  });
-
-  if (!response.ok) return NextResponse.json({}, { status: 400 });
+  const response = await resend.emails.send(message);
+  if (response.error) return NextResponse.json({}, { status: 400 });
 
   try {
     if (!test) {
       await db
         .update(reviewers)
         .set({ invitationSent: new Date() })
-        .where(and(eq(reviewers.projectId, params.project), eq(reviewers.email, to)));
+        .where(
+          and(eq(reviewers.projectId, params.project), eq(reviewers.email, to)),
+        );
     }
     return NextResponse.json({}, { status: 201 });
   } catch (e) {

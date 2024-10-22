@@ -48,6 +48,8 @@ export const authOptions: NextAuthOptions = {
       session.user.canCreateProject = await canCreateProject(
         session?.user.email || "",
       );
+      session.user.isSuperAdmin =
+        session?.user.email === process.env.SUPERADMIN;
       return session;
     },
   },

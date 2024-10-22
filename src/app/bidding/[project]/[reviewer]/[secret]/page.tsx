@@ -11,6 +11,16 @@ import { GiVote } from "react-icons/gi";
 import SubmissionItem from "./SubmissionItem";
 import useSelection from "./useSelection";
 import CurrentSelection from "./CurrentSelection";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 export default function Reviewer({
   params,
 }: {
@@ -103,105 +113,143 @@ export default function Reviewer({
     <div className="relative flex flex-col h-screen">
       <header className="flex  z-20 px-1 sticky top-0 w-full justify-center bg-foreground  text-white">
         <div className="flex flex-col md:flex-row w-full justify-between">
-          <div className="flex flex-wrap md:flex-col p-2 gap-x-3 justify-between ">
-            <h5 className="m-0">{projectName.replaceAll("_", " ")}</h5>
-            <span className="italic text-sm">{reviewer?.email}</span>
+          <div className="w-full flex items-center p-2 gap-x-3 justify-between ">
+            <VoteBox
+              selected={selected}
+              setSelected={setSelected}
+              projectId={Number(params.project)}
+              reviewerId={Number(params.reviewer)}
+              token={token}
+              submissions={submissions}
+            />
+            <div className="italic text-sm max-w-[60%] overflow-hidden text-ellipsis whitespace-nowrap">
+              {reviewer?.email}
+            </div>
           </div>
         </div>
       </header>
-      <div className="mt-3 h-full grid grid-cols-[auto,1fr] gap-3 md:gap-5 p-3 md:p-3 overflow-hidden">
+      <div className="h-full flex flex-col  gap-3 md:gap-5 px-3 md:px-3 overflow-auto">
         <div
-          className="flex flex-col hover:bg-blue-300 h-min p-0 md:p-3 rounded cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowSelected(!showSelected);
-          }}
-        >
-          <div>
-            <GiVote className="w-8 h-8 md:w-12 md:h-12 mb-2" />
-          </div>
-          <div
-            className={`flex justify-center items-center animate-fade-in h-10 text-sm md:text-lg align-middle relative rounded border-primary px-1 md:px-2 mt-1 cursor-pointer text-center `}
-          >
-            <sup>{selected.length}</sup>&frasl;<sub>10</sub>
-          </div>
-        </div>
-        <div
-          className={`flex justify-center h-full overflow-auto max-h-full ${
+          className={`py-3 flex justify-center h-full max-h-full ${
             showSelected ? "blur-[2px] opacity-50 pointer-events-none" : ""
           }`}
         >
-          <div className="flex flex-col">
-            <div className="relative flex gap-3 items-start select-none">
-              <h5>
-                Select 10 submissions that you would be willing to review{" "}
-              </h5>
-              <div className="peer">
-                <FaQuestionCircle className="w-6 h-6   text-blue-600" />
+          <div className="relative flex flex-col w-full">
+            <div className="fixed left-3">
+              <Instruction />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex justify-center py-6">{pagination}</div>
+              <div className="flex flex-col mx-auto">
+                {pageData?.map((submission) => {
+                  return (
+                    <SubmissionItem
+                      key={submission.id}
+                      projectId={Number(params.project)}
+                      reviewerId={Number(params.reviewer)}
+                      token={token}
+                      submission={submission}
+                      selected={selected}
+                      setSelected={setSelected}
+                    />
+                  );
+                })}
               </div>
-              <div
-                className={`absolute text-[14px] top-10 right-0 bg-blue-200 border-2 border-primary rounded p-3 hidden peer-hover:block peer-active:block`}
-              >
-                <h5 className="mb-1">What is this about?</h5>
-                <p>
-                  We ask you to bid on more submissions that you will need to
-                  review, so that we can assign submissions to you that match
-                  your interests and expertise. You can bid on as many
-                  submissions as you want. The 10 is just a guideline.
-                </p>
-                <h5 className="mb-1">
-                  How will I find submissions that I&apos;m interested in?
-                </h5>
-                <p>
-                  The submissions are ordered based on similarity to your own
-                  submissions (from this year or earlier years). If you do not
-                  bid, this order is used to assign submissions to you, but
-                  bidding gives you higher priority.
-                </p>
-                <h5 className="mb-1">How does this thing work?</h5>
-
-                <p>
-                  Click on the title of a submission to see the abstract. Check
-                  the checkbox to bid on a submission. Selected submissions are
-                  listed on the left. Here you can also change the ranking or
-                  delete bids.
-                </p>
+              <div className="flex justify-center mt-auto py-6">
+                {pagination}
               </div>
             </div>
-            <div className="flex justify-center">{pagination}</div>
-            {pageData?.map((submission) => {
-              return (
-                <SubmissionItem
-                  key={submission.id}
-                  projectId={Number(params.project)}
-                  reviewerId={Number(params.reviewer)}
-                  token={token}
-                  submission={submission}
-                  selected={selected}
-                  setSelected={setSelected}
-                />
-              );
-            })}
-            <div className="flex justify-center mt-auto">{pagination}</div>
           </div>
-        </div>
-
-        <div
-          ref={popupRef}
-          className={`FocusSelectedPopup absolute z-50 top-5 left-12 md:left-32 bg-white border-2 rounded bg-primary p-4 max-h-[80vh] overflow-auto ${
-            showSelected ? "" : "hidden"
-          }`}
-        >
-          <CurrentSelection
-            selected={selected}
-            setSelected={setSelected}
-            projectId={Number(params.project)}
-            reviewerId={Number(params.reviewer)}
-            token={token}
-            submissions={submissions}
-          />
         </div>
       </div>
     </div>
+  );
+}
+
+function VoteBox({
+  selected,
+  setSelected,
+  projectId,
+  reviewerId,
+  token,
+  submissions,
+}: {
+  selected: number[];
+  setSelected: (selected: number[]) => void;
+  projectId: number;
+  reviewerId: number;
+  token: string;
+  submissions: GetSubmission[];
+}) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" is="button">
+          <div className={`flex items-center text-lg gap-6`}>
+            <GiVote size={36} />
+            {selected.length} {selected.length === 1 ? "bid" : "bids"}
+          </div>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-[700px] max-w-[95vw] max-h-[90vh]">
+        <DialogHeader className="text-left">
+          <DialogTitle>Your bids</DialogTitle>
+          <DialogDescription>
+            There are your bids. You can change the order or delete them. You
+            can make as many bids as you want (10 is a good number).{"  "}
+            <b>When you are done</b> simply close the application.
+          </DialogDescription>
+        </DialogHeader>
+
+        <CurrentSelection
+          selected={selected}
+          setSelected={setSelected}
+          projectId={projectId}
+          reviewerId={reviewerId}
+          token={token}
+          submissions={submissions}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Instruction() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="pl-5">
+          <FaQuestionCircle size={30} />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-max">
+        <DialogHeader>
+          <DialogTitle className="">How does paper bidding work?</DialogTitle>
+        </DialogHeader>
+        <DialogDescription className="h-0 hidden"></DialogDescription>
+        <div className="prose lg:prose-xl">
+          <p>
+            Simply <b>check the box for any abstracts you like</b>. Your
+            selection will be used to assign you as a reviewer. The number of
+            bids does not affect the number of reviews you will be asked to do.
+            So bid on as many as you like. <b>Around 10</b> is a good number.
+          </p>
+          <p>
+            The submissions you see are{" "}
+            <b>ordered based on similarity to your own submissions</b>. If you
+            do not bid, this order is used to assign submissions to you. Bidding
+            will override this order, and give you priority on the selected
+            submissions.
+          </p>
+
+          <p>
+            Biddings are immediately saved, so you can{" "}
+            <b>just leave when you are done</b>. You can also view and change
+            your selection via the voting box in the top-left corner. Here you
+            can also change the order, which affects the ranking.{" "}
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

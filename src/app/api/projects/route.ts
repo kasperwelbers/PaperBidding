@@ -15,12 +15,13 @@ export async function GET(req: Request) {
     return NextResponse.json(projectList);
   }
 
-  const projectList = await db
+  const projectAdminList = await db
     .select()
     .from(projectAdmins)
     .where(eq(projectAdmins.email, email || ""))
     .leftJoin(projects, eq(projectAdmins.projectId, projects.id));
 
+  const projectList = projectAdminList.map((p) => p.projects);
   return NextResponse.json(projectList);
 }
 

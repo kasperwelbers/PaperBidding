@@ -93,12 +93,14 @@ function EmailModal({
             reviewers={reviewers}
             text1={text1}
             text2={text2}
+            division={division}
           />
           <SendBulkEmail
             projectId={projectId}
             reviewers={reviewers}
             text1={text1}
             text2={text2}
+            division={division}
             mutateReviewers={mutateReviewers}
           />
         </div>
@@ -112,6 +114,7 @@ interface SendTestEmailProps {
   reviewers: GetReviewer[];
   text1: string;
   text2: string;
+  division: string;
 }
 
 function SendTestEmail({
@@ -119,6 +122,7 @@ function SendTestEmail({
   reviewers,
   text1,
   text2,
+  division,
 }: SendTestEmailProps) {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
@@ -126,7 +130,15 @@ function SendTestEmail({
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSending(true);
-    sendInvitation(projectId, email, reviewers[0].link, text1, text2, true)
+    sendInvitation(
+      projectId,
+      email,
+      reviewers[0].link,
+      text1,
+      text2,
+      division,
+      true,
+    )
       .then((success) => {
         if (success) alert("Email sent!");
         else alert("Something went wrong, email not sent");
@@ -135,7 +147,7 @@ function SendTestEmail({
       .finally(() => setSending(false));
   }
 
-  if (sending) return <Loading msg={`Sending test email to ${email}`} />;
+  if (sending) return <Loading msg={`Sending test email`} />;
 
   return (
     <form className="flex flex-col justify-center" onSubmit={onSubmit}>
@@ -164,6 +176,7 @@ interface SendBulkEmailProps {
   reviewers: GetReviewer[];
   text1: string;
   text2: string;
+  division: string;
   mutateReviewers: () => void;
 }
 
@@ -172,6 +185,7 @@ function SendBulkEmail({
   reviewers,
   text1,
   text2,
+  division,
   mutateReviewers,
 }: SendBulkEmailProps) {
   const [who, setWho] = useState("");
@@ -197,33 +211,36 @@ function SendBulkEmail({
     if (progress >= recipients.length) {
       mutateReviewers();
       setProgress(null);
-    } else {
-      const recipient = recipients[progress];
-      if (recipient.invitationSent) {
-        const date = new Date(recipient.invitationSent);
-        if (date.getTime() > Date.now() - 1 * 60 * 60 * 1000) {
-          setProgress(progress + 1);
-          return;
-        }
-      }
-      sendInvitation(
-        projectId,
-        recipient.email,
-        recipient.link,
-        text1,
-        text2,
-      ).then((success) => {
-        if (success) {
-          setProgress(progress + 1);
-        } else {
-          alert(
-            `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per hour, so you don't have to worry about spamming them`,
-          );
-          mutateReviewers();
-          setProgress(null);
-        }
-      });
+      return;
     }
+
+    const recipient = recipients[progress];
+    if (recipient.invitationSent) {
+      const date = new Date(recipient.invitationSent);
+      if (date.getTime() > Date.now() - 6 * 60 * 60 * 1000) {
+        setProgress(progress + 1);
+        return;
+      }
+    }
+    sendInvitation(
+      projectId,
+      recipient.email,
+      recipient.link,
+      text1,
+      text2,
+      division,
+    ).then((success) => {
+      if (success) {
+        // wait 500ms before sending the next email for resend api limits
+        setTimeout(() => setProgress(progress + 1), 500);
+      } else {
+        alert(
+          `Something went wrong. Only ${progress} emails were sent. But you can just try again. Reviewers will receive max 1 email per 6 hours, so you don't have to worry about spamming them`,
+        );
+        mutateReviewers();
+        setProgress(null);
+      }
+    });
   }, [
     recipients,
     progress,
@@ -232,6 +249,7 @@ function SendBulkEmail({
     reviewers,
     text1,
     text2,
+    division,
   ]);
 
   if (progress !== null) {

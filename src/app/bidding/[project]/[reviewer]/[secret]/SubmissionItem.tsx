@@ -47,11 +47,6 @@ export default function SubmissionItem({
     setSelected(newSet);
   }
 
-  const fadeOutBefore =
-    'before:absolute before:content-[""] before:left-0 before:top-0 before:w-[calc(100%-10px)] before:h-2 before:bg-gradient-to-t from-transparent to-white';
-  const fadeOutAfter =
-    'after:absolute after:content-[""] after:left-0 after:bottom-0 after:w-[calc(100%-10px)] after:h-8 after:bg-gradient-to-b from-transparent to-white ';
-
   if (!submission) return null;
 
   return (
@@ -65,7 +60,7 @@ export default function SubmissionItem({
           type="checkbox"
           checked={selected.includes(submission.id)}
           onChange={onCheckboxClick}
-          className="w-4 h-4 mt-[0.35rem] md:w-8 md:h-8"
+          className="w-6 h-6 mt-[0.35rem]"
         />
       </div>
       {/* <div className="flex flex-col"> */}
@@ -78,7 +73,10 @@ export default function SubmissionItem({
         {submission.title}
       </h6>
       {/* </div> */}
-      <div className="h-4 w-4 mt-1 cursor-pointer" onClick={onClick}>
+      <div
+        className="h-4 w-4 mt-1 cursor-pointer text-foreground/50"
+        onClick={onClick}
+      >
         {isLoading ? (
           <FaClock />
         ) : showAbstract ? (
@@ -91,12 +89,12 @@ export default function SubmissionItem({
         <div
           className={`grid  ${
             showAbstract && abstractData
-              ? "grid-rows-[15rem]"
+              ? "grid-rows-[15rem] border-y border-foreground bg-primary/10 mt-3"
               : "grid-rows-[0rem]"
-          }  relative transition-all overflow-hidden  text-justify  whitespace-break-spaces hyphens-auto break-words  ${fadeOutBefore} ${fadeOutAfter}`}
+          } w-full  relative transition-all overflow-hidden  text-justify  whitespace-break-spaces hyphens-auto break-words`}
         >
           {abstractData ? (
-            <p className={`pb-4 pt-1 mb-0  overflow-auto pr-2  text-blue-900 `}>
+            <p className={` leading-5 py-3  px-3  mb-0  overflow-auto  `}>
               {abstractData.abstract}
             </p>
           ) : null}

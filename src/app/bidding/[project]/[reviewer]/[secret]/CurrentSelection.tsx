@@ -29,7 +29,6 @@ export default function CurrentSelection({
 }: Props) {
   return (
     <>
-      <h3>Current Selection</h3>
       {selected.length === 0 ? "No submissions selected" : null}
       {selected.map((id, i) => {
         return (

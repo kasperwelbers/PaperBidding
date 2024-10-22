@@ -5,7 +5,13 @@ import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
 import { Project } from "@/drizzle/schema";
-import { useCreateProject, useInvitations, useProjects } from "@/hooks/api";
+import {
+  useAddAdmins,
+  useAdmins,
+  useCreateProject,
+  useInvitations,
+  useProjects,
+} from "@/hooks/api";
 import { Session } from "next-auth";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -19,7 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Eye, EyeOff, User } from "lucide-react";
-import { MdAccountCircle } from "react-icons/md";
+import { MdAccountCircle, MdManageAccounts } from "react-icons/md";
 import { FaSignOutAlt, FaTrash } from "react-icons/fa";
 import {
   Dialog,
@@ -29,6 +35,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const infoDefault = `
 ## Welcome!
@@ -73,7 +80,10 @@ export default function Home() {
               <h5 className="m-0">ICA Paper bidding</h5>
             </div>
           </div>
-          <SignOutButton />
+          <div className="flex gap-2">
+            {session?.data?.user?.isSuperAdmin ? <AdminList /> : null}
+            <SignOutButton />
+          </div>
         </div>
       </header>
       <div
@@ -329,5 +339,61 @@ function SelectProject({ projects, loadingProjects }: SelectProjectProps) {
         </div>
       )}
     </div>
+  );
+}
+
+function AdminList() {
+  const { data } = useAdmins();
+  const { trigger: addAdmin } = useAddAdmins();
+  const [email, setEmail] = useState("");
+
+  if (!data)
+    return (
+      <Button className="p-0 m-0 w-min h-min hover:bg-transparent hover:text-white">
+        <MdManageAccounts size={32} />
+      </Button>
+    );
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    addAdmin([{ email }]);
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="p-0 m-0 w-min h-min hover:bg-transparent hover:text-white">
+          <MdManageAccounts size={32} />
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="w-96 max-w-[90vw]`"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>Admins</DialogTitle>
+          <DialogDescription>Admins can create new projects</DialogDescription>
+        </DialogHeader>
+        <div>
+          <ul className="list-disc list-inside">
+            {data.map((admin) => {
+              return <li key={admin.email}>{admin.email}</li>;
+            })}
+          </ul>
+        </div>
+        <div>
+          <form onSubmit={onSubmit} className="flex flex-col gap-3">
+            <Input
+              name="Email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Button>Add admin</Button>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -9,6 +9,8 @@ import {
   GetInvitation,
   ByReviewer,
   BySubmission,
+  Admin,
+  NoResponse,
 } from "@/types";
 import { useSession } from "next-auth/react";
 import { z } from "zod";
@@ -213,6 +215,10 @@ export function useReviewer(
   );
 }
 
+export function useAdmins() {
+  return useGET<Admin[]>("/api/admins");
+}
+
 export function useAssignments(projectId: number) {
   return useGET<z.infer<typeof GetAssignmentsSchema>>(
     `/api/projects/${projectId}/assignments`,
@@ -231,6 +237,10 @@ export function useUpdateProject(projectId: number) {
   return usePOST<{ name: string; division: string; deadline: Date }, Project>(
     `/api/projects/${projectId}`,
   );
+}
+
+export function useAddAdmins() {
+  return usePOST<Admin[], NoResponse>("/api/admins");
 }
 
 export function usePostBiddings(
