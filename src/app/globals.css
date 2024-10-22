@@ -139,6 +139,15 @@ p {
     }
 }
 
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
 .loader {
     --color: hsl(var(--primary));
     position: relative;

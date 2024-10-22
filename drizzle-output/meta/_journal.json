@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1729503237069,
-      "tag": "0000_stale_fallen_one",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1729505278807,
-      "tag": "0001_mean_kabuki",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1729516549778,
-      "tag": "0002_concerned_tattoo",
+      "when": 1729586925023,
+      "tag": "0000_flippant_fantastic_four",
       "breakpoints": true
     }
   ]

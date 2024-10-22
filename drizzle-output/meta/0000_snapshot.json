@@ -1,5 +1,5 @@
 {
-  "id": "6ff94cce-be3f-4c98-a2b6-c8134f1ae7c0",
+  "id": "0c3c6b6b-64d0-4ae9-b79e-f54638a59257",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -221,6 +221,13 @@
           "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
+        },
+        "institution": {
+          "name": "institution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
         }
       },
       "indexes": {
@@ -503,6 +510,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "institution": {
+          "name": "institution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
         "imported_from": {
           "name": "imported_from",
           "type": "varchar",
@@ -638,6 +652,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "institutions": {
+          "name": "institutions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
         "is_reference": {
           "name": "is_reference",

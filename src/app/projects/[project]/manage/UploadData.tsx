@@ -9,6 +9,7 @@ import {
   MdOutlineCheckBoxOutlineBlank,
   MdOutlineCheckBox,
   MdSettings,
+  MdVideoCameraFront,
 } from "react-icons/md";
 import {
   Dialog,
@@ -18,11 +19,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { FaCheck, FaUpload } from "react-icons/fa";
+import { FaCheck, FaUpload, FaVideo } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Check, CheckSquare, Square } from "lucide-react";
 import Step from "./Step";
 import useInstitutionData from "@/hooks/useInstitutionResolver";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
@@ -85,7 +91,10 @@ export default function UploadData({
             </DialogDescription>
           </DialogHeader>
           <div className="text-left mt-3 w-max">
-            <h6>How to get this CSV file</h6>
+            <div className="flex gap-3 items-center mb-3">
+              <h6 className="m-0">How to get this CSV file</h6>
+              <DownloadCVSVideo />
+            </div>
             <ul className="list-disc list-inside">
               <li>
                 Go to{" "}
@@ -197,5 +206,29 @@ export default function UploadData({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function DownloadCVSVideo() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="text-blue-900 underline flex gap-2 w-max"
+        >
+          <FaVideo />
+          show me
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-[1000px]  overflow-auto">
+        <div className="flex flex-col items-center min-w-[800px] pt-6">
+          <video id="instruction-video" autoPlay muted controls>
+            <source src="/download_csv.webm" type="video/webm" />
+          </video>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
