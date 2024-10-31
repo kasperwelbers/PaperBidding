@@ -3,38 +3,48 @@ import {
   GetReviewer,
   GetMetaSubmission,
   Bidding,
-  RankedReviewer,
   ByReviewer,
   BySubmission,
+  SubmissionWithReviewers,
 } from "@/types";
+import hash from "object-hash";
 
 type ReviewerAssignments = Map<string, { submission: number; pRank: number }[]>;
 
 export default function makeAssignments(
   reviewers: GetReviewer[],
-  submissions: GetMetaSubmission[],
+  submissionData: GetMetaSubmission[],
   reviewersPerSubmission: number,
+  maxStudentReviewers: number,
   autoPenalty: number,
 ) {
   const biddingMap = new Map<number, Bidding[]>();
-  const forbiddenAssignments = getForbiddingAssignments(reviewers, submissions);
+  const forbiddenAssignments = getForbiddingAssignments(
+    reviewers,
+    submissionData,
+  );
 
   // keep track of submissions per reviewer, ordered by rank
   // use later to balance assignments
   const reviewerAssignments: ReviewerAssignments = new Map();
 
   // copy so we don't mutate the original
-  submissions = submissions.map((submission) => ({ ...submission }));
+  // submissionData = submissions.map((submission) => ({ ...submission }));
   reviewers = reviewers.map((reviewer) => ({
     ...reviewer,
     biddings: [...reviewer.biddings],
   }));
 
   // for biddings not made, add rank based on similarity
-  reviewers = fillMissingBiddings(reviewers, submissions, forbiddenAssignments);
+  reviewers = fillMissingBiddings(
+    reviewers,
+    submissionData,
+    forbiddenAssignments,
+  );
 
   for (const reviewer of reviewers) {
     let i = 0;
+    const nrHash = hashToNumber(reviewer.email);
     reviewerAssignments.set(reviewer.email, []);
     for (const internalId of reviewer.biddings) {
       if (!biddingMap.has(internalId)) biddingMap.set(internalId, []);
@@ -43,61 +53,96 @@ export default function makeAssignments(
 
       const biddingsArray = biddingMap.get(internalId);
       biddingsArray?.push({
-        reviewer: reviewer.email,
+        email: reviewer.email,
         method,
         rank: 1 + i++,
         pRank: method === "manual" ? i : i + autoPenalty,
+        student: reviewer.student,
+        order: (nrHash + internalId * 77777) % 1000,
       });
     }
   }
 
+  // prepare submissions for assigning reviewers based on biddings
+  let submissions: SubmissionWithReviewers[] = submissionData
+    .map((s) => {
+      const submission: SubmissionWithReviewers = {
+        ...s,
+        biddings: [],
+        reviewers: [],
+        backupReviewers: [],
+        studentReviewerCount: 0,
+        ready: false,
+        balanced: false,
+        order: hashToNumber(s.submissionId), // start random ish
+      };
+
+      let biddings = biddingMap.get(submission.id);
+
+      if (biddings) {
+        submission.biddings = biddings
+          .filter(
+            (b) => !forbiddenAssignments[b.email]?.includes(submission.id),
+          )
+          .sort((a: Bidding, b: Bidding) => {
+            return a.order - b.order;
+          })
+          .sort((a: Bidding, b: Bidding) => {
+            return a.pRank - b.pRank;
+          });
+      }
+      return submission;
+    })
+    .sort((a, b) => {
+      return a.order - b.order;
+    });
+
   // We'll first assign the most suitable reviewers, regardless of
   // how many submissions they've already been assigned to. Later
   // we'll balance out the assignments over all reviewers.
-  for (const submission of submissions) {
-    // biddings is total set of biddings
-    let biddings = biddingMap.get(submission.id);
-    if (!biddings) {
-      submission.reviewers = [];
-      continue;
-    }
-    submission.biddings = biddings;
+  let allAssigned = false;
+  while (!allAssigned) {
+    for (let submission of submissions) {
+      if (submission.ready) continue;
 
-    // remove reviewers that are forbidden to review this submission
-    biddings = biddings.filter(
-      (b) => !forbiddenAssignments[b.reviewer]?.includes(submission.id),
-    );
+      if (submission.reviewers.length >= reviewersPerSubmission) {
+        // if we have enough reviewers, we're done with this submission,
+        // and we'll assign all leftover reviewers as backup reviewers
+        submission.ready = true;
+        submission.backupReviewers = [
+          ...submission.backupReviewers,
+          ...submission.biddings,
+        ];
 
-    biddings.sort((a: Bidding, b: Bidding) => {
-      return a.pRank - b.pRank;
-    });
+        const backupemails = submission.backupReviewers.map((b) => b.email);
+        const x = backupemails.includes("sungwon.jung@utexas.edu");
+        console.log(x);
 
-    // assign bests matches
-    submission.reviewers = biddings
-      .slice(0, reviewersPerSubmission)
-      .map((b) => ({
-        email: b.reviewer,
-        rank: b.rank,
-        method: b.method,
-        pRank: b.pRank,
-      }));
+        continue;
+      }
 
-    submission.reviewers.forEach((reviewer) => {
-      reviewerAssignments.get(reviewer.email)?.push({
+      const candidate = submission.biddings.shift();
+      if (!candidate) {
+        submission.ready = true;
+        continue;
+      }
+
+      const studentReviewers = submission.studentReviewerCount || 0;
+      if (candidate.student && studentReviewers >= maxStudentReviewers) {
+        submission.backupReviewers.push(candidate);
+        continue;
+      }
+
+      submission.reviewers.push(candidate);
+
+      reviewerAssignments.get(candidate.email)?.push({
         submission: submission.id,
-        pRank: reviewer.pRank,
+        pRank: candidate.pRank,
       });
-    });
+      if (candidate.student) submission.studentReviewerCount++;
+    }
 
-    // assign backup reviewers (for balancing out later on)
-    submission.backupReviewers = biddings
-      .slice(reviewersPerSubmission)
-      .map((b) => ({
-        email: b.reviewer,
-        rank: b.rank,
-        method: b.method,
-        pRank: b.pRank,
-      }));
+    allAssigned = submissions.every((s) => s.ready);
   }
 
   submissions = fillRemaining(
@@ -107,11 +152,15 @@ export default function makeAssignments(
     forbiddenAssignments,
   );
 
-  submissions = balanceSubmissionsPerReviewer(
-    submissions,
-    reviewerAssignments,
-    reviewersPerSubmission,
-  );
+  for (let i = 0; i < 3; i++) {
+    submissions = balanceSubmissionsPerReviewer(
+      submissions,
+      reviewerAssignments,
+      reviewersPerSubmission,
+      maxStudentReviewers,
+      reviewers.filter((r) => r.student).length,
+    );
+  }
 
   const bySubmission: BySubmission[] = submissions.map((submission) => {
     const data: BySubmission = {
@@ -122,10 +171,12 @@ export default function makeAssignments(
     for (let i = 0; i < submission.reviewers.length; i++) {
       const reviewerKey = `reviewer_${i + 1}`;
       const rankKey = `reviewer.rank_${i + 1}`;
-      const { email, method, rank } = submission.reviewers[i];
+      const studentKey = `reviewer.student_${i + 1}`;
+      const { email, method, rank, student } = submission.reviewers[i];
       data[reviewerKey] = email;
       data[rankKey] =
         method === "auto" ? `${rank} + ${autoPenalty}` : `${rank}`;
+      data[studentKey] = student ? "yes" : "no";
     }
     //data.biddings = JSON.stringify(data.biddings);
     return data;
@@ -135,7 +186,7 @@ export default function makeAssignments(
   let maxSubmissions = 0;
   for (const submission of submissions) {
     for (const reviewer of submission.reviewers) {
-      const { email, method, rank } = reviewer;
+      const { email: email, method, rank } = reviewer;
       if (!data[email]) data[email] = { reviewer: email };
       const nSubmissions = Object.keys(data[email]).length - 1;
       maxSubmissions = Math.max(maxSubmissions, nSubmissions);
@@ -153,14 +204,16 @@ export default function makeAssignments(
   return {
     byReviewer,
     bySubmission,
-    settings: { reviewersPerSubmission, autoPenalty },
+    settings: { reviewersPerSubmission, autoPenalty, maxStudentReviewers },
   };
 }
 
 function balanceSubmissionsPerReviewer(
-  submissions: GetMetaSubmission[],
+  submissions: SubmissionWithReviewers[],
   reviewerAssignments: ReviewerAssignments,
   reviewersPerSubmission: number,
+  maxStudentReviewers: number,
+  studentReviewers: number,
 ) {
   // balance out the number of submissions per reviewer.
   // If a reviewer has relatively many submissions,
@@ -169,9 +222,11 @@ function balanceSubmissionsPerReviewer(
   // calculate how many submissions each reviewer should have
   const total = submissions.length;
   const reviewers = reviewerAssignments.size;
-  const maxCount = Math.floor((total * reviewersPerSubmission) / reviewers);
+  const totalReviews = total * reviewersPerSubmission;
+  const maxCount = Math.ceil(totalReviews / reviewers) + 1;
 
   const reassignMap: Map<number, string[]> = new Map();
+  const toManyMap: Map<string, number> = new Map();
   for (let [reviewer, assignments] of reviewerAssignments) {
     const toMany = assignments.length - maxCount;
     if (toMany <= 0) continue;
@@ -183,7 +238,9 @@ function balanceSubmissionsPerReviewer(
       })
       .map((s) => s.submission);
 
-    for (let i = 0; i < toMany; i++) {
+    toManyMap.set(reviewer, toMany);
+
+    for (let i = 0; i < sIds.length; i++) {
       const sId = sIds[i];
 
       if (!reassignMap.get(sId)) reassignMap.set(sId, []);
@@ -191,28 +248,64 @@ function balanceSubmissionsPerReviewer(
     }
   }
 
-  return submissions.map((s) => {
-    const reassign = reassignMap.get(s.id) || [];
-    if (reassign.length === 0) return s;
-
-    s.reviewers = s.reviewers.map((reviewer, ri) => {
-      if (!reassign.includes(reviewer.email)) return reviewer;
-      for (let backup of s.backupReviewers) {
-        const count = reviewerAssignments.get(backup.email)?.length || 0;
-        if (count >= maxCount) continue;
-        reviewerAssignments
-          .get(backup.email)
-          ?.push({ submission: s.id, pRank: backup.pRank });
-        return backup;
+  let allBalanced = false;
+  while (!allBalanced) {
+    for (let s of submissions) {
+      if (s.balanced) continue;
+      const reassign = reassignMap.get(s.id) || [];
+      if (reassign.length === 0) {
+        s.balanced = true;
+        continue;
       }
-      return reviewer;
-    });
-    return s;
-  });
+
+      const reassignReviewer = reassign.shift();
+      if (reassignReviewer === undefined) continue;
+
+      const toMany = toManyMap.get(reassignReviewer) || 0;
+      if (toMany <= 0) continue;
+
+      const currentReviewers = s.reviewers.map((r) => r.email);
+      const reassignI = s.reviewers.findIndex(
+        (r) => r.email === reassignReviewer,
+      );
+      if (reassignI < 0) continue;
+
+      let nobackup = true;
+      for (let backup of s.backupReviewers) {
+        if (backup.student && s.studentReviewerCount >= maxStudentReviewers)
+          continue;
+
+        const count = reviewerAssignments.get(backup.email)?.length || 0;
+        if (toMany === 1) {
+          if (count >= maxCount) continue;
+        } else {
+          if (count >= maxCount + 1) continue;
+        }
+
+        if (currentReviewers.includes(backup.email)) {
+          continue;
+        }
+
+        let nobackup = false;
+        s.reviewers[reassignI] = backup;
+        toManyMap.set(reassignReviewer, toMany - 1);
+        reviewerAssignments.get(backup.email)?.push({
+          submission: s.id,
+          pRank: backup.pRank,
+        });
+        if (backup.student) s.studentReviewerCount++;
+
+        break;
+      }
+    }
+    allBalanced = submissions.every((s) => s.balanced);
+  }
+
+  return submissions;
 }
 
 function fillRemaining(
-  submissions: GetMetaSubmission[],
+  submissions: SubmissionWithReviewers[],
   reviewerAssignments: ReviewerAssignments,
   reviewersPerSubmission: number,
   forbiddenAssignments: Record<string, number[]>,
@@ -242,9 +335,9 @@ function fillRemaining(
 
 function pickNext(
   remaining: string[],
-  submission: GetMetaSubmission,
+  submission: SubmissionWithReviewers,
   forbiddenAssignments: Record<string, number[]>,
-): RankedReviewer {
+): Bidding {
   for (let i = 0; i < remaining.length; i++) {
     if (forbiddenAssignments[remaining[i]]?.includes(submission.id)) continue;
     if (submission.reviewers.some((r) => r.email === remaining[i])) continue;
@@ -252,9 +345,23 @@ function pickNext(
     const pick = remaining[i];
     remaining.splice(i, 1);
     remaining.push(pick);
-    return { email: pick, method: "auto", rank: 999, pRank: 999 };
+    return {
+      email: pick,
+      method: "auto",
+      rank: 999,
+      pRank: 999,
+      student: false,
+      order: 999,
+    };
   }
-  return { email: "", method: "auto", rank: 999, pRank: 999 };
+  return {
+    email: "",
+    method: "auto",
+    rank: 999,
+    pRank: 999,
+    student: false,
+    order: 999,
+  };
 }
 
 function getForbiddingAssignments(
@@ -273,20 +380,10 @@ function getForbiddingAssignments(
       } else {
         if (submission.institutions.includes(reviewer.institution)) {
           forbidden = true;
-          console.log(
-            "forbidden: institution",
-            submission.submissionId,
-            reviewer.email,
-          );
         }
         for (let coAuthor of reviewer.coAuthors) {
           if (submission.authors.includes(coAuthor)) {
             forbidden = true;
-            console.log(
-              "forbidden: co-author",
-              submission.submissionId,
-              reviewer.email,
-            );
             break;
           }
         }
@@ -307,7 +404,7 @@ function fillMissingBiddings(
   submissions: GetMetaSubmission[],
   forbiddenAssignments: Record<string, number[]>,
 ) {
-  const maxBiddings = 200;
+  const maxBiddings = 500;
   for (let reviewer of reviewers) {
     if (reviewer.biddings.length > maxBiddings) continue;
 
@@ -336,8 +433,13 @@ function fillMissingBiddings(
   return reviewers;
 }
 
-function penalizedRank(reviewer: RankedReviewer, autoPenalty: number) {
+function penalizedRank(reviewer: Bidding, autoPenalty: number) {
   return reviewer.method === "auto"
     ? reviewer.rank + autoPenalty
     : reviewer.rank;
+}
+
+function hashToNumber(str: string) {
+  const hashStr = hash(str);
+  return parseInt(hashStr.slice(0, 8), 16);
 }

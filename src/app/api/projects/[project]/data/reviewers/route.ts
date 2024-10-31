@@ -29,15 +29,37 @@ export async function GET(
   const offset = Number(searchParams.get("offset")) || 0;
   const limit = Number(searchParams.get("limit")) || 10;
 
+  // first look up the distinct reviewers, so that the limit applies to reviewers and not the joins
+  const sq = db
+    .selectDistinctOn([reviewers.email], {
+      id: reviewers.id,
+    })
+    .from(reviewers)
+    .where(
+      and(
+        eq(reviewers.projectId, params.project),
+        eq(reviewers.importedFrom, "volunteer"),
+      ),
+    )
+    .orderBy(reviewers.email)
+    .offset(offset)
+    .limit(limit)
+    .as("subquery");
+
   const rowsPromise = db
     .selectDistinctOn([reviewers.email], {
       id: reviewers.id,
       email: reviewers.email,
       institution: reviewers.institution,
+      student: reviewers.student,
+      canReview: reviewers.canReview,
       link: reviewers.secret,
       invitationSent: reviewers.invitationSent,
       biddings: biddings.submissionIds,
       importedFrom: reviewers.importedFrom,
+      author: {
+        position: authors.position,
+      },
       submission: {
         id: submissions.id,
         submissionId: submissions.submissionId,
@@ -46,10 +68,7 @@ export async function GET(
       },
     })
     .from(reviewers)
-    .where(and(eq(reviewers.projectId, params.project)))
-    .orderBy(reviewers.email)
-    .offset(offset)
-    .limit(limit)
+    .innerJoin(sq, eq(reviewers.id, sq.id))
     .leftJoin(
       authors,
       and(
@@ -75,17 +94,25 @@ export async function GET(
   const metaPromise = db
     .select({ count: sql<number>`count(distinct email)` })
     .from(reviewers)
-    .where(and(eq(reviewers.projectId, params.project)));
+    .where(
+      and(
+        eq(reviewers.projectId, params.project),
+        eq(reviewers.importedFrom, "volunteer"),
+      ),
+    );
   const [rowResults, meta] = await Promise.all([rowsPromise, metaPromise]);
 
   const rows: Record<string, GetReviewer> = {};
   const domain = new URL(req.url).origin;
   for (let row of rowResults) {
-    if (!rows[row.id]) {
+    if (!rows[row.email]) {
       rows[row.email] = {
         id: row.id,
         email: row.email,
         institution: row.institution,
+        student: row.student,
+        canReview: row.canReview,
+        firstAuthor: false,
         link: domain + `/bidding/${params.project}/${row.id}/${row.link}`,
         invitationSent: row.invitationSent,
         biddings: row.biddings || [],
@@ -94,6 +121,9 @@ export async function GET(
         coAuthors: [],
         submissions: [],
       };
+    }
+    if (row.author) {
+      if (row.author.position === 0) rows[row.email].firstAuthor = true;
     }
     if (row.submission) {
       rows[row.email].submissions.push({

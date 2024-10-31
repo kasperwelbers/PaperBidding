@@ -33,6 +33,9 @@ export async function GET(
     .selectDistinctOn([reviewers.email], {
       id: reviewers.id,
       email: reviewers.email,
+      institution: reviewers.institution,
+      student: reviewers.student,
+      canReview: reviewers.canReview,
     })
     .from(reviewers)
     .where(
@@ -62,6 +65,9 @@ export async function GET(
       rows[row.email] = {
         id: row.id,
         email: row.email,
+        institution: row.institution,
+        student: row.student,
+        canReview: row.canReview,
       };
     }
   }
@@ -90,46 +96,20 @@ export async function POST(
       status: 400,
     });
 
-  const currentVolunteers = (
-    await db
-      .select({ email: reviewers.email })
-      .from(reviewers)
-      .where(
-        and(
-          eq(reviewers.projectId, params.project),
-          eq(reviewers.importedFrom, "volunteer"),
-        ),
-      )
-  ).map((r) => r.email);
-  const deleteReviewers = new Set(currentVolunteers);
-
   const newReviewers: NewReviewer[] = [];
   for (let d of validData.data) {
-    if (currentVolunteers.includes(d.email)) {
-      deleteReviewers.delete(d.email);
-    } else {
-      newReviewers.push({
-        email: d.email,
-        projectId: params.project,
-        importedFrom: "volunteer",
-        secret: createUserSecret(params.project, d.email),
-      });
-    }
+    newReviewers.push({
+      email: d.email,
+      institution: d.institution,
+      student: d.student,
+      canReview: d.canReview,
+      projectId: params.project,
+      importedFrom: "volunteer",
+      secret: createUserSecret(params.project, d.email),
+    });
   }
 
-  await db.transaction(async (tx) => {
-    if (newReviewers.length > 0)
-      await tx.insert(reviewers).values(newReviewers);
-    if (deleteReviewers.size)
-      await tx
-        .delete(reviewers)
-        .where(
-          and(
-            eq(reviewers.projectId, params.project),
-            inArray(reviewers.email, Array.from(deleteReviewers)),
-          ),
-        );
-  });
+  await db.insert(reviewers).values(newReviewers);
   return NextResponse.json({ status: 201 });
 }
 

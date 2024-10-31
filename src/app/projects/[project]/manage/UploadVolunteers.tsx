@@ -3,7 +3,7 @@
 import CSVReader from "@/components/ui/csvUpload";
 import { Loading } from "@/components/ui/loading";
 import { useDeleteData, useUploadData } from "@/hooks/api";
-import { DataPage, ProcessedSubmission } from "@/types";
+import { DataPage, ProcessedSubmission, UploadReviewer } from "@/types";
 import { useEffect, useState } from "react";
 import ManageData from "./ManageData";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,22 +11,32 @@ import { Button } from "@/components/ui/button";
 import { FaSave } from "react-icons/fa";
 import { ZodError, ZodIssue, z } from "zod";
 import Markdown from "react-markdown";
+import { InstitutionResolver } from "@/hooks/useInstitutionResolver";
 
-const submissionFields = [
+const volunteerFields = [
   { field: "email", label: "Email" },
-  { field: "firstname", label: "First Name" },
+  { field: "institution", label: "Institution" },
+  { field: "student", label: "Student designation" },
+  { field: "reviewer", label: "Reviewer flag" },
 ];
 const defaultFields = {
   email: "email",
-  firstname: "first name",
+  institution: "institution",
+  student: "student",
+  reviewer: "reviewer",
 };
 
 interface Props {
   dataPage: DataPage;
   projectId: number;
+  institutionResolver: InstitutionResolver;
 }
 
-export default function UploadVolunteers({ projectId, dataPage }: Props) {
+export default function UploadVolunteers({
+  projectId,
+  dataPage,
+  institutionResolver,
+}: Props) {
   const [status, setStatus] = useState({ loading: "", error: "" });
   const [reviewers, setReviewers] = useState<string>("");
 
@@ -42,36 +52,35 @@ export default function UploadVolunteers({ projectId, dataPage }: Props) {
   });
 
   async function onUpload(data: Record<string, string>[]) {
-    const emails = data.map((row) => row.email);
+    setStatus({ loading: "loading", error: "" });
 
-    try {
-      z.array(z.string().email()).parse(emails);
-    } catch (e) {
-      if (e instanceof z.ZodError) {
-        const invalidIndex = e.errors.map((e) => e.path[0]);
-        const invalidEmails = invalidIndex.map((i) => emails[Number(i)]);
-        setStatus({
-          loading: "",
-          error: "#### Invalid email\n\n* " + invalidEmails.join("\n* "),
-        });
-        return;
-      }
-    }
-
-    if (emails.length !== new Set(emails).size) {
-      setStatus({ loading: "", error: "Duplicate email found" });
+    if (!institutionResolver.ready) {
+      setStatus({ loading: "", error: "Institution data not loaded" });
       return;
     }
-    for (let i = 0; i < emails.length; i++) {
-      if (!emails[i]) {
-        setStatus({ loading: "", error: `Empty email found (row ${i + 2})` });
-        return;
-      }
+
+    const body: UploadReviewer[] = [];
+
+    for (let row of data) {
+      // TODO: do include these, but so something smarter for filtering them with custom options
+      console.log(row.reviewer);
+      if (row.reviewer !== "Yes") continue;
+
+      const institution = institutionResolver.resolve(
+        row.email,
+        row.institution,
+      );
+      body.push({
+        email: row.email,
+        institution: institution,
+        student: row.student === "Yes",
+        canReview: row.reviewer === "Yes",
+      });
     }
 
     setStatus({ loading: "Uploading", error: "" });
     try {
-      await uploadVolunteers({ data });
+      await uploadVolunteers({ data: body });
       setStatus({ loading: "", error: "" });
       dataPage.reset();
     } catch (e: any) {
@@ -85,43 +94,26 @@ export default function UploadVolunteers({ projectId, dataPage }: Props) {
 
   const hasChanged = reviewers.trim() !== reviewerString(dataPage).trim();
 
+  if (dataPage.data && dataPage.data.length > 0)
+    return (
+      <ManageData
+        dataPage={dataPage}
+        deleteData={deleteVolunteers}
+        setStatus={setStatus}
+      />
+    );
+
   return (
-    <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-      <form
-        className="flex flex-col gap-2 "
-        onSubmit={(e) => {
-          e.preventDefault();
-          const r = reviewers
-            .split("\n")
-            .map((r) => ({
-              email: r.trim(),
-            }))
-            .filter((r) => r.email);
-          onUpload(r);
-        }}
-      >
-        <Textarea
-          rows={10}
-          placeholder="One reviewer email per line"
-          value={reviewers}
-          onChange={(d) => setReviewers(d.target.value)}
-        />
-        <Button
-          disabled={!!status.loading || !hasChanged}
-          className=" flex-auto"
-        >
-          {hasChanged ? "Save Changes" : "No Changes"}
-        </Button>
-      </form>
-      <div>
-        {status.error ? (
-          <Markdown className="text-red-500 p-2">{status.error}</Markdown>
-        ) : (
-          <div className="p-2 text-sm italic whitespace-break-spaces">
-            {`Add the email addresses of any volunteers.\n\nDon't worry about accidentally adding volunteers that are already first-authors. We'll just ignore those`}
-          </div>
-        )}
-      </div>
+    <div>
+      {status.error && <div className="text-red-500">{status.error}</div>}
+      <CSVReader
+        fields={volunteerFields}
+        label="Volunteers"
+        detail="Requires columns for id, author (email and firstname), title and abstract. Use multiple rows for different
+      authors."
+        onUpload={onUpload}
+        defaultFields={defaultFields}
+      />
     </div>
   );
 

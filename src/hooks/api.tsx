@@ -56,13 +56,13 @@ export function useGETPagionation<ResponseType>(
   url: string | null,
   token?: string,
   metaParam?: boolean,
+  limit: number = 100,
 ) {
   const session = useSession();
   const auth = !!token || session.status === "authenticated";
 
   const fetcher = async ([url, token, auth]: any) => {
     if (!auth) throw new Error("Not authenticated");
-    const limit = 100;
     let offset = 0;
 
     const allData: ResponseType[] = [];
@@ -79,7 +79,9 @@ export function useGETPagionation<ResponseType>(
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         allData.push(...data.rows);
+
         if (allData.length >= data.meta.count) break;
+        if (data.rows.length === 0) break;
         offset += limit;
       } catch (e) {
         console.log(e);
@@ -188,9 +190,10 @@ export function useAllData<ResponseType>(
   what: "submissions" | "reviewers",
   token?: string,
   meta?: boolean,
+  limit?: number,
 ) {
   let url = `/api/projects/${projectId}/data/${what}`;
-  return useGETPagionation<ResponseType>(url, token, meta);
+  return useGETPagionation<ResponseType>(url, token, meta, limit || 100);
 }
 
 export function useAbstract(

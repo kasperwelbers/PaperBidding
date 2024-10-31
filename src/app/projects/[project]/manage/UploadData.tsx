@@ -94,8 +94,7 @@ export default function UploadData({
           <DialogHeader>
             <DialogTitle>Upload Submissions</DialogTitle>
             <DialogDescription>
-              Upload a CSV file with columns for the submission ID, Author
-              email(s), Title and Abstract.
+              Upload a CSV file with the submitted abstracts.
             </DialogDescription>
           </DialogHeader>
           <SubmissionCSVInstruction />
@@ -129,13 +128,16 @@ export default function UploadData({
           <DialogHeader>
             <DialogTitle>Add volunteer reviewers</DialogTitle>
             <DialogDescription>
-              This is optional, because first authors are made reviewers by
-              default, and you can also send a general invitation link for the
-              bidding process, where people can indicate willingness to review
-              by bidding.
+              Upload a CSV file with the reviewers for your division. Only
+              reviewers that said they are willing to review will be included.
             </DialogDescription>
           </DialogHeader>
-          <UploadVolunteers projectId={project.id} dataPage={data.volunteers} />
+          <ReviewerCSVInstruction />
+          <UploadVolunteers
+            projectId={project.id}
+            dataPage={data.volunteers}
+            institutionResolver={institutionResolver}
+          />
         </DialogContent>
       </Dialog>
 
@@ -202,6 +204,49 @@ function DownloadCVSVideo() {
 }
 
 function SubmissionCSVInstruction() {
+  const [manual, setManual] = useState(false);
+
+  if (!manual)
+    return (
+      <div className="text-left mt-3 w-max">
+        <div className="flex gap-3 items-center mb-3">
+          <h6 className="m-0">How to get this CSV file</h6>
+        </div>
+        <ul className="list-disc list-inside">
+          <li>
+            Go to{" "}
+            <a
+              target="_blank"
+              rel="noreferrer"
+              href="https://ica2025.abstractcentral.com"
+              className="underline text-blue-900"
+            >
+              ScholarOne,
+            </a>{" "}
+            open the <b>Admin</b> tab and go to <b>Search</b>
+          </li>
+          <li>
+            In <b>Saved Searchers</b> select{" "}
+            <i>&quot;Paper Bidding (select division yourself)&quot;</i>. Then
+            click <b>Actions</b>: <b>Load</b>
+          </li>
+          <li>
+            Under <b>Search Criteria</b> use {"  "}
+            <i>Current Category</i> to select your division
+          </li>
+          <li>
+            Now click <b>Run</b> at the bottom
+          </li>
+        </ul>
+        <div className="mt-3 italic">
+          If you cannot use the saved search, you can also{" "}
+          <Button className="h-6 px-1 ml-2" onClick={() => setManual(true)}>
+            do it manually
+          </Button>
+        </div>
+      </div>
+    );
+
   return (
     <div className="text-left mt-3 w-max">
       <div className="flex gap-3 items-center mb-3">
@@ -222,10 +267,11 @@ function SubmissionCSVInstruction() {
           open the <b>Admin</b> tab and go to <b>Search</b>
         </li>
         <li>
-          In <b>Select Format</b> select <i>Comma Delimited</i>
+          In <b>Select Format</b> select <i>Comma delimited</i>
         </li>
         <li>
-          In <b>Select Search Criteria</b> select <i>Current Category</i>
+          In <b>Select Search Criteria</b> select <i>Current Category</i> and{" "}
+          <b>Add</b>
         </li>
         <li>
           Under <b>Search Criteria</b> use {"  "}
@@ -238,7 +284,48 @@ function SubmissionCSVInstruction() {
           <b className="text-blue-700">INSTITUTIONS (ALL)</b>
         </li>
         <li>
-          No click <b>Run</b> at the bottom
+          Now click <b>Run</b> at the bottom
+        </li>
+      </ul>
+      <div className="mt-3 italic">
+        Instructions for using
+        <Button className="h-6 px-1 ml-2" onClick={() => setManual(false)}>
+          Saved Search
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ReviewerCSVInstruction() {
+  return (
+    <div className="text-left mt-3 w-max">
+      <div className="flex gap-3 items-center mb-3">
+        <h6 className="m-0">How to get this CSV file</h6>
+      </div>
+      <ul className="list-disc list-inside">
+        <li>
+          Go to{" "}
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href="https://ica2025.abstractcentral.com"
+            className="underline text-blue-900"
+          >
+            ScholarOne,
+          </a>{" "}
+          open the <b>Admin</b> tab and go to <b>Search</b>
+        </li>
+        <li>
+          At the top, select the <b>People</b> tab
+        </li>
+        <li>
+          In <b>Saved Searches</b> select{" "}
+          <i>&quot;[Your division] Reviewers&quot;</i>. Then click{" "}
+          <b>Actions</b>: <b>Load</b>
+        </li>
+        <li>
+          Now click <b>Run</b> at the bottom
         </li>
       </ul>
     </div>

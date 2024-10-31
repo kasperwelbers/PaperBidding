@@ -46,6 +46,7 @@ export default function BiddingPage({
   }>();
   const [perSubmission, setPerSubmission] = useState(3);
   const [autoPenalty, setAutoPenalty] = useState(5);
+  const [maxStudentReviewers, setMaxStudentReviewers] = useState(1);
 
   const {
     data: project,
@@ -57,7 +58,13 @@ export default function BiddingPage({
     isLoading: reviewersLoading,
     error: reviewersError,
     mutate: mutateReviewers,
-  } = useAllData<GetReviewer>(params.project, "reviewers");
+  } = useAllData<GetReviewer>(
+    params.project,
+    "reviewers",
+    undefined,
+    undefined,
+    1000,
+  );
   const {
     data: submissions,
     isLoading: submissionsLoading,
@@ -68,7 +75,6 @@ export default function BiddingPage({
     undefined,
     true,
   );
-  console.log(submissions);
   const {
     data: assignments,
     isLoading: assignmentsLoading,
@@ -85,6 +91,7 @@ export default function BiddingPage({
       });
       setPerSubmission(assignments.settings.reviewersPerSubmission);
       setAutoPenalty(assignments.settings.autoPenalty);
+      setMaxStudentReviewers(assignments.settings.maxStudentReviewers);
     }
   }, [assignments]);
 
@@ -100,6 +107,7 @@ export default function BiddingPage({
       reviewers,
       submissions,
       perSubmission,
+      maxStudentReviewers,
       autoPenalty,
     );
     uploadAssignments(data);
@@ -116,7 +124,7 @@ export default function BiddingPage({
             <Input
               name="perSubmission"
               type="number"
-              className="w-16"
+              className="w-16 h-6"
               value={perSubmission}
               min={1}
               max={10}
@@ -126,11 +134,21 @@ export default function BiddingPage({
             <Input
               name="autoPenalty"
               type="number"
-              className="w-16"
+              className="w-16 h-6"
               value={autoPenalty}
               min={0}
               max={100}
               onChange={(e) => setAutoPenalty(parseInt(e.target.value))}
+            />
+            <Label htmlFor="maxStudent">Max student reviewers</Label>
+            <Input
+              name="maxStudent"
+              type="number"
+              className="w-16 h-6"
+              value={maxStudentReviewers}
+              min={0}
+              max={100}
+              onChange={(e) => setMaxStudentReviewers(parseInt(e.target.value))}
             />
           </div>
           <div className="grid grid-cols-1 gap-1 ">
@@ -208,12 +226,19 @@ function ReviewersBySubmission({
                   {Object.keys(d).map((k) => {
                     if (!k.includes("reviewer_")) return null;
                     const rank = d[k.replace("reviewer_", "reviewer.rank_")];
+                    const student =
+                      d[k.replace("reviewer_", "reviewer.student_")];
                     if (!d[k]) return null;
                     return (
                       <div key={k} className="flex">
                         <Dot />
                         {d[k]}
-                        <div className="opacity-60 ml-auto">{rank}</div>
+                        <div className="opacity-60 ml-auto flex gap-3">
+                          {rank}
+                          {student === "yes" ? (
+                            <div className="opacity-60 ml-auto">student</div>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}

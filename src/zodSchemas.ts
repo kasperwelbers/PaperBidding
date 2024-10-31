@@ -23,6 +23,9 @@ export const GetProjectSchema = z.object({
 export const ReviewersSchema = z.array(
   z.object({
     email: z.string(),
+    institution: z.string(),
+    student: z.boolean(),
+    canReview: z.boolean(),
   }),
 );
 
@@ -62,6 +65,7 @@ export const AssignmentsSchema = z.object({
   settings: z.object({
     autoPenalty: z.number(),
     reviewersPerSubmission: z.number(),
+    maxStudentReviewers: z.number(),
   }),
 });
 

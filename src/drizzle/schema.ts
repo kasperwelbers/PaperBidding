@@ -171,6 +171,8 @@ export const reviewers = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     email: varchar("email", { length: 256 }).notNull(),
     institution: text("institution").notNull().default(""),
+    student: boolean("student").notNull().default(false),
+    canReview: boolean("can_review").notNull().default(true),
     importedFrom: varchar("imported_from", {
       enum: ["volunteer", "submission"],
     }),

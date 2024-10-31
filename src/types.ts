@@ -45,6 +45,13 @@ export interface Reviewer {
   submissions: OwnSubmission[];
 }
 
+export interface UploadReviewer {
+  email: string;
+  institution: string;
+  student: boolean;
+  canReview: boolean;
+}
+
 export interface OwnSubmission {
   id: number;
   title?: string;
@@ -56,6 +63,9 @@ export interface GetReviewer {
   id: number;
   email: string;
   institution: string;
+  student: boolean;
+  canReview: boolean;
+  firstAuthor: boolean;
   link: string;
   invitationSent: Date | null;
   biddings: number[];
@@ -68,6 +78,9 @@ export interface GetReviewer {
 export interface GetVolunteer {
   id: number;
   email: string;
+  institution: string;
+  student: boolean;
+  canReview: boolean;
 }
 export interface GetProject {
   id: number;
@@ -92,29 +105,36 @@ export interface GetSubmission {
   meanSimilarity?: number;
 }
 
-export interface RankedReviewer {
-  email: string;
-  rank: number;
-  pRank: number;
-  method: "auto" | "manual";
-}
-
 export interface GetMetaSubmission {
   id: number;
   title: string;
   submissionId: string;
-  biddings?: Bidding[];
-  reviewers: RankedReviewer[];
-  backupReviewers: RankedReviewer[];
   authors: string[];
   institutions: string[];
 }
 
+export interface SubmissionWithReviewers {
+  id: number;
+  title: string;
+  submissionId: string;
+  biddings: Bidding[];
+  studentReviewerCount: number;
+  reviewers: Bidding[];
+  backupReviewers: Bidding[];
+  authors: string[];
+  institutions: string[];
+  ready: boolean;
+  balanced: boolean;
+  order: number;
+}
+
 export interface Bidding {
-  reviewer: string;
+  email: string;
   rank: number;
   pRank: number;
   method: "auto" | "manual";
+  student: boolean;
+  order: number;
 }
 
 export interface BySubmission {
