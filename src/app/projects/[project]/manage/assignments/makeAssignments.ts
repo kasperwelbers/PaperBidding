@@ -282,7 +282,11 @@ function getForbiddingAssignments(
         for (let coAuthor of reviewer.coAuthors) {
           if (submission.authors.includes(coAuthor)) {
             forbidden = true;
-            console.log("forbidden: co-author");
+            console.log(
+              "forbidden: co-author",
+              submission.submissionId,
+              reviewer.email,
+            );
             break;
           }
         }

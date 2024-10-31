@@ -88,6 +88,9 @@ export function getInstitution(
 }
 
 function normalizeUniName(name: string) {
-  // replace a standalone u with university
-  return name.toLowerCase().replace(/\b(u)\b/g, "university");
+  // replace a standalone u or uni with university
+  return name
+    .toLowerCase()
+    .replace(/\b(u)\b/g, "university")
+    .replace(/\b(uni)\b/g, "university");
 }

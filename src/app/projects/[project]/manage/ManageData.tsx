@@ -79,6 +79,8 @@ export default function ManageData({
                         value = `vector (${row[key].length})`;
                       } else if (key === "authors") {
                         value = row[key].join(", ");
+                      } else if (key === "institutions") {
+                        value = row[key].join(", ");
                       } else {
                         value = JSON.stringify(row[key]);
                       }

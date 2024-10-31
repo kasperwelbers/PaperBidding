@@ -29,6 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ProjectStatus } from "./page";
 
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
@@ -38,7 +39,7 @@ export default function UploadData({
   setStatus,
 }: {
   projectId: number;
-  setStatus: (status: Record<string, boolean>) => void;
+  setStatus: (status: ProjectStatus) => void;
 }) {
   const { modelStatus, extractFeatures } = useFeatureExtractor();
   const institutionResolver = useInstitutionData();
@@ -53,12 +54,19 @@ export default function UploadData({
   const data = { submissions, volunteers, references };
 
   useEffect(() => {
-    if (submissions.isLoading) return;
+    if (submissions.isLoading || volunteers.isLoading) return;
     const status = {
       submissions: (submissions?.data?.length || 0) > 0,
+      volunteers: (volunteers?.data?.length || 0) > 0,
     };
     setStatus(status);
-  }, [submissions.isLoading, submissions.data, setStatus]);
+  }, [
+    submissions.isLoading,
+    submissions.data,
+    volunteers.isLoading,
+    volunteers.data,
+    setStatus,
+  ]);
 
   if (isLoading || !institutionResolver.ready)
     return <Loading msg="Loading Project" />;
@@ -90,46 +98,7 @@ export default function UploadData({
               email(s), Title and Abstract.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-left mt-3 w-max">
-            <div className="flex gap-3 items-center mb-3">
-              <h6 className="m-0">How to get this CSV file</h6>
-              <DownloadCVSVideo />
-            </div>
-            <ul className="list-disc list-inside">
-              <li>
-                Go to{" "}
-                <a
-                  target="_blank"
-                  rel="noreferrer"
-                  href="https://ica2025.abstractcentral.com"
-                  className="underline text-blue-900"
-                >
-                  ScholarOne,
-                </a>{" "}
-                open the <b>Admin</b> tab and go to <b>Search</b>
-              </li>
-              <li>
-                In <b>Select Format</b> select <i>Comma Delimited</i>
-              </li>
-              <li>
-                In <b>Select Search Criteria</b> select <i>Current Category</i>
-              </li>
-              <li>
-                Under <b>Search Criteria</b> use {"  "}
-                <i>Current Category</i> to select your division
-              </li>
-              <li>
-                In <b>Select Display Items</b> add:{"    "}
-                <b className="text-blue-700">ABSTRACT BODY</b>,{"  "}{" "}
-                <b className="text-blue-700">AUTHORS (ADDRES &#38; EMAIL)</b>,
-                {"  "}
-                <b className="text-blue-700">INSTITUTIONS (ALL)</b>
-              </li>
-              <li>
-                No click <b>Run</b> at the bottom
-              </li>
-            </ul>
-          </div>
+          <SubmissionCSVInstruction />
           <div className="flex items-center mt-6 mx-auto">
             <UploadSubmissions
               projectId={project.id}
@@ -146,8 +115,7 @@ export default function UploadData({
         <DialogTrigger asChild>
           <Step
             disabled={!submissions?.n}
-            optional
-            title="Step 2. Add volunteers"
+            title="Step 2. Upload reviewers"
             hint="Add volunteer reviewers by email"
             doneMsg={`Assigned ${volunteers.n} volunteer${volunteers.n === 1 ? "" : "s"}`}
             done={!!volunteers?.n}
@@ -174,7 +142,7 @@ export default function UploadData({
       <Dialog>
         <DialogTrigger asChild>
           <Step
-            disabled={!submissions?.n}
+            disabled={!submissions?.n || !volunteers?.n}
             optional
             title="Step 3. Add old submissions"
             hint="Improve automatic matching"
@@ -230,5 +198,49 @@ function DownloadCVSVideo() {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SubmissionCSVInstruction() {
+  return (
+    <div className="text-left mt-3 w-max">
+      <div className="flex gap-3 items-center mb-3">
+        <h6 className="m-0">How to get this CSV file</h6>
+        <DownloadCVSVideo />
+      </div>
+      <ul className="list-disc list-inside">
+        <li>
+          Go to{" "}
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href="https://ica2025.abstractcentral.com"
+            className="underline text-blue-900"
+          >
+            ScholarOne,
+          </a>{" "}
+          open the <b>Admin</b> tab and go to <b>Search</b>
+        </li>
+        <li>
+          In <b>Select Format</b> select <i>Comma Delimited</i>
+        </li>
+        <li>
+          In <b>Select Search Criteria</b> select <i>Current Category</i>
+        </li>
+        <li>
+          Under <b>Search Criteria</b> use {"  "}
+          <i>Current Category</i> to select your division
+        </li>
+        <li>
+          In <b>Select Display Items</b> add:{"    "}
+          <b className="text-blue-700">ABSTRACT BODY</b>,{"  "}{" "}
+          <b className="text-blue-700">AUTHORS (ADDRES &#38; EMAIL)</b>,{"  "}
+          <b className="text-blue-700">INSTITUTIONS (ALL)</b>
+        </li>
+        <li>
+          No click <b>Run</b> at the bottom
+        </li>
+      </ul>
+    </div>
   );
 }

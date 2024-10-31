@@ -160,6 +160,8 @@ export const authors = pgTable(
   },
 );
 
+// TODO: refactor so that reviewers are always uploaded. So drop importedFrom.
+
 export const reviewers = pgTable(
   "reviewers",
   {

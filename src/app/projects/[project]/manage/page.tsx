@@ -32,6 +32,11 @@ import Step from "./Step";
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
 
+export interface ProjectStatus {
+  submissions: boolean;
+  volunteers: boolean;
+}
+
 export default function ProjectPage({
   params,
 }: {
@@ -58,7 +63,10 @@ export default function ProjectPage({
   }, [reviewers]);
 
   const router = useRouter();
-  const [status, setStatus] = useState<Record<string, boolean>>();
+  const [status, setStatus] = useState<ProjectStatus>({
+    submissions: false,
+    volunteers: false,
+  });
   if (isLoading) return <Loading msg="Loading Project" />;
   if (error) return <Error msg={error.message} />;
   if (!project) return null; //shouldn't happen, but typescript
@@ -90,7 +98,7 @@ export default function ProjectPage({
           <UploadData projectId={params.project} setStatus={setStatus} />
 
           <Step
-            disabled={!status?.submissions}
+            disabled={!status?.submissions || !status?.volunteers}
             optional
             title="Step 4. Paper bidding"
             hint="Send invitations for paper bidding"
@@ -103,7 +111,7 @@ export default function ProjectPage({
           />
 
           <Step
-            disabled={!status?.submissions}
+            disabled={!status?.submissions || !status?.volunteers}
             title="Step 5. Reviewer assignments"
             hint="Assign reviewers to submissions"
             doneMsg=""
