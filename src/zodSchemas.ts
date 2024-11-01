@@ -48,6 +48,7 @@ export const BidsSchema = z.object({
 export const ByReviewer = z
   .object({
     reviewer: z.string(),
+    student: z.string(),
   })
   .catchall(z.string());
 

@@ -135,6 +135,7 @@ export interface Bidding {
   method: "auto" | "manual";
   student: boolean;
   order: number;
+  submissionRank: number;
 }
 
 export interface BySubmission {
@@ -146,6 +147,7 @@ export interface BySubmission {
 
 export interface ByReviewer {
   reviewer: string;
+  student: string;
   [key: string]: string;
 }
 

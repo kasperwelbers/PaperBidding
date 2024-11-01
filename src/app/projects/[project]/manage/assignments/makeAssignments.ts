@@ -24,8 +24,7 @@ export default function makeAssignments(
     submissionData,
   );
 
-  // keep track of submissions per reviewer, ordered by rank
-  // use later to balance assignments
+  // keep track of submissions per reviewer, ordered by rank. use later to balance assignments
   const reviewerAssignments: ReviewerAssignments = new Map();
 
   // copy so we don't mutate the original
@@ -59,6 +58,7 @@ export default function makeAssignments(
         pRank: method === "manual" ? i : i + autoPenalty,
         student: reviewer.student,
         order: (nrHash + internalId * 77777) % 1000,
+        submissionRank: 0,
       });
     }
   }
@@ -89,6 +89,9 @@ export default function makeAssignments(
           })
           .sort((a: Bidding, b: Bidding) => {
             return a.pRank - b.pRank;
+          })
+          .map((b, i) => {
+            return { ...b, submissionRank: i + 1 };
           });
       }
       return submission;
@@ -97,9 +100,13 @@ export default function makeAssignments(
       return a.order - b.order;
     });
 
+  console.log(submissions);
+
   // We'll first assign the most suitable reviewers, regardless of
   // how many submissions they've already been assigned to. Later
   // we'll balance out the assignments over all reviewers.
+  // Note that we assign one reviewer per submission at a time, to avoid
+  // that the best matches are assigned to the first submissions.
   let allAssigned = false;
   while (!allAssigned) {
     for (let submission of submissions) {
@@ -113,11 +120,6 @@ export default function makeAssignments(
           ...submission.backupReviewers,
           ...submission.biddings,
         ];
-
-        const backupemails = submission.backupReviewers.map((b) => b.email);
-        const x = backupemails.includes("sungwon.jung@utexas.edu");
-        console.log(x);
-
         continue;
       }
 
@@ -152,15 +154,13 @@ export default function makeAssignments(
     forbiddenAssignments,
   );
 
-  for (let i = 0; i < 3; i++) {
-    submissions = balanceSubmissionsPerReviewer(
-      submissions,
-      reviewerAssignments,
-      reviewersPerSubmission,
-      maxStudentReviewers,
-      reviewers.filter((r) => r.student).length,
-    );
-  }
+  submissions = balanceSubmissionsPerReviewer(
+    submissions,
+    reviewerAssignments,
+    reviewersPerSubmission,
+    maxStudentReviewers,
+    reviewers.filter((r) => r.student).length,
+  );
 
   const bySubmission: BySubmission[] = submissions.map((submission) => {
     const data: BySubmission = {
@@ -172,10 +172,10 @@ export default function makeAssignments(
       const reviewerKey = `reviewer_${i + 1}`;
       const rankKey = `reviewer.rank_${i + 1}`;
       const studentKey = `reviewer.student_${i + 1}`;
-      const { email, method, rank, student } = submission.reviewers[i];
+      const { email, method, rank, submissionRank, student } =
+        submission.reviewers[i];
       data[reviewerKey] = email;
-      data[rankKey] =
-        method === "auto" ? `${rank} + ${autoPenalty}` : `${rank}`;
+      data[rankKey] = method === "auto" ? `${rank}*` : `${rank}`;
       data[studentKey] = student ? "yes" : "no";
     }
     //data.biddings = JSON.stringify(data.biddings);
@@ -187,18 +187,25 @@ export default function makeAssignments(
   for (const submission of submissions) {
     for (const reviewer of submission.reviewers) {
       const { email: email, method, rank } = reviewer;
-      if (!data[email]) data[email] = { reviewer: email };
-      const nSubmissions = Object.keys(data[email]).length - 1;
+      if (!data[email])
+        data[email] = {
+          reviewer: email,
+          student: reviewer.student ? "Yes" : "No",
+        };
+      const nSubmissions = Object.keys(data[email]).length - 2;
       maxSubmissions = Math.max(maxSubmissions, nSubmissions);
       data[email]["submission_" + (nSubmissions + 1)] = submission.submissionId;
-      data[email]["submission.rank_" + (nSubmissions + 1)] =
-        method === "auto" ? `${rank} + ${autoPenalty}` : `${rank}`;
     }
   }
+  for (const r of reviewers) {
+    if (!data[r.email])
+      data[r.email] = { reviewer: r.email, student: r.student ? "Yes" : "No" };
+  }
+
   const byReviewer: ByReviewer[] = Object.values(data).map((row) => {
-    for (let i = Object.keys(row).length - 1; i <= maxSubmissions; i++) {
-      if (!row["submission_" + (i + 1)]) row["submission_" + (i + 1)] = "";
-    }
+    // for (let i = Object.keys(row).length - 1; i <= maxSubmissions; i++) {
+    //   if (!row["submission_" + (i + 1)]) row["submission_" + (i + 1)] = "";
+    // }
     return row;
   });
   return {
@@ -222,33 +229,46 @@ function balanceSubmissionsPerReviewer(
   // calculate how many submissions each reviewer should have
   const total = submissions.length;
   const reviewers = reviewerAssignments.size;
-  const totalReviews = total * reviewersPerSubmission;
-  const maxCount = Math.ceil(totalReviews / reviewers) + 1;
+  const maxCount = Math.ceil((total * reviewersPerSubmission) / reviewers) + 1;
 
-  const reassignMap: Map<number, string[]> = new Map();
+  const reassignMapUnordered: Map<
+    number,
+    { reviewer: string; rank: number; toMany: number }[]
+  > = new Map();
   const toManyMap: Map<string, number> = new Map();
   for (let [reviewer, assignments] of reviewerAssignments) {
     const toMany = assignments.length - maxCount;
     if (toMany <= 0) continue;
 
-    // determine which reviewers need to be reassigned, starting with their lowest matches
-    const sIds = assignments
-      .sort((a, b) => {
-        return b.pRank - a.pRank;
-      })
-      .map((s) => s.submission);
-
     toManyMap.set(reviewer, toMany);
 
-    for (let i = 0; i < sIds.length; i++) {
-      const sId = sIds[i];
-
-      if (!reassignMap.get(sId)) reassignMap.set(sId, []);
-      reassignMap.get(sId)?.push(reviewer);
+    for (let a of assignments) {
+      const sId = a.submission;
+      if (!reassignMapUnordered.get(sId)) reassignMapUnordered.set(sId, []);
+      reassignMapUnordered.get(sId)?.push({
+        reviewer,
+        rank: a.pRank,
+        toMany,
+      });
     }
   }
 
+  // sort reassignMap so that we first reassign the weakest matches, and reviewers with the most overassignments
+  const reassignMap: Map<number, string[]> = new Map();
+  for (let [sId, reassigns] of reassignMapUnordered) {
+    reassignMap.set(
+      sId,
+      reassigns
+        .sort((a, b) => {
+          return b.rank - a.rank || b.toMany - a.toMany;
+        })
+        .map((r) => r.reviewer),
+    );
+  }
+
   let allBalanced = false;
+  // one submission at a time, we'll reassign the reviewer with the most overassignment, or
+  // the one with the weakest match
   while (!allBalanced) {
     for (let s of submissions) {
       if (s.balanced) continue;
@@ -268,17 +288,36 @@ function balanceSubmissionsPerReviewer(
       const reassignI = s.reviewers.findIndex(
         (r) => r.email === reassignReviewer,
       );
+      const currentReviewer = s.reviewers[reassignI];
       if (reassignI < 0) continue;
 
-      let nobackup = true;
+      // sort backup to prioritize replacements that have a good match and few assignments
+      s.backupReviewers = s.backupReviewers
+        .map((br) => {
+          return {
+            ...br,
+            assignments: reviewerAssignments.get(br.email)?.length || 0,
+          };
+        })
+        .sort((a, b) => {
+          return a.pRank - b.pRank || a.assignments - b.assignments;
+        });
+
       for (let backup of s.backupReviewers) {
-        if (backup.student && s.studentReviewerCount >= maxStudentReviewers)
-          continue;
+        if (backup.student) {
+          // only add student if it replaces a student or if there are less than maxStudentReviewers
+          if (
+            !currentReviewer.student &&
+            s.studentReviewerCount >= maxStudentReviewers
+          )
+            continue;
+        }
 
         const count = reviewerAssignments.get(backup.email)?.length || 0;
         if (toMany === 1) {
           if (count >= maxCount) continue;
         } else {
+          // if currentReviewer has way to many (> maxCount + 2) be more lenient
           if (count >= maxCount + 1) continue;
         }
 
@@ -286,13 +325,18 @@ function balanceSubmissionsPerReviewer(
           continue;
         }
 
-        let nobackup = false;
         s.reviewers[reassignI] = backup;
         toManyMap.set(reassignReviewer, toMany - 1);
         reviewerAssignments.get(backup.email)?.push({
           submission: s.id,
           pRank: backup.pRank,
         });
+
+        console.log(
+          `replace rank ${currentReviewer.pRank} with ${backup.pRank}`,
+        );
+
+        if (currentReviewer.student) s.studentReviewerCount--;
         if (backup.student) s.studentReviewerCount++;
 
         break;
@@ -352,6 +396,7 @@ function pickNext(
       pRank: 999,
       student: false,
       order: 999,
+      submissionRank: 999,
     };
   }
   return {
@@ -361,6 +406,7 @@ function pickNext(
     pRank: 999,
     student: false,
     order: 999,
+    submissionRank: 999,
   };
 }
 

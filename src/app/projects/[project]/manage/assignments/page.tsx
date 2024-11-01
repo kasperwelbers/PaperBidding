@@ -188,7 +188,7 @@ function ReviewersBySubmission({
   const { CSVDownloader, Type } = useCSVDownloader();
 
   return (
-    <div className="p-3 lg:p-9  mt-3 flex flex-col gap-9">
+    <div className="p-3 lg:p-9  mt-3 flex flex-col gap-3">
       {/* <CSVDownloader
         type={Type.Button}
         className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors "
@@ -204,10 +204,18 @@ function ReviewersBySubmission({
         Each reviewer has a <b>ranking</b> for most suitable submissions, based
         on the similarity to their own work and/or the paper biddings. For
         similarity based rankings, we add the <b>no-bid penalty</b> to give
-        priority to reviewers that took the effort to bid.
+        priority to reviewers that took the effort to bid. So the higher this
+        penalty, the more you prioritize the biddings over the automatic
+        similarity ranking.
+      </p>
+      <p>
+        For each assignment we report the reviewer rank, where 1 indicates that
+        this was the best match for the reviewer, 2 the second best, An *
+        indicates that the rank is based on similarity (and not on bidding), so
+        for the matching the no-bid penalty was applied.
       </p>
       {bySubmission ? (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 mt-6">
           {bySubmission.map((d) => {
             return (
               <div
@@ -273,6 +281,7 @@ function SubmissionsByReviewer({
       }
       return {
         reviewer: r.reviewer,
+        student: r.student,
         control_ids: control_ids.join(", "),
       };
     });
@@ -346,7 +355,7 @@ function SubmissionsByReviewer({
           <TableCaption>Submissions by reviewer</TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead>Reviewer</TableHead>
+              <TableHead>Reviewer (*student)</TableHead>
               <TableHead>Control IDs</TableHead>
             </TableRow>
           </TableHeader>
@@ -355,6 +364,7 @@ function SubmissionsByReviewer({
               return (
                 <TableRow key={d.reviewer} className="">
                   <TableCell className="overflow-hidden font-bold max-w-[50%] text-ellipsis whitespace-nowrap">
+                    {d.student === "Yes" ? " *" : ""}
                     <span title={d.reviewer}> {d.reviewer}</span>
                   </TableCell>
                   <TableCell className="flex gap-1 justify-between items-center">
