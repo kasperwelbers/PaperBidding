@@ -7,10 +7,12 @@ export async function sendInvitation(
   division: string,
   test?: boolean,
 ) {
+  const testLink = link.split("/bidding/")[0] + "/test";
+
   const response = await fetch(`/api/projects/${projectId}/invitation`, {
     body: JSON.stringify({
       to: email,
-      html: createHTML(link, text1, text2),
+      html: createHTML(test ? testLink : link, text1, text2),
       division: division,
       test,
     }),
