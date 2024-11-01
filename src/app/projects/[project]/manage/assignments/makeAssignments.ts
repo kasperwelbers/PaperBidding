@@ -100,8 +100,6 @@ export default function makeAssignments(
       return a.order - b.order;
     });
 
-  console.log(submissions);
-
   // We'll first assign the most suitable reviewers, regardless of
   // how many submissions they've already been assigned to. Later
   // we'll balance out the assignments over all reviewers.
@@ -156,6 +154,7 @@ export default function makeAssignments(
 
   submissions = balanceSubmissionsPerReviewer(
     submissions,
+    reviewers,
     reviewerAssignments,
     reviewersPerSubmission,
     maxStudentReviewers,
@@ -217,6 +216,7 @@ export default function makeAssignments(
 
 function balanceSubmissionsPerReviewer(
   submissions: SubmissionWithReviewers[],
+  reviewers: GetReviewer[],
   reviewerAssignments: ReviewerAssignments,
   reviewersPerSubmission: number,
   maxStudentReviewers: number,
@@ -228,8 +228,12 @@ function balanceSubmissionsPerReviewer(
 
   // calculate how many submissions each reviewer should have
   const total = submissions.length;
-  const reviewers = reviewerAssignments.size;
-  const maxCount = Math.ceil((total * reviewersPerSubmission) / reviewers) + 1;
+  const Nreviewers = reviewerAssignments.size;
+  const maxCount = Math.ceil((total * reviewersPerSubmission) / Nreviewers);
+  const maxStudentCount = Math.ceil(
+    (total * Math.min(maxStudentReviewers, reviewersPerSubmission)) /
+      studentReviewers,
+  );
 
   const reassignMapUnordered: Map<
     number,
@@ -237,7 +241,10 @@ function balanceSubmissionsPerReviewer(
   > = new Map();
   const toManyMap: Map<string, number> = new Map();
   for (let [reviewer, assignments] of reviewerAssignments) {
-    const toMany = assignments.length - maxCount;
+    const student =
+      reviewers.find((r) => r.email === reviewer)?.student || false;
+    const toMany = assignments.length - (student ? maxStudentCount : maxCount);
+
     if (toMany <= 0) continue;
 
     toManyMap.set(reviewer, toMany);
@@ -300,7 +307,8 @@ function balanceSubmissionsPerReviewer(
           };
         })
         .sort((a, b) => {
-          return a.pRank - b.pRank || a.assignments - b.assignments;
+          return a.assignments - b.assignments || a.pRank - b.pRank;
+          // return a.pRank - b.pRank || a.assignments - b.assignments;
         });
 
       for (let backup of s.backupReviewers) {
@@ -314,12 +322,10 @@ function balanceSubmissionsPerReviewer(
         }
 
         const count = reviewerAssignments.get(backup.email)?.length || 0;
-        if (toMany === 1) {
-          if (count >= maxCount) continue;
-        } else {
-          // if currentReviewer has way to many (> maxCount + 2) be more lenient
-          if (count >= maxCount + 1) continue;
-        }
+        const mc = backup.student ? maxStudentCount : maxCount;
+        if (toMany === 1 && count >= mc) continue;
+        if (toMany === 2 && count >= mc + 1) continue;
+        if (toMany === 3 && count >= mc + 2) continue;
 
         if (currentReviewers.includes(backup.email)) {
           continue;
@@ -331,10 +337,6 @@ function balanceSubmissionsPerReviewer(
           submission: s.id,
           pRank: backup.pRank,
         });
-
-        console.log(
-          `replace rank ${currentReviewer.pRank} with ${backup.pRank}`,
-        );
 
         if (currentReviewer.student) s.studentReviewerCount--;
         if (backup.student) s.studentReviewerCount++;

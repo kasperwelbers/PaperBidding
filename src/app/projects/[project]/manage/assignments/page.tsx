@@ -392,7 +392,7 @@ function CopyText({ text }: { text: string }) {
       onClick={() => {
         navigator.clipboard.writeText(text);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => setCopied(false), 500);
       }}
     >
       <FaCopy />
