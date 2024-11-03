@@ -216,13 +216,13 @@ function VoteBox({
 
 function Instruction() {
   return (
-    <Dialog>
+    <Dialog defaultOpen>
       <DialogTrigger asChild>
         <Button variant="ghost" className="pl-5">
           <FaQuestionCircle size={30} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-max">
+      <DialogContent className="w-max ">
         <DialogHeader>
           <DialogTitle className="">How does paper bidding work?</DialogTitle>
         </DialogHeader>
