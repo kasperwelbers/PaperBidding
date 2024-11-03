@@ -316,7 +316,7 @@ To help us assign the right reviewers to the right papers, we ask you to indicat
 `;
 }
 function getText2Default(deadline: string) {
-  return `The deadline for indicating your preferences is ${deadline}. If you do not bid on any papers, you will automatically be matched to remaining papers based on similarity to your own submissions.
+  return `The deadline for indicating your preferences is already on November 6th, so please act quickly if you want to bid. If you do not bid on any papers, you will automatically be matched to remaining papers based on similarity to your own submissions.
 
 Happy bidding!`;
 }
