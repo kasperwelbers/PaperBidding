@@ -115,7 +115,7 @@ export async function GET(
         canReview: row.canReview,
         firstAuthor: false,
         link: domain + `/bidding/${params.project}/${row.id}/${row.link}`,
-        invitationSent: String(row.invitationSent),
+        invitationSent: row.invitationSent ? String(row.invitationSent) : null,
         biddings: row.biddings || [],
         manualBiddings: row.biddings?.length || 0,
         volunteer: row.importedFrom === "volunteer",

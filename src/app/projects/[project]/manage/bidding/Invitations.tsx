@@ -192,6 +192,7 @@ function SendBulkEmail({
   const [progress, setProgress] = useState<number | null>(null);
 
   const uninvited = useMemo(() => {
+    console.log(reviewers);
     return reviewers.filter((r) => !r.invitationSent);
   }, [reviewers]);
   const recipients = who === "uninvited" ? uninvited : reviewers;
