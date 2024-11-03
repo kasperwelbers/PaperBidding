@@ -22,10 +22,10 @@ export async function GET(
   { params }: { params: { project: number } },
 ) {
   const { email } = await authenticate();
-  if (!email)
-    return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
+  // if (!email)
+  //   return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email || "", params.project);
   const searchParams = new URL(req.url).searchParams;
 
   const offset = Number(searchParams.get("offset")) || 0;
