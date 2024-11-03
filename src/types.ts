@@ -67,7 +67,7 @@ export interface GetReviewer {
   canReview: boolean;
   firstAuthor: boolean;
   link: string;
-  invitationSent: Date | null;
+  invitationSent: string | null;
   biddings: number[];
   manualBiddings: number;
   coAuthors: string[];

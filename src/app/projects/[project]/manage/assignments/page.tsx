@@ -393,7 +393,6 @@ function SubmissionsByReviewer({
       </div>
       <div className="flex flex-col gap-6 w-full">
         <Table className="table-fixed">
-          <TableCaption>Submissions by reviewer</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Reviewer (*student)</TableHead>

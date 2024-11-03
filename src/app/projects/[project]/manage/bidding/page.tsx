@@ -80,14 +80,15 @@ function ReviewerList({ reviewers }: { reviewers?: GetReviewer[] }) {
         </thead>
         <tbody>
           {reviewers.map((reviewer) => {
+            const invitationSent = reviewer.invitationSent
+              ? new Date(reviewer.invitationSent).toDateString()
+              : "Not yet";
             return (
               <tr key={reviewer.email}>
                 <td className="max-w-[15rem] overflow-hidden overflow-ellipsis whitespace-nowrap">
                   <span title={reviewer.email}>{reviewer.email}</span>
                 </td>
-                <td className="text-right">
-                  {reviewer.invitationSent?.toDateString() || "Not yet"}
-                </td>
+                <td className="text-right">{invitationSent}</td>
                 <td className="text-right">{reviewer?.biddings?.length}</td>
                 <td className="text-right">
                   <a href={reviewer.link}>
