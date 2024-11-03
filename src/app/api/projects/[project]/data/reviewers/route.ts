@@ -65,6 +65,7 @@ export async function GET(
         submissionId: submissions.submissionId,
         features: submissions.features,
         authors: submissions.authors,
+        isReference: submissions.isReference,
       },
     })
     .from(reviewers)
@@ -125,7 +126,7 @@ export async function GET(
     if (row.author) {
       if (row.author.position === 0) rows[row.email].firstAuthor = true;
     }
-    if (row.submission) {
+    if (row.submission && !row.submission.isReference) {
       rows[row.email].submissions.push({
         id: row.submission.id,
         submissionId: row.submission.submissionId,

@@ -112,7 +112,7 @@ export default function UploadSubmissions({
         try {
           SubmissionsSchema.parse(submissions);
 
-          const batchSize = 10;
+          const batchSize = 200;
           let batch: ProcessedSubmission[] = [];
           for (let i = 0; i < submissions.length; i++) {
             batch.push(submissions[i]);

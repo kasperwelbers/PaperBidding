@@ -116,7 +116,7 @@ export default function UploadData({
             disabled={!submissions?.n}
             title="Step 2. Upload reviewers"
             hint="Add volunteer reviewers by email"
-            doneMsg={`Assigned ${volunteers.n} volunteer${volunteers.n === 1 ? "" : "s"}`}
+            doneMsg={`Assigned ${volunteers.n} reviewers${volunteers.n === 1 ? "" : "s"}`}
             done={!!volunteers?.n}
             loading={volunteers.isLoading}
           />
@@ -172,6 +172,7 @@ export default function UploadData({
             dataPage={data.references}
             extractFeatures={extractFeatures}
             institutionResolver={institutionResolver}
+            reference={true}
           />
         </DialogContent>
       </Dialog>

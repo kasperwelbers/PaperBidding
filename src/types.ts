@@ -136,6 +136,7 @@ export interface Bidding {
   student: boolean;
   order: number;
   submissionRank: number;
+  author: boolean;
 }
 
 export interface BySubmission {

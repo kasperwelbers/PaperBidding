@@ -16,6 +16,7 @@ export default function makeAssignments(
   submissionData: GetMetaSubmission[],
   reviewersPerSubmission: number,
   maxStudentReviewers: number,
+  includeWho: "all" | "authors" | "authors or bidders",
   autoPenalty: number,
 ) {
   const biddingMap = new Map<number, Bidding[]>();
@@ -29,10 +30,23 @@ export default function makeAssignments(
 
   // copy so we don't mutate the original
   // submissionData = submissions.map((submission) => ({ ...submission }));
-  reviewers = reviewers.map((reviewer) => ({
-    ...reviewer,
-    biddings: [...reviewer.biddings],
-  }));
+  console.log(reviewers.length);
+  reviewers = reviewers
+    .map((reviewer) => ({
+      ...reviewer,
+      biddings: [...reviewer.biddings],
+    }))
+    .filter((reviewer) => {
+      // remove reviewers that can't review
+      const author = reviewer.submissions.length > 0;
+      const bidder = reviewer.manualBiddings > 0;
+
+      if (includeWho === "authors" && !author) return false;
+      if (includeWho === "authors or bidders" && !author && !bidder)
+        return false;
+      return true;
+    });
+  console.log(reviewers.length);
 
   // for biddings not made, add rank based on similarity
   reviewers = fillMissingBiddings(
@@ -45,12 +59,14 @@ export default function makeAssignments(
     let i = 0;
     const nrHash = hashToNumber(reviewer.email);
     reviewerAssignments.set(reviewer.email, []);
+
     for (const internalId of reviewer.biddings) {
       if (!biddingMap.has(internalId)) biddingMap.set(internalId, []);
 
       const method = i >= reviewer.manualBiddings ? "auto" : "manual";
 
       const biddingsArray = biddingMap.get(internalId);
+
       biddingsArray?.push({
         email: reviewer.email,
         method,
@@ -59,6 +75,7 @@ export default function makeAssignments(
         student: reviewer.student,
         order: (nrHash + internalId * 77777) % 1000,
         submissionRank: 0,
+        author: reviewer.submissions.length > 0,
       });
     }
   }
@@ -171,11 +188,13 @@ export default function makeAssignments(
       const reviewerKey = `reviewer_${i + 1}`;
       const rankKey = `reviewer.rank_${i + 1}`;
       const studentKey = `reviewer.student_${i + 1}`;
-      const { email, method, rank, submissionRank, student } =
+      const authorKey = `reviewer.author_${i + 1}`;
+      const { email, method, rank, submissionRank, student, author } =
         submission.reviewers[i];
       data[reviewerKey] = email;
       data[rankKey] = method === "auto" ? `${rank}*` : `${rank}`;
       data[studentKey] = student ? "yes" : "no";
+      data[authorKey] = author ? "yes" : "no";
     }
     //data.biddings = JSON.stringify(data.biddings);
     return data;
@@ -210,7 +229,12 @@ export default function makeAssignments(
   return {
     byReviewer,
     bySubmission,
-    settings: { reviewersPerSubmission, autoPenalty, maxStudentReviewers },
+    settings: {
+      reviewersPerSubmission,
+      autoPenalty,
+      maxStudentReviewers,
+      includeWho,
+    },
   };
 }
 
@@ -399,6 +423,7 @@ function pickNext(
       student: false,
       order: 999,
       submissionRank: 999,
+      author: false,
     };
   }
   return {
@@ -409,6 +434,7 @@ function pickNext(
     student: false,
     order: 999,
     submissionRank: 999,
+    author: false,
   };
 }
 

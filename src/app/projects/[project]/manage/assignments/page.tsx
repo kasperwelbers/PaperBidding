@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function BiddingPage({
   params,
@@ -47,6 +48,9 @@ export default function BiddingPage({
   const [perSubmission, setPerSubmission] = useState(3);
   const [autoPenalty, setAutoPenalty] = useState(5);
   const [maxStudentReviewers, setMaxStudentReviewers] = useState(1);
+  const [includeWho, setIncludeWho] = useState<
+    "all" | "authors" | "authors or bidders"
+  >("all");
 
   const {
     data: project,
@@ -83,6 +87,18 @@ export default function BiddingPage({
 
   const { trigger: uploadAssignments } = useUploadAssignments(params.project);
 
+  const whoCount = useMemo(() => {
+    let nAuthors = 0;
+    let nAuthorsOrBidders = 0;
+    let nEveryone = 0;
+    for (let r of reviewers || []) {
+      nEveryone++;
+      if (r.submissions.length > 0) nAuthors++;
+      if (r.submissions.length > 0 || r.manualBiddings > 0) nAuthorsOrBidders++;
+    }
+    return { nAuthors, nAuthorsOrBidders, nEveryone };
+  }, [reviewers]);
+
   useEffect(() => {
     if (assignments) {
       setData({
@@ -92,6 +108,7 @@ export default function BiddingPage({
       setPerSubmission(assignments.settings.reviewersPerSubmission);
       setAutoPenalty(assignments.settings.autoPenalty);
       setMaxStudentReviewers(assignments.settings.maxStudentReviewers);
+      setIncludeWho(assignments.settings.includeWho);
     }
   }, [assignments]);
 
@@ -108,6 +125,7 @@ export default function BiddingPage({
       submissions,
       perSubmission,
       maxStudentReviewers,
+      includeWho,
       autoPenalty,
     );
     uploadAssignments(data);
@@ -150,6 +168,29 @@ export default function BiddingPage({
               max={100}
               onChange={(e) => setMaxStudentReviewers(parseInt(e.target.value))}
             />
+            <div className="col-span-2 flex justify-between mt-2">
+              <Label>Assign who</Label>
+              <RadioGroup
+                name="includeWho"
+                value={includeWho}
+                onValueChange={(value) => setIncludeWho(value as any)}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="all" id="r1" />
+                  <Label htmlFor="r1">Everyone ({whoCount.nEveryone})</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="authors" id="r2" />
+                  <Label htmlFor="r2">Only authors ({whoCount.nAuthors})</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="authors or bidders" id="r3" />
+                  <Label htmlFor="r3">
+                    Authors or bidders ({whoCount.nAuthorsOrBidders})
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-1 ">
             <Button

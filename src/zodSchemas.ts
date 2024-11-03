@@ -67,6 +67,7 @@ export const AssignmentsSchema = z.object({
     autoPenalty: z.number(),
     reviewersPerSubmission: z.number(),
     maxStudentReviewers: z.number(),
+    includeWho: z.enum(["all", "authors", "authors or bidders"]),
   }),
 });
 
