@@ -57,6 +57,7 @@ export interface OwnSubmission {
   title?: string;
   submissionId: string;
   features: FeatureVector;
+  isReference: boolean;
 }
 
 export interface GetReviewer {
@@ -65,6 +66,7 @@ export interface GetReviewer {
   institution: string;
   student: boolean;
   canReview: boolean;
+  author: boolean;
   firstAuthor: boolean;
   link: string;
   invitationSent: string | null;

@@ -47,7 +47,7 @@ export async function GET(
     .as("subquery");
 
   const rowsPromise = db
-    .selectDistinctOn([reviewers.email], {
+    .select({
       id: reviewers.id,
       email: reviewers.email,
       institution: reviewers.institution,
@@ -113,6 +113,7 @@ export async function GET(
         institution: row.institution,
         student: row.student,
         canReview: row.canReview,
+        author: false,
         firstAuthor: false,
         link: domain + `/bidding/${params.project}/${row.id}/${row.link}`,
         invitationSent: row.invitationSent ? String(row.invitationSent) : null,
@@ -126,11 +127,17 @@ export async function GET(
     if (row.author) {
       if (row.author.position === 0) rows[row.email].firstAuthor = true;
     }
-    if (row.submission && !row.submission.isReference) {
+    if (row.submission) {
+      if (!row.submission.isReference) {
+        rows[row.email].author = true;
+        if (row.author && row.author.position === 0)
+          rows[row.email].firstAuthor = true;
+      }
       rows[row.email].submissions.push({
         id: row.submission.id,
         submissionId: row.submission.submissionId,
         features: row.submission.features,
+        isReference: row.submission.isReference,
       });
 
       for (let author of row.submission.authors) {

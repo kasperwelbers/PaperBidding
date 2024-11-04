@@ -67,7 +67,7 @@ export default function BiddingPage({
     "reviewers",
     undefined,
     undefined,
-    1000,
+    250,
   );
   const {
     data: submissions,
@@ -91,10 +91,11 @@ export default function BiddingPage({
     let nAuthors = 0;
     let nAuthorsOrBidders = 0;
     let nEveryone = 0;
+    console.log(reviewers);
     for (let r of reviewers || []) {
       nEveryone++;
-      if (r.submissions.length > 0) nAuthors++;
-      if (r.submissions.length > 0 || r.manualBiddings > 0) nAuthorsOrBidders++;
+      if (r.author) nAuthors++;
+      if (r.author || r.manualBiddings > 0) nAuthorsOrBidders++;
     }
     return { nAuthors, nAuthorsOrBidders, nEveryone };
   }, [reviewers]);
