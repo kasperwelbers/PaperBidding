@@ -109,7 +109,7 @@ export async function POST(
     });
   }
 
-  await db.insert(reviewers).values(newReviewers);
+  await db.insert(reviewers).values(newReviewers).onConflictDoNothing();
   return NextResponse.json({ status: 201 });
 }
 

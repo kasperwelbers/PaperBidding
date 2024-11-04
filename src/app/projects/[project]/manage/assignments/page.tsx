@@ -51,6 +51,7 @@ export default function BiddingPage({
   const [includeWho, setIncludeWho] = useState<
     "all" | "authors" | "authors or bidders"
   >("all");
+  const [canReview, setCanReview] = useState<Record<string, boolean>>({});
 
   const {
     data: project,
@@ -69,6 +70,19 @@ export default function BiddingPage({
     undefined,
     250,
   );
+
+  useEffect(() => {
+    if (!reviewers) {
+      setCanReview({});
+      return;
+    }
+    const canReview: Record<string, boolean> = {};
+    for (let reviewer of reviewers) {
+      canReview[reviewer.email] = reviewer.canReview;
+    }
+    setCanReview(canReview);
+  }, [reviewers]);
+
   const {
     data: submissions,
     isLoading: submissionsLoading,
@@ -91,7 +105,6 @@ export default function BiddingPage({
     let nAuthors = 0;
     let nAuthorsOrBidders = 0;
     let nEveryone = 0;
-    console.log(reviewers);
     for (let r of reviewers || []) {
       nEveryone++;
       if (r.author) nAuthors++;
@@ -123,6 +136,7 @@ export default function BiddingPage({
     if (!reviewers || !submissions) return;
     const data = makeAssignments(
       reviewers,
+      canReview,
       submissions,
       perSubmission,
       maxStudentReviewers,
@@ -211,6 +225,8 @@ export default function BiddingPage({
       <SubmissionsByReviewer
         byReviewer={data?.byReviewer}
         projectId={params.project}
+        canReview={canReview}
+        setCanReview={setCanReview}
       />
       <ReviewersBySubmission
         bySubmission={data?.bySubmission}
@@ -305,9 +321,13 @@ function ReviewersBySubmission({
 function SubmissionsByReviewer({
   byReviewer,
   projectId,
+  canReview,
+  setCanReview,
 }: {
   byReviewer: ByReviewer[] | undefined;
   projectId: number;
+  canReview: Record<string, boolean>;
+  setCanReview: (value: Record<string, boolean>) => void;
 }) {
   const { CSVDownloader, Type } = useCSVDownloader();
   const data = useMemo(() => {
@@ -324,11 +344,27 @@ function SubmissionsByReviewer({
       return {
         reviewer: r.reviewer,
         student: r.student,
+        canReview: r.canReview === "Yes",
         control_ids: control_ids.join(", "),
       };
     });
     return data.sort((a, b) => a.reviewer.localeCompare(b.reviewer));
   }, [byReviewer]);
+
+  async function updateReviewer(reviewer: string, reviewerCanReview: boolean) {
+    // TODO, make this nicer. Bit of an ad hoc hack
+    fetch(`/api/projects/${projectId}/data/reviewers`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: reviewer, canReview: reviewerCanReview }),
+    }).then((res) => {
+      if (res.ok) {
+        setCanReview({ ...canReview, [reviewer]: reviewerCanReview });
+      }
+    });
+  }
 
   if (!data) return null;
 
@@ -378,8 +414,9 @@ function SubmissionsByReviewer({
       </div>
       <div>
         <p className="mt-3 italic">
-          If you need to do many, we recommend downloading the CSV file, so that
-          you are certain the assignments will not change
+          <b>Be carefull</b> that once you start assigning in ScholarOne, you do
+          not want the assignments to change! Therefore, before you start, make
+          sure to download the CSV file with the current assignments.
         </p>
         <CSVDownloader
           type={Type.Button}
@@ -393,9 +430,15 @@ function SubmissionsByReviewer({
         </CSVDownloader>
       </div>
       <div className="flex flex-col gap-6 w-full">
+        <p>
+          <b>Exclude reviewers.</b> If you want to exclude specific reviewers,
+          you can uncheck their box. Then when you update the assignments, these
+          reviewers will not be assigned
+        </p>
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>
+              <TableHead className="w-6"></TableHead>
               <TableHead>Reviewer (*student)</TableHead>
               <TableHead>Control IDs</TableHead>
             </TableRow>
@@ -404,9 +447,25 @@ function SubmissionsByReviewer({
             {data.map((d) => {
               return (
                 <TableRow key={d.reviewer} className="">
+                  <TableCell>
+                    <Input
+                      type="checkbox"
+                      className="w-4 h-6 accent-primary"
+                      checked={canReview[d.reviewer] || false}
+                      onChange={(e) => {
+                        updateReviewer(d.reviewer, e.target.checked);
+                      }}
+                    />
+                  </TableCell>
                   <TableCell className="overflow-hidden font-bold max-w-[50%] text-ellipsis whitespace-nowrap">
                     {d.student === "Yes" ? " *" : ""}
-                    <span title={d.reviewer}> {d.reviewer}</span>
+                    <span
+                      title={d.reviewer}
+                      className={d.canReview ? "" : "opacity-50"}
+                    >
+                      {" "}
+                      {d.reviewer}
+                    </span>
                   </TableCell>
                   <TableCell className="flex gap-1 justify-between items-center">
                     <span>{d.control_ids}</span>

@@ -13,6 +13,7 @@ type ReviewerAssignments = Map<string, { submission: number; pRank: number }[]>;
 
 export default function makeAssignments(
   reviewers: GetReviewer[],
+  canReview: Record<string, boolean>,
   submissionData: GetMetaSubmission[],
   reviewersPerSubmission: number,
   maxStudentReviewers: number,
@@ -27,10 +28,10 @@ export default function makeAssignments(
 
   // keep track of submissions per reviewer, ordered by rank. use later to balance assignments
   const reviewerAssignments: ReviewerAssignments = new Map();
+  const cannotReview: GetReviewer[] = [];
 
   // copy so we don't mutate the original
   // submissionData = submissions.map((submission) => ({ ...submission }));
-  console.log(reviewers.length);
   reviewers = reviewers
     .map((reviewer) => ({
       ...reviewer,
@@ -44,9 +45,13 @@ export default function makeAssignments(
       if (includeWho === "authors" && !author) return false;
       if (includeWho === "authors or bidders" && !author && !bidder)
         return false;
+
+      if (!canReview[reviewer.email]) {
+        cannotReview.push(reviewer);
+        return false;
+      }
       return true;
     });
-  console.log(reviewers.length);
 
   // for biddings not made, add rank based on similarity
   reviewers = fillMissingBiddings(
@@ -208,6 +213,7 @@ export default function makeAssignments(
       if (!data[email])
         data[email] = {
           reviewer: email,
+          canReview: "Yes",
           student: reviewer.student ? "Yes" : "No",
         };
       const nSubmissions = Object.keys(data[email]).length - 2;
@@ -215,9 +221,22 @@ export default function makeAssignments(
       data[email]["submission_" + (nSubmissions + 1)] = submission.submissionId;
     }
   }
+
+  for (const reviewer of cannotReview) {
+    if (!data[reviewer.email])
+      data[reviewer.email] = {
+        reviewer: reviewer.email,
+        canReview: "No",
+        student: reviewer.student ? "Yes" : "No",
+      };
+  }
   for (const r of reviewers) {
     if (!data[r.email])
-      data[r.email] = { reviewer: r.email, student: r.student ? "Yes" : "No" };
+      data[r.email] = {
+        reviewer: r.email,
+        student: r.student ? "Yes" : "No",
+        canReview: "Yes",
+      };
   }
 
   const byReviewer: ByReviewer[] = Object.values(data).map((row) => {

@@ -8,7 +8,7 @@ import db, {
 } from "@/drizzle/schema";
 import { authenticate, canEditProject } from "@/lib/authenticate";
 import { GetReviewer } from "@/types";
-import { ReviewersSchema } from "@/zodSchemas";
+import { ReviewersSchema, UpdateReviewerSchema } from "@/zodSchemas";
 import cryptoRandomString from "crypto-random-string";
 import { and, sql, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -149,4 +149,32 @@ export async function GET(
   }
 
   return NextResponse.json({ rows: Object.values(rows), meta: meta[0] });
+}
+
+export async function PUT(
+  req: Request,
+  { params }: { params: { project: number } },
+) {
+  const { email } = await authenticate();
+  if (!email)
+    return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
+
+  const canEdit = await canEditProject(email, params.project);
+  if (!canEdit)
+    return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
+
+  const body = await req.json();
+  const data = UpdateReviewerSchema.parse(body);
+
+  await db
+    .update(reviewers)
+    .set(data)
+    .where(
+      and(
+        eq(reviewers.projectId, params.project),
+        eq(reviewers.email, data.email),
+      ),
+    );
+
+  return NextResponse.json({}, { status: 201 });
 }

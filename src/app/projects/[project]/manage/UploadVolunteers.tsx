@@ -63,7 +63,6 @@ export default function UploadVolunteers({
 
     for (let row of data) {
       // TODO: do include these, but so something smarter for filtering them with custom options
-      console.log(row.reviewer);
       if (row.reviewer !== "Yes") continue;
 
       const institution = institutionResolver.resolve(

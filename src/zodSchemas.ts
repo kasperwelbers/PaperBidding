@@ -29,6 +29,13 @@ export const ReviewersSchema = z.array(
   }),
 );
 
+export const UpdateReviewerSchema = z.object({
+  email: z.string(),
+  institution: z.string().optional(),
+  student: z.boolean().optional(),
+  canReview: z.boolean().optional(),
+});
+
 export const SubmissionsSchema = z.array(
   z.object({
     id: z.string(),
@@ -49,6 +56,7 @@ export const ByReviewer = z
   .object({
     reviewer: z.string(),
     student: z.string(),
+    canReview: z.string(),
   })
   .catchall(z.string());
 

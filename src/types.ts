@@ -151,6 +151,7 @@ export interface BySubmission {
 export interface ByReviewer {
   reviewer: string;
   student: string;
+  canReview: string;
   [key: string]: string;
 }
 
