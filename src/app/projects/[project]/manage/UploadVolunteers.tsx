@@ -30,12 +30,14 @@ interface Props {
   dataPage: DataPage;
   projectId: number;
   institutionResolver: InstitutionResolver;
+  closeDialog: () => void;
 }
 
 export default function UploadVolunteers({
   projectId,
   dataPage,
   institutionResolver,
+  closeDialog,
 }: Props) {
   const [status, setStatus] = useState({ loading: "", error: "" });
   const [reviewers, setReviewers] = useState<string>("");
@@ -62,18 +64,20 @@ export default function UploadVolunteers({
     const body: UploadReviewer[] = [];
 
     for (let row of data) {
-      // TODO: do include these, but so something smarter for filtering them with custom options
-      if (row.reviewer !== "Yes") continue;
-
       const institution = institutionResolver.resolve(
         row.email,
         row.institution,
       );
+
+      const notStudent =
+        !row.student || row.student === "No" || row.student === "no";
+      const cannotReview = row.reviewer === "No" || row.reviewer === "no";
+
       body.push({
         email: row.email,
         institution: institution,
-        student: row.student === "Yes",
-        canReview: row.reviewer === "Yes",
+        student: !notStudent,
+        canReview: !cannotReview,
       });
     }
 
@@ -82,6 +86,7 @@ export default function UploadVolunteers({
       await uploadVolunteers({ data: body });
       setStatus({ loading: "", error: "" });
       dataPage.reset();
+      closeDialog();
     } catch (e: any) {
       setStatus({ loading: "", error: e.message });
     }
@@ -93,17 +98,8 @@ export default function UploadVolunteers({
 
   const hasChanged = reviewers.trim() !== reviewerString(dataPage).trim();
 
-  if (dataPage.data && dataPage.data.length > 0)
-    return (
-      <ManageData
-        dataPage={dataPage}
-        deleteData={deleteVolunteers}
-        setStatus={setStatus}
-      />
-    );
-
   return (
-    <div>
+    <div className="mt-6">
       {status.error && <div className="text-red-500">{status.error}</div>}
       <CSVReader
         fields={volunteerFields}
@@ -113,6 +109,16 @@ export default function UploadVolunteers({
         onUpload={onUpload}
         defaultFields={defaultFields}
       />
+      {dataPage.data && dataPage.data.length > 0 ? (
+        <div className="mt-16 border-t-2 pt-6">
+          <h3>Current Data</h3>
+          <ManageData
+            dataPage={dataPage}
+            deleteData={deleteVolunteers}
+            setStatus={setStatus}
+          />
+        </div>
+      ) : null}
     </div>
   );
 

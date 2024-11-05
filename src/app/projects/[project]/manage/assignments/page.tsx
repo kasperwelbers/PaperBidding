@@ -150,8 +150,31 @@ export default function BiddingPage({
   return (
     <div className="grid max-w-7xl gap-y-6 mx-auto grid-cols-1 lg:grid-cols-2 items-center lg:items-start justify-center mt-6 w-full">
       <div className="col-span-1 lg:col-span-2 flex flex-col gap-3  mb-6 ml-auto px-5">
-        <div className="flex gap-3 items-start">
-          <div className="grid grid-cols-[1fr,6rem] gap-1 items-center">
+        <div className="flex flex-col items-center gap-3 lg:flex-row lg:items-start">
+          <div className="flex gap-3 justify-between mt-2 pr-3">
+            <Label>Assign who</Label>
+            <RadioGroup
+              name="includeWho"
+              value={includeWho}
+              onValueChange={(value) => setIncludeWho(value as any)}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all" id="r1" />
+                <Label htmlFor="r1">Everyone ({whoCount.nEveryone})</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="authors" id="r2" />
+                <Label htmlFor="r2">Only authors ({whoCount.nAuthors})</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="authors or bidders" id="r3" />
+                <Label htmlFor="r3">
+                  Authors or bidders ({whoCount.nAuthorsOrBidders})
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div className="grid grid-cols-[1fr,6rem] gap-[2px] items-center">
             <Label htmlFor="perSubmission">Reviewers per submission</Label>
 
             <Input
@@ -183,29 +206,6 @@ export default function BiddingPage({
               max={100}
               onChange={(e) => setMaxStudentReviewers(parseInt(e.target.value))}
             />
-            <div className="col-span-2 flex justify-between mt-2">
-              <Label>Assign who</Label>
-              <RadioGroup
-                name="includeWho"
-                value={includeWho}
-                onValueChange={(value) => setIncludeWho(value as any)}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="r1" />
-                  <Label htmlFor="r1">Everyone ({whoCount.nEveryone})</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="authors" id="r2" />
-                  <Label htmlFor="r2">Only authors ({whoCount.nAuthors})</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="authors or bidders" id="r3" />
-                  <Label htmlFor="r3">
-                    Authors or bidders ({whoCount.nAuthorsOrBidders})
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
           </div>
           <div className="grid grid-cols-1 gap-1 ">
             <Button
@@ -280,12 +280,19 @@ function ReviewersBySubmission({
                 key={d.submission_id}
                 className="flex flex-col gap-3 border-b pb-3"
               >
-                <div className="flex gap-3">
-                  <div className="px-3 py-1 h-min  bg-primary text-primary-foreground rounded">
-                    {d.submission_id}
-                  </div>
-                  <div className="font-bold text-sm min-w-0 whitespace-break-spaces">
-                    {d.title}
+                <div>
+                  <div className="flex gap-3 ">
+                    <div className="px-3 py-1 h-min  bg-primary text-primary-foreground rounded">
+                      {d.submission_id}
+                    </div>
+                    <div className="">
+                      <div className="font-bold text-sm min-w-0 whitespace-break-spaces">
+                        {d.title}
+                      </div>
+                      <div className=" mt-1 italic text-sm min-w-0 whitespace-break-spaces">
+                        {d.authors}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 ml-6">

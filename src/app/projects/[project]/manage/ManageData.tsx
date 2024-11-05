@@ -34,7 +34,7 @@ export default function ManageData({
   if (!dataPage.data) return null;
 
   return (
-    <div className="flex flex-col text-center h-full">
+    <div className="flex flex-col text-center h-full ">
       <div className="mb-5">
         <div className="flex flex-col justify-center select-none">
           <strong className="text-primary">{dataPage.n} items</strong>
@@ -53,7 +53,7 @@ export default function ManageData({
         <div
           className={` overflow-auto pb-3 pt-1 ${dataPage.isLoading ? "opacity-50" : ""}`}
         >
-          <table className="table-auto text-left">
+          <table className="table-fixed text-left w-full">
             <thead>
               <tr className="">
                 {Object.keys(dataPage.data[0]).map((key) => {
@@ -105,12 +105,11 @@ export default function ManageData({
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mt-auto items-center border-t pt-6">
-        <span className="flex-auto text-right opacity-70 max-w-[25rem]">
-          To re-upload data, you need to delete the current data first. Type
-          &quot;I am certain&quot; to enable delete
+        <span className="flex-auto text-right  w-full opacity-70 max-w-[25rem] ml-auto">
+          To enable deleting data, type &quot;I am certain&quot;
         </span>
         <input
-          className="border-2 h-10 rounded border-gray-400 px-2  w-36 min-w-0 ml-auto"
+          className="border-2 h-10 rounded border-gray-400 px-2  w-36 min-w-0 "
           placeholder="I am certain"
           onChange={(e) => {
             if (e.target.value.toLowerCase() === "i am certain")

@@ -53,6 +53,10 @@ export default function UploadData({
   const volunteers = useData(projectId, "volunteers", { meta: true });
   const data = { submissions, volunteers, references };
 
+  const [submissionsDialog, setSubmissionsDialog] = useState(false);
+  const [volunteersDialog, setVolunteersDialog] = useState(false);
+  const [referencesDialog, setReferencesDialog] = useState(false);
+
   useEffect(() => {
     if (submissions.isLoading || volunteers.isLoading) return;
     const status = {
@@ -77,7 +81,7 @@ export default function UploadData({
     <>
       {/* <h3 className="">Project data</h3> */}
 
-      <Dialog>
+      <Dialog open={submissionsDialog} onOpenChange={setSubmissionsDialog}>
         <DialogTrigger asChild>
           <Step
             title="Step 1. Upload submissions"
@@ -110,23 +114,23 @@ export default function UploadData({
         </DialogContent>
       </Dialog>
 
-      <Dialog>
+      <Dialog open={volunteersDialog} onOpenChange={setVolunteersDialog}>
         <DialogTrigger asChild>
           <Step
             disabled={!submissions?.n}
             title="Step 2. Upload reviewers"
             hint="Add volunteer reviewers by email"
-            doneMsg={`Assigned ${volunteers.n} reviewers${volunteers.n === 1 ? "" : "s"}`}
+            doneMsg={`Assigned ${volunteers.n} reviewer${volunteers.n === 1 ? "" : "s"}`}
             done={!!volunteers?.n}
             loading={volunteers.isLoading}
           />
         </DialogTrigger>
         <DialogContent
-          className="flex items-center flex-col"
+          className="flex flex-col w-[1200px]"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Add volunteer reviewers</DialogTitle>
+            <DialogTitle>Add reviewers</DialogTitle>
             <DialogDescription>
               Upload a CSV file with the reviewers for your division. Only
               reviewers that said they are willing to review will be included.
@@ -137,11 +141,12 @@ export default function UploadData({
             projectId={project.id}
             dataPage={data.volunteers}
             institutionResolver={institutionResolver}
+            closeDialog={() => setVolunteersDialog(false)}
           />
         </DialogContent>
       </Dialog>
 
-      <Dialog>
+      <Dialog open={referencesDialog} onOpenChange={setReferencesDialog}>
         <DialogTrigger asChild>
           <Step
             disabled={!submissions?.n || !volunteers?.n}
