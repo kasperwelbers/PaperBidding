@@ -1,5 +1,3 @@
-"use client";
-
 import { usePostBiddings } from "@/hooks/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 

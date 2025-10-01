@@ -11,6 +11,8 @@ import {
   BySubmission,
   Admin,
   NoResponse,
+  useAllDataParams,
+  useGetPaginationParams,
 } from "@/types";
 import { useSession } from "next-auth/react";
 import { z } from "zod";
@@ -52,12 +54,12 @@ export function useGET<ResponseType>(
 
 /** Wrapper for useSWR that paginates
  */
-export function useGETPagionation<ResponseType>(
-  url: string | null,
-  token?: string,
-  metaParam?: boolean,
-  limit: number = 100,
-) {
+export function useGETPagionation<ResponseType>({
+  url,
+  token,
+  meta,
+  limit,
+}: useGetPaginationParams) {
   const session = useSession();
   const auth = !!token || session.status === "authenticated";
 
@@ -69,7 +71,7 @@ export function useGETPagionation<ResponseType>(
     while (true) {
       if (offset > 10000) throw new Error("Too many rows");
       let urlWithOffset = `${url}?offset=${offset}&limit=${limit}`;
-      if (metaParam) urlWithOffset += "&meta=true";
+      if (meta) urlWithOffset += "&meta=true";
 
       try {
         const res = await fetch(urlWithOffset, {
@@ -185,15 +187,21 @@ export function useData(
     error: error?.message || "",
   };
 }
-export function useAllData<ResponseType>(
-  projectId: number,
-  what: "submissions" | "reviewers",
-  token?: string,
-  meta?: boolean,
-  limit?: number,
-) {
+
+export function useAllData<ResponseType>({
+  projectId,
+  what,
+  token,
+  meta,
+  limit,
+}: useAllDataParams) {
   let url = `/api/projects/${projectId}/data/${what}`;
-  return useGETPagionation<ResponseType>(url, token, meta, limit || 100);
+  return useGETPagionation<ResponseType>({
+    url,
+    token,
+    meta,
+    limit: limit || 1000,
+  });
 }
 
 export function useAbstract(

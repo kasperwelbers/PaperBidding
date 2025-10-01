@@ -16,33 +16,25 @@ export default function BiddingPage({
 }: {
   params: { project: number };
 }) {
-  const {
-    data: project,
-    isLoading: projectLoading,
-    error: projectError,
-  } = useProject(params.project);
+  const project = useProject(params.project);
   const {
     data: reviewers,
     isLoading: reviewersLoading,
     error: reviewersError,
     mutate: mutateReviewers,
-  } = useAllData<GetReviewer>(params.project, "reviewers");
-  const {
-    data: submissions,
-    isLoading: submissionsLoading,
-    error: submissionsError,
-  } = useAllData<GetMetaSubmission>(
-    params.project,
-    "submissions",
-    undefined,
-    true,
-  );
+  } = useAllData<GetReviewer>({ projectId: params.project, what: "reviewers" });
 
-  if (reviewersLoading || submissionsLoading || projectLoading)
+  const submissions = useAllData<GetMetaSubmission>({
+    projectId: params.project,
+    what: "submissions",
+    meta: true,
+  });
+
+  if (reviewersLoading || submissions.isLoading || project.isLoading)
     return <Loading />;
-  if (!project) return <Error msg={projectError?.message || ""} />;
+  if (!project.data) return <Error msg={project.error?.message || ""} />;
   if (reviewersError) return <Error msg={reviewersError.message} />;
-  if (submissionsError) return <Error msg={submissionsError.message} />;
+  if (submissions.error) return <Error msg={submissions.error.message} />;
 
   return (
     <div className="mx-auto max-w-7xl grid grid-cols-1 gap-6 items-center  justify-center mt-6 w-full">
@@ -50,8 +42,8 @@ export default function BiddingPage({
         <div className="flex flex-col gap-8 mt-2">
           <Invitations
             projectId={params.project}
-            division={project.division}
-            deadline={project.deadline.toDateString()}
+            division={project.data.division}
+            deadline={project.data.deadline.toDateString()}
             reviewers={reviewers || []}
             mutateReviewers={mutateReviewers}
           />

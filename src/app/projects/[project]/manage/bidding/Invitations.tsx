@@ -71,7 +71,7 @@ function EmailModal({
             name="intro"
             value={text1}
             onChange={(e) => setText1(e.target.value)}
-            rows={8}
+            rows={10}
           />
           <div className="p-3 pt-5">
             <p className="text-sm">

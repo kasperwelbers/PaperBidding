@@ -25,7 +25,7 @@ export async function GET(
   // if (!email)
   //   return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email || "", params.project);
+  const canEdit = email ? await canEditProject(email, params.project) : false;
   const searchParams = new URL(req.url).searchParams;
 
   const offset = Number(searchParams.get("offset")) || 0;

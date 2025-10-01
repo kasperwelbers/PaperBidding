@@ -1,5 +1,3 @@
-"use client";
-
 import { Loading } from "@/components/ui/loading";
 import { useData, useDeleteData, useUploadData } from "@/hooks/api";
 import CSVReader from "@/components/ui/csvUpload";
@@ -12,6 +10,8 @@ import {
   InstitutionResolver,
   getInstitution,
 } from "@/hooks/useInstitutionResolver";
+import { ExtractFeaturesArgs } from "@/hooks/useFeatureExtractor";
+import { compressVector } from "@/lib/compressVector";
 
 const submissionFields = [
   { field: "id", label: "ID" },
@@ -33,11 +33,7 @@ interface Props {
   projectId: number;
   modelStatus: ModelStatus;
   dataPage: DataPage;
-  extractFeatures: (
-    texts: string[],
-    callback: (features: number[][]) => void,
-    progressCallback: (percent: number) => void,
-  ) => void;
+  extractFeatures: (args: ExtractFeaturesArgs) => void;
   institutionResolver: InstitutionResolver;
   reference?: boolean;
 }
@@ -98,16 +94,20 @@ export default function UploadSubmissions({
           submissionMap.get(row.id)?.institutions.push(institution);
         }
       }
+
       const submissions: ProcessedSubmission[] = [...submissionMap.values()];
       const texts = submissions.map(
         (submission) => submission.title + ".\n\n" + submission.abstract,
       );
 
-      const callback = async (features: number[][]) => {
+      const callback = async (features: Float32Array[]) => {
         // called when extractFeatures is finished
         for (let i = 0; i < features.length; i++) {
-          submissions[i].features = [...features[i]];
+          // compress to save bandwidth and improve speed.
+          // Doesn't really affect quality of matches with the number of submissions to compare
+          submissions[i].features = compressVector(features[i]);
         }
+        console.log(submissions);
 
         try {
           SubmissionsSchema.parse(submissions);
@@ -143,7 +143,11 @@ export default function UploadSubmissions({
         });
       };
 
-      extractFeatures(texts, callback, progressCallback);
+      extractFeatures({
+        texts,
+        onComplete: callback,
+        onProgress: progressCallback,
+      });
     } catch (e: any) {
       console.error(e);
       setStatus({ loading: "", error: e.message });
@@ -152,9 +156,9 @@ export default function UploadSubmissions({
 
   if (modelStatus === "loading") return <Loading msg="Loading Model" />;
   if (dataPage.isLoading && !dataPage.data?.length)
-    return <Loading msg="Loading Data" />;
+    return <Loading msg="Loading Data" className="w-[400px] mx-auto" />;
   if (status.loading)
-    return <Loading className="w-[400px]" msg={status.loading} />;
+    return <Loading className="w-[400px] mx-auto" msg={status.loading} />;
 
   if (dataPage.data && dataPage.data.length > 0)
     return (
@@ -166,7 +170,7 @@ export default function UploadSubmissions({
     );
 
   return (
-    <div>
+    <div className="w-full">
       {status.error && <div className="text-red-500">{status.error}</div>}
       <CSVReader
         fields={submissionFields}

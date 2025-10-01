@@ -53,7 +53,7 @@ export default function ProjectPage({
     isLoading: reviewersLoading,
     error: reviewersError,
     mutate: mutateReviewers,
-  } = useAllData<GetReviewer>(params.project, "reviewers");
+  } = useAllData<GetReviewer>({ projectId: params.project, what: "reviewers" });
 
   const biddingStatus = useMemo(() => {
     if (!reviewers) return { bidded: 0, invited: 0 };

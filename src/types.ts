@@ -1,8 +1,6 @@
 export type FeatureVector = number[];
 export type ModelStatus = "idle" | "loading" | "ready" | "error";
-export type FeatureExtractorCallback = (
-  featureVectors: FeatureVector[],
-) => void;
+export type FeatureExtractorCallback = (featureVectors: Float32Array[]) => void;
 export type ProgressCallback = (percent: number) => void;
 
 export interface Submission {
@@ -113,6 +111,8 @@ export interface GetMetaSubmission {
   submissionId: string;
   authors: string[];
   institutions: string[];
+  features: FeatureVector;
+  meanSimilarity?: number;
 }
 
 export interface SubmissionWithReviewers {
@@ -158,4 +158,18 @@ export interface ByReviewer {
 export interface AssignmentSettings {
   reviewersPerSubmission: number;
   autoPenalty: number;
+}
+
+export interface useAllDataParams {
+  projectId: number;
+  what: "reviewers" | "submissions";
+  token?: string;
+  meta?: boolean;
+  limit?: number;
+}
+export interface useGetPaginationParams {
+  url: string | null;
+  token?: string;
+  meta?: boolean;
+  limit: number;
 }

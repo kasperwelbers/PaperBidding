@@ -1,39 +1,54 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { ModelStatus, FeatureExtractorCallback, ProgressCallback } from '@/types';
-import CallbackManager from '@/classes/CallbackManager';
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  ModelStatus,
+  FeatureExtractorCallback,
+  ProgressCallback,
+} from "@/types";
+import CallbackManager from "@/classes/CallbackManager";
+
+export interface ExtractFeaturesArgs {
+  texts: string[];
+  onComplete: FeatureExtractorCallback;
+  onProgress?: ProgressCallback;
+}
 
 interface FeatureExtractorOut {
   modelStatus: ModelStatus;
   prepareModel: () => void;
-  extractFeatures: (texts: string[], callback: FeatureExtractorCallback) => void;
+  extractFeatures: (args: ExtractFeaturesArgs) => void;
 }
 
-export default function useFeatureExtractor(autoLoad?: boolean): FeatureExtractorOut {
-  const [modelStatus, setModelStatus] = useState<ModelStatus>('idle');
+export default function useFeatureExtractor(
+  autoLoad?: boolean,
+): FeatureExtractorOut {
+  const [modelStatus, setModelStatus] = useState<ModelStatus>("idle");
   const worker = useRef<Worker | null>(null);
   const callbackManager = useRef(
-    new CallbackManager<FeatureExtractorCallback | ProgressCallback>()
+    new CallbackManager<FeatureExtractorCallback | ProgressCallback>(),
   );
 
   useEffect(() => {
     if (!worker.current) {
-      worker.current = new Worker(new URL('./featureExtractorWorker.js', import.meta.url), {
-        type: 'module'
-      });
+      worker.current = new Worker(
+        new URL("./featureExtractorWorker.js", import.meta.url),
+        {
+          type: "module",
+        },
+      );
     }
 
     worker.current.onmessage = (e) => {
-      if (e.data.type === 'prepare-model') {
+      if (e.data.type === "prepare-model") {
         callbackManager.current.delete(e.data.callbackId);
         setModelStatus(e.data.status);
       }
-      if (e.data.type === 'extract') {
+      if (e.data.type === "extract") {
         const callback = callbackManager.current.pop(e.data.callbackId);
         callback?.(e.data.featureVectors);
       }
-      if (e.data.type === 'progress') {
+      if (e.data.type === "progress") {
         const callback = callbackManager.current.get(e.data.callbackId);
         if (e.data.percent === 1) {
           callbackManager.current.delete(e.data.callbackId);
@@ -51,20 +66,27 @@ export default function useFeatureExtractor(autoLoad?: boolean): FeatureExtracto
 
   const prepareModel = useCallback(() => {
     if (!worker.current?.postMessage) return;
-    worker.current.postMessage({ type: 'prepare-model' });
+    worker.current.postMessage({ type: "prepare-model" });
   }, [worker]);
 
   const extractFeatures = useCallback(
-    (texts: string[], onComplete: FeatureExtractorCallback, onProgress?: ProgressCallback) => {
+    ({ texts, onComplete, onProgress }: ExtractFeaturesArgs) => {
       if (!worker.current?.postMessage) return;
       const callbackId = callbackManager.current.set(onComplete);
-      const progressCallbackId = onProgress ? callbackManager.current.set(onProgress) : undefined;
-      worker.current.postMessage({ type: 'extract', texts, callbackId, progressCallbackId });
+      const progressCallbackId = onProgress
+        ? callbackManager.current.set(onProgress)
+        : undefined;
+      worker.current.postMessage({
+        type: "extract",
+        texts,
+        callbackId,
+        progressCallbackId,
+      });
     },
-    [worker, callbackManager]
+    [worker, callbackManager],
   );
 
-  if (autoLoad && modelStatus === 'idle') prepareModel();
+  if (autoLoad && modelStatus === "idle") prepareModel();
 
   return { modelStatus, prepareModel, extractFeatures };
 }

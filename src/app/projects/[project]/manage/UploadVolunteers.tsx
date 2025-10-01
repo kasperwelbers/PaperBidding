@@ -1,16 +1,9 @@
-"use client";
-
 import CSVReader from "@/components/ui/csvUpload";
 import { Loading } from "@/components/ui/loading";
 import { useDeleteData, useUploadData } from "@/hooks/api";
-import { DataPage, ProcessedSubmission, UploadReviewer } from "@/types";
+import { DataPage, UploadReviewer } from "@/types";
 import { useEffect, useState } from "react";
 import ManageData from "./ManageData";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { FaSave } from "react-icons/fa";
-import { ZodError, ZodIssue, z } from "zod";
-import Markdown from "react-markdown";
 import { InstitutionResolver } from "@/hooks/useInstitutionResolver";
 
 const volunteerFields = [
@@ -99,7 +92,7 @@ export default function UploadVolunteers({
   const hasChanged = reviewers.trim() !== reviewerString(dataPage).trim();
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 w-full">
       {status.error && <div className="text-red-500">{status.error}</div>}
       <CSVReader
         fields={volunteerFields}

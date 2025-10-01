@@ -19,7 +19,7 @@ export function computeRelevantSubmissions(
 }
 
 export function rankedSubmissions(
-  submissions: any[],
+  submissions: GetSubmission[],
   ownSubmissions: OwnSubmission[],
 ) {
   const rankedSubmissions = submissions.map((submission) => {

@@ -2,11 +2,21 @@
 
 ## Develop
 
-* Local postgres database. You can use docker for this: `docker run --name postgres -e POSTGRES_USER="devuser" -e POSTGRES_PASSWORD="devpw" -p 5432:5432 -d postgres`
-* Cryptographic secret for NextAuth (`npm run secret`)
-* Resend API key (`https://resend.com`)
+First start up a local database. Easiest is to use Postgres in Docker.
 
-Then set the following environment variables in a `.env.local` file:
+```bash
+docker run --name postgres -e POSTGRES_USER="devuser" -e POSTGRES_PASSWORD="devpw" -p 5432:5432 -d postgres`
+```
+
+Then create a database called `paperbidding` in that database.
+
+```bash
+docker exec -it postgres psql -U devuser -c "CREATE DATABASE paperbidding;"
+```
+
+Now you'll need to set up your environment variables in a `.env.local` file.
+To get the NEXTAUTH_SECRET you can run `npm run secret`, or use `openssl rand -base64 32`.
+For the RESEND_API_KEY you'll need an account at `https://resend.com`.
 
 ```bash
 SUPERADMIN="kasperwelbers@gmail.com"

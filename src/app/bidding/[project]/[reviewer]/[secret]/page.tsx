@@ -8,7 +8,7 @@ import { GetSubmission } from "@/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from "react-icons/fa";
 import { GiVote } from "react-icons/gi";
-import SubmissionItem from "./SubmissionItem";
+import SubmissionItem, { SubmissionItemTitle } from "./SubmissionItem";
 import useSelection from "./useSelection";
 import CurrentSelection from "./CurrentSelection";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Search, SkipBack, SkipForward } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export default function Reviewer({
   params,
@@ -27,12 +29,21 @@ export default function Reviewer({
   params: { project: number; reviewer: number; secret: number };
 }) {
   const token = params.reviewer + "/" + params.secret;
+  const [search, setSearch] = useState("");
+  const [filteredSubmissions, setFilteredSubmissions] = useState<
+    GetSubmission[]
+  >([]);
 
   const {
     data: submissions,
     isLoading,
     error,
-  } = useAllData<GetSubmission>(params.project, "submissions", token);
+  } = useAllData<GetSubmission>({
+    projectId: params.project,
+    what: "submissions",
+    token,
+    limit: 1000, // Don't set too high for vercel body limit
+  });
   const {
     data: reviewer,
     isLoading: isLoadingReviewer,
@@ -48,7 +59,6 @@ export default function Reviewer({
   const [showSelected, setShowSelected] = useState(false);
   const [page, setPage] = useState(1);
   const { data: project } = useProject(params.project);
-  const projectName = project?.name || "";
   const popupRef = useRef<HTMLDivElement>(null);
 
   const relevantSubmissions = useMemo(() => {
@@ -64,6 +74,26 @@ export default function Reviewer({
     return () => window.removeEventListener("mousedown", closePopup);
   }, [popupRef]);
 
+  useEffect(() => {
+    function filterSubmissions() {
+      if (!search) {
+        setFilteredSubmissions(relevantSubmissions || []);
+      } else {
+        setFilteredSubmissions(
+          (relevantSubmissions || []).filter((s) => {
+            return s.title.toLowerCase().includes(search.toLowerCase());
+          }),
+        );
+      }
+    }
+    const delayDebounceFn = setTimeout(() => {
+      filterSubmissions();
+      setPage(1);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, relevantSubmissions]);
+
   if (isLoading) return <Loading msg="Loading Submissions" />;
   if (error) return <Error msg={error.message} />;
   if (isLoadingReviewer) return <Loading msg="Loading Reviewer" />;
@@ -74,10 +104,11 @@ export default function Reviewer({
   if (selectionStatus === "error")
     return <Error msg="Error Loading Selection. Please reload page" />;
 
-  const nPages = Math.ceil(relevantSubmissions?.length / 10 || 0);
-  const pageData = relevantSubmissions?.slice((page - 1) * 10, page * 10);
+  const nPages = Math.ceil(filteredSubmissions?.length / 10 || 0);
+  const pageData = filteredSubmissions?.slice((page - 1) * 10, page * 10);
   function nextPage() {
     setPage(Math.min(nPages, page + 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function prevPage() {
     setPage(Math.max(1, page - 1));
@@ -85,21 +116,21 @@ export default function Reviewer({
 
   const pagination = (
     <div
-      className={`Pagination flex justify-end items-center p-2 pr-5 pt-0 md:pt-2 gap-1 md:gap-3 `}
+      className={`Pagination flex justify-end items-center  gap-1 md:gap-3 `}
     >
-      <FaArrowLeft
-        className={`w-6 h-6  ${
+      <SkipBack
+        className={`w-10 h-10 py-2 ${
           page === 1
             ? "cursor-default text-gray-300"
             : "cursor-pointer text-blue-500 hover:text-blue-700"
         }`}
         onClick={prevPage}
       />
-      <span className="font-bold min-w-[7rem] text-center select-none">
-        Page {page} / {nPages}
+      <span className="font-bold min-w-[3rem] text-center select-none">
+        {page} / {nPages}
       </span>
-      <FaArrowRight
-        className={`w-6 h-6  ${
+      <SkipForward
+        className={`w-10 h-10 py-2 ${
           page === nPages
             ? "cursor-default text-gray-300"
             : "cursor-pointer text-blue-500 hover:text-blue-700"
@@ -128,32 +159,54 @@ export default function Reviewer({
           </div>
         </div>
       </header>
-      <div className="h-full flex flex-col  gap-3 md:gap-5 px-3 md:px-3 overflow-auto">
+      <div className="h-full flex flex-col  gap-3 md:gap-5 px-3 md:px-3 ">
         <div
           className={`py-3 flex justify-center h-full max-h-full ${
             showSelected ? "blur-[2px] opacity-50 pointer-events-none" : ""
           }`}
         >
           <div className="relative flex flex-col w-full">
-            <div className="fixed left-3">
+            <div className="absolute right-0">
               <Instruction />
             </div>
             <div className="flex flex-col">
-              <div className="flex justify-center py-6">{pagination}</div>
-              <div className="flex flex-col mx-auto">
-                {pageData?.map((submission) => {
-                  return (
-                    <SubmissionItem
-                      key={submission.id}
-                      projectId={Number(params.project)}
-                      reviewerId={Number(params.reviewer)}
-                      token={token}
-                      submission={submission}
-                      selected={selected}
-                      setSelected={setSelected}
-                    />
-                  );
-                })}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="w-full md:w-max mr-auto text-sm bg-primary/80 text-background py-2 px-3 rounded flex mb-3">
+                  <ul className="list-disc pl-4 m-0 ">
+                    <li>Place around 5 bids or more</li>
+                    <li>Rank matters. Rank 1 is your first choice</li>
+                    <li>Bids are saved directly. No need to submit</li>
+                    <li>Click the title to see the abstract</li>
+                  </ul>
+                </div>
+                <div className="flex items-center justify-end mt-auto gap-3">
+                  {/*<Search className="h-5 w-5 text-foreground/50" />*/}
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search titles"
+                    className="w-44 h-8"
+                  />
+                  {pagination}
+                </div>
+              </div>
+              <div className="flex flex-col mx-auto w-[700px] max-w-[90vw]">
+                <div className="flex flex-col gap-2 mt-6">
+                  <SubmissionItemTitle />
+                  {pageData?.map((submission) => {
+                    return (
+                      <SubmissionItem
+                        key={submission.id}
+                        projectId={Number(params.project)}
+                        reviewerId={Number(params.reviewer)}
+                        token={token}
+                        submission={submission}
+                        selected={selected}
+                        setSelected={setSelected}
+                      />
+                    );
+                  })}
+                </div>
               </div>
               <div className="flex justify-center mt-auto py-6">
                 {pagination}
@@ -196,19 +249,22 @@ function VoteBox({
           <DialogTitle>Your bids</DialogTitle>
           <DialogDescription>
             There are your bids. You can change the order or delete them. You
-            can make as many bids as you want (10 is a good number).{"  "}
+            can make as many bids as you want (5 is a good number).{"  "}
             <b>When you are done</b> simply close the application.
           </DialogDescription>
         </DialogHeader>
 
-        <CurrentSelection
-          selected={selected}
-          setSelected={setSelected}
-          projectId={projectId}
-          reviewerId={reviewerId}
-          token={token}
-          submissions={submissions}
-        />
+        <div className="flex flex-col mt-3 gap-2">
+          <SubmissionItemTitle />
+          <CurrentSelection
+            selected={selected}
+            setSelected={setSelected}
+            projectId={projectId}
+            reviewerId={reviewerId}
+            token={token}
+            submissions={submissions}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -219,7 +275,7 @@ function Instruction() {
     <Dialog defaultOpen>
       <DialogTrigger asChild>
         <Button variant="ghost" className="pl-5">
-          <FaQuestionCircle size={30} />
+          <FaQuestionCircle className="bg-white rounded-full p-[1px] size-6 md:size-8" />
         </Button>
       </DialogTrigger>
       <DialogContent className="w-max ">
@@ -227,12 +283,13 @@ function Instruction() {
           <DialogTitle className="">How does paper bidding work?</DialogTitle>
         </DialogHeader>
         <DialogDescription className="h-0 hidden"></DialogDescription>
-        <div className="prose lg:prose-xl">
+        <div className="prose">
           <p>
             Simply <b>check the box for any abstracts you like</b>. Your
             selection will be used to assign you as a reviewer. The number of
             bids does not affect the number of reviews you will be asked to do.
-            So bid on as many as you like. <b>Around 10</b> is a good number.
+            So bid on as many as you like. <b>Around 5</b> is usually enough for
+            good matches, but feel free to go wild.
           </p>
           <p>
             The submissions you see are{" "}

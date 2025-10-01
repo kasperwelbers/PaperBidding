@@ -58,41 +58,31 @@ export default function BiddingPage({
     isLoading: projectLoading,
     error: projectError,
   } = useProject(params.project);
-  const {
-    data: reviewers,
-    isLoading: reviewersLoading,
-    error: reviewersError,
-    mutate: mutateReviewers,
-  } = useAllData<GetReviewer>(
-    params.project,
-    "reviewers",
-    undefined,
-    undefined,
-    250,
-  );
+
+  const reviewers = useAllData<GetReviewer>({
+    projectId: params.project,
+    what: "reviewers",
+    limit: 500,
+  });
 
   useEffect(() => {
-    if (!reviewers) {
+    if (!reviewers.data) {
       setCanReview({});
       return;
     }
     const canReview: Record<string, boolean> = {};
-    for (let reviewer of reviewers) {
+    for (let reviewer of reviewers.data) {
       canReview[reviewer.email] = reviewer.canReview;
     }
     setCanReview(canReview);
-  }, [reviewers]);
+  }, [reviewers.data]);
 
-  const {
-    data: submissions,
-    isLoading: submissionsLoading,
-    error: submissionsError,
-  } = useAllData<GetMetaSubmission>(
-    params.project,
-    "submissions",
-    undefined,
-    true,
-  );
+  const submissions = useAllData<GetMetaSubmission>({
+    projectId: params.project,
+    what: "submissions",
+    meta: true,
+    limit: 500,
+  });
   const {
     data: assignments,
     isLoading: assignmentsLoading,
@@ -105,13 +95,13 @@ export default function BiddingPage({
     let nAuthors = 0;
     let nAuthorsOrBidders = 0;
     let nEveryone = 0;
-    for (let r of reviewers || []) {
+    for (let r of reviewers.data || []) {
       nEveryone++;
       if (r.author) nAuthors++;
       if (r.author || r.manualBiddings > 0) nAuthorsOrBidders++;
     }
     return { nAuthors, nAuthorsOrBidders, nEveryone };
-  }, [reviewers]);
+  }, [reviewers.data]);
 
   useEffect(() => {
     if (assignments) {
@@ -126,18 +116,18 @@ export default function BiddingPage({
     }
   }, [assignments]);
 
-  if (reviewersLoading || submissionsLoading || projectLoading)
+  if (reviewers.isLoading || submissions.isLoading || projectLoading)
     return <Loading />;
   if (!project) return <Error msg={projectError?.message || ""} />;
-  if (reviewersError) return <Error msg={reviewersError.message} />;
-  if (submissionsError) return <Error msg={submissionsError.message} />;
+  if (reviewers.error) return <Error msg={reviewers.error.message} />;
+  if (submissions.error) return <Error msg={submissions.error.message} />;
 
   function updateAssignments() {
-    if (!reviewers || !submissions) return;
+    if (!reviewers.data || !submissions.data) return;
     const data = makeAssignments(
-      reviewers,
+      reviewers.data,
       canReview,
-      submissions,
+      submissions.data,
       perSubmission,
       maxStudentReviewers,
       includeWho,
@@ -395,7 +385,7 @@ function SubmissionsByReviewer({
             <a
               target="_blank"
               rel="noreferrer"
-              href="https://ica2025.abstractcentral.com"
+              href="https://ica2026.abstractcentral.com"
               className="underline text-blue-900"
             >
               ScholarOne,

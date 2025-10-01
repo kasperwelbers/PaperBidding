@@ -3,6 +3,7 @@ import React, { CSSProperties, useState } from "react";
 import { useCSVReader } from "react-papaparse";
 import { Button } from "./button";
 import { Combobox } from "./combobox";
+import { X } from "lucide-react";
 
 interface Props {
   fields: { field: string; label: string }[];
@@ -74,31 +75,47 @@ export default function CSVReader({
   };
 
   return (
-    <div className="flex flex-col gap-8 h-full">
+    <div className="flex flex-col gap-8 h-full w-full">
       <div>
         {/* <h3 className="text-center">Upload Submissions CSV</h3> */}
         <CSVReader onUploadAccepted={onUploadAccepted}>
-          {({ getRootProps }: any) => (
+          {({ getRootProps, acceptedFile }: any) => (
             <div className="flex items-center gap-5">
-              <Button
-                className="w-full h-full flex flex-col hover:text-white bg-white text-black border-2 border-dotted border-gray-700"
-                {...getRootProps()}
-              >
-                <h5 className="mb-0">Click here to select file</h5>
-                {/* <p>{detail}</p> */}
-              </Button>
-              {/* <div className="flex-auto max-w-[400px] text-[1rem] leading-[1.2rem]">{detail}</div> */}
+              {!data ? (
+                <Button
+                  className="w-full h-full flex flex-col hover:text-white bg-white text-black border-2 border-dotted border-gray-700"
+                  {...getRootProps()}
+                >
+                  <h5 className="mb-0">Click here to select file</h5>
+                  {/* <p>{detail}</p> */}
+                </Button>
+              ) : (
+                <div className="flex gap-3 w-full items-center justify-end">
+                  <div className="font-bold text-center">
+                    {acceptedFile?.name || "file"}
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setData(undefined)}
+                  >
+                    <X className="" size={16} />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CSVReader>
       </div>
-      <div className={` ${data ? "" : "opacity-50 pointer-events-none"}`}>
+      <div className={`w-full ${data ? "" : "opacity-50 pointer-events-none"}`}>
         {/* <h3 className="">Select columns</h3> */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr,250px]  items-center gap-x-5 gap-y-1">
+        <div className="grid grid-cols-2 sm:grid-cols-[1fr,250px]  items-center gap-x-5 gap-y-1">
           {fields.map((field) => {
             return (
               <div key={field.field} className="contents">
-                <div className="font-bold">{field.label}</div>
+                <div className="font-bold text-xs whitespace-nowrap md:text-base">
+                  {field.label}
+                </div>
                 <Combobox
                   items={data?.headers || []}
                   label="column"
@@ -116,12 +133,11 @@ export default function CSVReader({
           })}
         </div>
       </div>
-      <div
-        className={` ${allColumnsSelected ? "" : "opacity-50 pointer-events-none mt-auto"}`}
-      >
+      <div>
         <Button
           className="flex-auto w-full "
           onClick={() => onUpload(prepareUpload() || [])}
+          disabled={!allColumnsSelected || !data}
         >
           Upload
         </Button>

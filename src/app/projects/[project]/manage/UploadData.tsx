@@ -31,9 +31,6 @@ import {
 } from "@/components/ui/popover";
 import { ProjectStatus } from "./page";
 
-type Tab = "submissions" | "references" | "volunteers";
-const tabs: Tab[] = ["submissions", "volunteers", "references"];
-
 export default function UploadData({
   projectId,
   setStatus,
@@ -102,7 +99,7 @@ export default function UploadData({
             </DialogDescription>
           </DialogHeader>
           <SubmissionCSVInstruction />
-          <div className="flex items-center mt-6 mx-auto">
+          <div className="flex items-center mt-6">
             <UploadSubmissions
               projectId={project.id}
               modelStatus={modelStatus}
@@ -126,7 +123,7 @@ export default function UploadData({
           />
         </DialogTrigger>
         <DialogContent
-          className="flex flex-col w-[1200px]"
+          className="flex flex-col w-[800px] max-w-[95vw]"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
@@ -214,24 +211,24 @@ function SubmissionCSVInstruction() {
 
   if (!manual)
     return (
-      <div className="text-left mt-3 w-max">
+      <div className="text-left mt-3 w-max prose-sm max-w-full">
         <div className="flex gap-3 items-center mb-3">
           <h6 className="m-0">How to get this CSV file</h6>
         </div>
-        <ul className="list-disc list-inside">
+        <ul className="list-disc list-inside min-w-0">
           <li>
             Go to{" "}
             <a
               target="_blank"
               rel="noreferrer"
-              href="https://ica2025.abstractcentral.com"
+              href="https://ica2026.abstractcentral.com"
               className="underline text-blue-900"
             >
               ScholarOne,
             </a>{" "}
             open the <b>Admin</b> tab and go to <b>Search</b>
           </li>
-          <li>
+          <li className="min-w-0">
             In <b>Saved Searchers</b> select{" "}
             <i>&quot;Paper Bidding (select division yourself)&quot;</i>. Then
             click <b>Actions</b>: <b>Load</b>
@@ -254,7 +251,7 @@ function SubmissionCSVInstruction() {
     );
 
   return (
-    <div className="text-left mt-3 w-max">
+    <div className="text-left mt-3 w-max prose-sm max-w-full">
       <div className="flex gap-3 items-center mb-3">
         <h6 className="m-0">How to get this CSV file</h6>
         <DownloadCVSVideo />
@@ -265,7 +262,7 @@ function SubmissionCSVInstruction() {
           <a
             target="_blank"
             rel="noreferrer"
-            href="https://ica2025.abstractcentral.com"
+            href="https://ica2026.abstractcentral.com"
             className="underline text-blue-900"
           >
             ScholarOne,
@@ -305,7 +302,7 @@ function SubmissionCSVInstruction() {
 
 function ReviewerCSVInstruction() {
   return (
-    <div className="text-left mt-3 w-max">
+    <div className="text-left mt-3 w-max prose-sm max-w-full">
       <div className="flex gap-3 items-center mb-3">
         <h6 className="m-0">How to get this CSV file</h6>
       </div>
@@ -315,7 +312,7 @@ function ReviewerCSVInstruction() {
           <a
             target="_blank"
             rel="noreferrer"
-            href="https://ica2025.abstractcentral.com"
+            href="https://ica2026.abstractcentral.com"
             className="underline text-blue-900"
           >
             ScholarOne,
