@@ -25,7 +25,7 @@ export default function ManageData({
       });
   }
 
-  function changePage(e: MouseEvent, direction: "next" | "prev") {
+  function changePage(e: any, direction: "next" | "prev") {
     e.preventDefault();
     const fun = direction === "next" ? dataPage.nextPage : dataPage.prevPage;
     fun?.();
@@ -40,12 +40,12 @@ export default function ManageData({
           <strong className="text-primary">{dataPage.n} items</strong>
           <div className="flex justify-end items-center gap-3">
             <FaArrowLeft
-              onClick={(e: MouseEvent) => changePage(e, "prev")}
+              onClick={(e: any) => changePage(e, "prev")}
               className={`${dataPage.prevPage ? "cursor-pointer" : "opacity-50"}`}
             />
             <strong>{dataPage.page}</strong>
             <FaArrowRight
-              onClick={(e: MouseEvent) => changePage(e, "next")}
+              onClick={(e: any) => changePage(e, "next")}
               className={`${dataPage.nextPage ? "cursor-pointer" : "opacity-50"}`}
             />
           </div>

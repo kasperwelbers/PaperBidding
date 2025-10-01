@@ -17,13 +17,18 @@ import cryptoRandomString from "crypto-random-string";
 import { sql, and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
+
   const { email } = await authenticate();
   // if (!email)
   //   return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = email ? await canEditProject(email, params.project) : false;
+  const canEdit = email ? await canEditProject(email, projectId) : false;
   const searchParams = new URL(req.url).searchParams;
 
   const offset = Number(searchParams.get("offset")) || 0;
@@ -56,7 +61,7 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
     .where(
       and(
         eq(submissions.isReference, reference),
-        eq(submissions.projectId, params.project),
+        eq(submissions.projectId, projectId),
       ),
     )
     .orderBy(submissions.id)
@@ -68,7 +73,7 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
     .where(
       and(
         eq(submissions.isReference, reference),
-        eq(submissions.projectId, params.project),
+        eq(submissions.projectId, projectId),
       ),
     );
   const [rows, meta] = await Promise.all([rowsPromise, metaPromise]);
@@ -76,13 +81,17 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
   return NextResponse.json({ rows, meta: meta[0] });
 }
 
-export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
@@ -103,7 +112,7 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
 
   for (let row of validData.data) {
     newSubmissions.push({
-      projectId: params.project,
+      projectId: projectId,
       submissionId: row.id,
       title: row.title,
       abstract: row.abstract,
@@ -114,7 +123,7 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
     });
 
     const addNewAuthors = row.authors.map((author, i) => ({
-      projectId: params.project,
+      projectId: projectId,
       submissionId: row.id,
       position: i,
       email: author,
@@ -126,11 +135,11 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
       const firstauthor = row.authors[0];
       const firstinstitution = row.institutions[0];
       newReviewers.push({
-        projectId: params.project,
+        projectId: projectId,
         email: firstauthor,
         institution: firstinstitution,
         importedFrom: "submission",
-        secret: createUserSecret(params.project, firstauthor),
+        secret: createUserSecret(projectId, firstauthor),
       });
     }
   }
@@ -155,13 +164,18 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
   return NextResponse.json({ status: 201 });
 }
 
-export async function DELETE(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
+
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
@@ -172,7 +186,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ project: n
     .delete(submissions)
     .where(
       and(
-        eq(submissions.projectId, params.project),
+        eq(submissions.projectId, projectId),
         eq(submissions.isReference, reference),
       ),
     );
@@ -182,7 +196,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ project: n
       .delete(reviewers)
       .where(
         and(
-          eq(reviewers.projectId, params.project),
+          eq(reviewers.projectId, projectId),
           eq(reviewers.importedFrom, "submission"),
         ),
       );

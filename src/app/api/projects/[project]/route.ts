@@ -6,20 +6,24 @@ import { GetProject } from "@/types";
 import { NextResponse } from "next/server";
 import { NewProjectSchema } from "@/zodSchemas";
 
-export async function GET(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
   const project = await db
     .select()
     .from(projects)
-    .where(eq(projects.id, params.project))
+    .where(eq(projects.id, projectId))
     .leftJoin(projectAdmins, eq(projectAdmins.projectId, projects.id));
   const p: any = project[0].projects;
   if (!p)
@@ -30,8 +34,12 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
   return NextResponse.json(p);
 }
 
-export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
   const { email, canCreateProject } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
@@ -47,7 +55,7 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
         ...newProject,
         creator: email,
       })
-      .where(eq(projects.id, params.project));
+      .where(eq(projects.id, projectId));
     return NextResponse.json({}, { status: 201 });
   } catch (e) {
     return NextResponse.json({}, { status: 400 });

@@ -7,10 +7,7 @@ import { NextResponse } from "next/server";
 import { NewProjectSchema } from "@/zodSchemas";
 import { z } from "zod";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function GET() {
   const { email, isSuperAdmin } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
@@ -22,10 +19,7 @@ export async function GET(
   return NextResponse.json(ads);
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function POST(req: Request) {
   const { email, isSuperAdmin } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });

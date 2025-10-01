@@ -12,22 +12,19 @@ import {
 import {
   GetReviewer,
   GetMetaSubmission,
-  Bidding,
   BySubmission,
   ByReviewer,
 } from "@/types";
-import { useEffect, useMemo, useState, use } from "react";
-import { FaArrowLeft, FaCopy, FaEye, FaVideo } from "react-icons/fa";
+import { use, useEffect, useMemo, useState } from "react";
+import { FaCopy, FaVideo } from "react-icons/fa";
 import { useCSVDownloader } from "react-papaparse";
 import makeAssignments from "./makeAssignments";
-import Link from "next/link";
 import { Dot } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -36,12 +33,12 @@ import {
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export default function BiddingPage(
-  props: {
-    params: Promise<{ project: number }>;
-  }
-) {
+export default function BiddingPage(props: {
+  params: Promise<{ project: string }>;
+}) {
   const params = use(props.params);
+  const projectId = Number(params.project);
+
   const [data, setData] = useState<{
     byReviewer: ByReviewer[];
     bySubmission: BySubmission[];
@@ -58,10 +55,10 @@ export default function BiddingPage(
     data: project,
     isLoading: projectLoading,
     error: projectError,
-  } = useProject(params.project);
+  } = useProject(projectId);
 
   const reviewers = useAllData<GetReviewer>({
-    projectId: params.project,
+    projectId: projectId,
     what: "reviewers",
     limit: 500,
   });
@@ -79,7 +76,7 @@ export default function BiddingPage(
   }, [reviewers.data]);
 
   const submissions = useAllData<GetMetaSubmission>({
-    projectId: params.project,
+    projectId: projectId,
     what: "submissions",
     meta: true,
     limit: 500,
@@ -88,9 +85,9 @@ export default function BiddingPage(
     data: assignments,
     isLoading: assignmentsLoading,
     error: assignmentsError,
-  } = useAssignments(params.project);
+  } = useAssignments(projectId);
 
-  const { trigger: uploadAssignments } = useUploadAssignments(params.project);
+  const { trigger: uploadAssignments } = useUploadAssignments(projectId);
 
   const whoCount = useMemo(() => {
     let nAuthors = 0;
@@ -215,13 +212,13 @@ export default function BiddingPage(
       </div>
       <SubmissionsByReviewer
         byReviewer={data?.byReviewer}
-        projectId={params.project}
+        projectId={projectId}
         canReview={canReview}
         setCanReview={setCanReview}
       />
       <ReviewersBySubmission
         bySubmission={data?.bySubmission}
-        projectId={params.project}
+        projectId={projectId}
       />
     </div>
   );

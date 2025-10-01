@@ -68,30 +68,28 @@ export default function ProjectAdmins({ project, mutateProject }: Props) {
           return (
             <li className="flex gap-3 items-center" key={admin}>
               {admin}{" "}
-              <Button
-                size="icon"
-                className={`${admin == project.creator ? "hidden" : ""} w-6 h-6`}
-                variant="ghost"
-              >
-                <Popover>
-                  <PopoverTrigger>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="icon"
+                    className={`${admin == project.creator ? "hidden" : ""} w-6 h-6`}
+                    variant="ghost"
+                  >
                     <X size={16} />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <div className="flex flex-col gap-3">
-                      <p>
-                        {" "}
-                        Are you sure you want to remove{" "}
-                        <span className="font-bold text-primary">
-                          {admin}
-                        </span>{" "}
-                        as an admin?
-                      </p>
-                      <Button onClick={(e) => rmAdmin(admin)}>Yes</Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </Button>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="flex flex-col gap-3">
+                    <p>
+                      {" "}
+                      Are you sure you want to remove{" "}
+                      <span className="font-bold text-primary">{admin}</span> as
+                      an admin?
+                    </p>
+                    <Button onClick={(e) => rmAdmin(admin)}>Yes</Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </li>
           );
         })}

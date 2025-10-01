@@ -6,13 +6,18 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
+
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit) return NextResponse.json({}, { status: 403 });
 
   const { to, html, test, division } = await req.json();
@@ -20,9 +25,7 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
   const [reviewer] = await db
     .select()
     .from(reviewers)
-    .where(
-      and(eq(reviewers.projectId, params.project), eq(reviewers.email, to)),
-    );
+    .where(and(eq(reviewers.projectId, projectId), eq(reviewers.email, to)));
 
   if (!test) {
     // Can only send emails to reviewers that exist (except for testing)
@@ -52,7 +55,7 @@ export async function POST(req: Request, props: { params: Promise<{ project: num
         .update(reviewers)
         .set({ invitationSent: new Date() })
         .where(
-          and(eq(reviewers.projectId, params.project), eq(reviewers.email, to)),
+          and(eq(reviewers.projectId, projectId), eq(reviewers.email, to)),
         );
     }
     return NextResponse.json({}, { status: 201 });

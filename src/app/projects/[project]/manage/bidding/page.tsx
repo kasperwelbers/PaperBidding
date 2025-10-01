@@ -1,32 +1,28 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Error } from "@/components/ui/error";
 import { Loading } from "@/components/ui/loading";
 import { useAllData, useProject } from "@/hooks/api";
-import { GetReviewer, GetMetaSubmission, Bidding } from "@/types";
-import { useState, use } from "react";
-import { FaArrowLeft, FaEye } from "react-icons/fa";
-import { useCSVDownloader } from "react-papaparse";
+import { GetReviewer, GetMetaSubmission } from "@/types";
+import { FaEye } from "react-icons/fa";
 import Invitations from "./Invitations";
-import Link from "next/link";
+import { use } from "react";
 
-export default function BiddingPage(
-  props: {
-    params: Promise<{ project: number }>;
-  }
-) {
+export default function BiddingPage(props: {
+  params: Promise<{ project: string }>;
+}) {
   const params = use(props.params);
-  const project = useProject(params.project);
+  const projectId = Number(params.project);
+  const project = useProject(projectId);
   const {
     data: reviewers,
     isLoading: reviewersLoading,
     error: reviewersError,
     mutate: mutateReviewers,
-  } = useAllData<GetReviewer>({ projectId: params.project, what: "reviewers" });
+  } = useAllData<GetReviewer>({ projectId: projectId, what: "reviewers" });
 
   const submissions = useAllData<GetMetaSubmission>({
-    projectId: params.project,
+    projectId: projectId,
     what: "submissions",
     meta: true,
   });
@@ -42,7 +38,7 @@ export default function BiddingPage(
       <div className=" p-5 pt-0 whitespace-nowrap overflow-auto">
         <div className="flex flex-col gap-8 mt-2">
           <Invitations
-            projectId={params.project}
+            projectId={projectId}
             division={project.data.division}
             deadline={project.data.deadline.toDateString()}
             reviewers={reviewers || []}

@@ -5,10 +5,7 @@ import { BidsSchema } from "@/zodSchemas";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function GET(req: Request) {
   const reviewer = await authenticateReviewer(req);
   if (!reviewer)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
@@ -18,9 +15,13 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  props: { params: Promise<{ project: number; reviewer: number; submission: number }> }
+  props: {
+    params: Promise<{ project: string; reviewer: string }>;
+  },
 ) {
   const params = await props.params;
+  const projectId = Number(params.project);
+
   try {
     const rev = await authenticateReviewer(req);
     if (!rev)
@@ -33,7 +34,7 @@ export async function POST(
     await db
       .insert(biddings)
       .values({
-        projectId: params.project,
+        projectId,
         email: rev.email,
         submissionIds: selected,
         updated: new Date(),

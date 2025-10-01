@@ -2,20 +2,18 @@
 
 import {
   useAllData,
-  useCreateProject,
   useProject,
   useProjects,
   useUpdateProject,
 } from "@/hooks/api";
 import { Loading } from "@/components/ui/loading";
 import { Error } from "@/components/ui/error";
-import { useEffect, useMemo, useState, use } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 
 import UploadData from "./UploadData";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import ProjectAdmins from "./ProjectAdmins";
-import { Project } from "@/drizzle/schema";
 import {
   Dialog,
   DialogContent,
@@ -37,24 +35,15 @@ export interface ProjectStatus {
   volunteers: boolean;
 }
 
-export default function ProjectPage(
-  props: {
-    params: Promise<{ project: number }>;
-  }
-) {
+export default function ProjectPage(props: {
+  params: Promise<{ project: string }>;
+}) {
   const params = use(props.params);
-  const {
-    data: project,
-    isLoading,
-    error,
-    mutate,
-  } = useProject(params.project);
-  const {
-    data: reviewers,
-    isLoading: reviewersLoading,
-    error: reviewersError,
-    mutate: mutateReviewers,
-  } = useAllData<GetReviewer>({ projectId: params.project, what: "reviewers" });
+  const projectId = Number(params.project);
+
+  const { data: project, isLoading, error, mutate } = useProject(projectId);
+  const { data: reviewers, isLoading: reviewersLoading } =
+    useAllData<GetReviewer>({ projectId: projectId, what: "reviewers" });
 
   const biddingStatus = useMemo(() => {
     if (!reviewers) return { bidded: 0, invited: 0 };
@@ -96,7 +85,7 @@ export default function ProjectPage(
         </div>
         <div className="w-full flex flex-col gap-9 h-full max-w-lg mx-auto lg:ml-auto">
           {/* Step 1-3 */}
-          <UploadData projectId={params.project} setStatus={setStatus} />
+          <UploadData projectId={projectId} setStatus={setStatus} />
 
           <Step
             disabled={!status?.submissions || !status?.volunteers}
@@ -155,7 +144,7 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
     project.deadline.toISOString().split("T")[0] !== deadline;
 
   return (
-    (<Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="icon" variant="ghost">
           <MdSettings size={30} />
@@ -232,6 +221,6 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
           </Button>
         </form>
       </DialogContent>
-    </Dialog>)
+    </Dialog>
   );
 }

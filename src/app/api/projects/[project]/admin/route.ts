@@ -7,31 +7,37 @@ import { z } from "zod";
 
 const EmailSchema = z.object({ email: z.string().email() });
 
-export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
-  const params = await props.params;
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
+  const projectId = Number((await props.params).project);
+
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
   const { email: admin } = EmailSchema.parse(await req.json());
-  await db
-    .insert(projectAdmins)
-    .values({ projectId: params.project, email: admin });
+  await db.insert(projectAdmins).values({ projectId, email: admin });
 
   return NextResponse.json({}, { status: 201 });
 }
 
-export async function DELETE(req: Request, props: { params: Promise<{ project: number }> }) {
-  const params = await props.params;
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
+  const projectId = Number((await props.params).project);
+
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
@@ -41,7 +47,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ project: n
     .delete(projectAdmins)
     .where(
       and(
-        eq(projectAdmins.projectId, params.project),
+        eq(projectAdmins.projectId, projectId),
         eq(projectAdmins.email, admin),
         eq(projectAdmins.isCreator, false),
       ),

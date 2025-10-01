@@ -5,8 +5,8 @@ import { Loading } from "@/components/ui/loading";
 import { useAllData, useProject, useReviewer } from "@/hooks/api";
 import { computeRelevantSubmissions } from "@/lib/computeRelevantSubmissions";
 import { GetSubmission } from "@/types";
-import { useEffect, useMemo, useRef, useState, use } from "react";
-import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from "react-icons/fa";
+import { use, useEffect, useMemo, useRef, useState } from "react";
+import { FaQuestionCircle } from "react-icons/fa";
 import { GiVote } from "react-icons/gi";
 import SubmissionItem, { SubmissionItemTitle } from "./SubmissionItem";
 import useSelection from "./useSelection";
@@ -20,16 +20,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, SkipBack, SkipForward } from "lucide-react";
+import { SkipBack, SkipForward } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-export default function Reviewer(
-  props: {
-    params: Promise<{ project: number; reviewer: number; secret: number }>;
-  }
-) {
+export default function Reviewer(props: {
+  params: Promise<{ project: string; reviewer: string; secret: string }>;
+}) {
   const params = use(props.params);
-  const token = params.reviewer + "/" + params.secret;
+  const projectId = Number(params.project);
+  const reviewerId = Number(params.reviewer);
+  const secret = params.secret;
+
+  const token = reviewerId + "/" + secret;
   const [search, setSearch] = useState("");
   const [filteredSubmissions, setFilteredSubmissions] = useState<
     GetSubmission[]
@@ -40,26 +42,25 @@ export default function Reviewer(
     isLoading,
     error,
   } = useAllData<GetSubmission>({
-    projectId: params.project,
+    projectId: projectId,
     what: "submissions",
     token,
-    limit: 1000, // Don't set too high for vercel body limit
+    limit: 750, // Don't set too high for vercel body limit
   });
   const {
     data: reviewer,
     isLoading: isLoadingReviewer,
     error: errorReviewer,
-  } = useReviewer(params.project, params.reviewer, token);
+  } = useReviewer(projectId, reviewerId, token);
 
   const { selected, setSelected, selectionStatus } = useSelection(
-    params.project,
-    params.reviewer,
+    projectId,
+    reviewerId,
     token,
   );
 
   const [showSelected, setShowSelected] = useState(false);
   const [page, setPage] = useState(1);
-  const { data: project } = useProject(params.project);
   const popupRef = useRef<HTMLDivElement>(null);
 
   const relevantSubmissions = useMemo(() => {
@@ -149,8 +150,8 @@ export default function Reviewer(
             <VoteBox
               selected={selected}
               setSelected={setSelected}
-              projectId={Number(params.project)}
-              reviewerId={Number(params.reviewer)}
+              projectId={Number(projectId)}
+              reviewerId={Number(reviewerId)}
               token={token}
               submissions={submissions}
             />
@@ -198,8 +199,8 @@ export default function Reviewer(
                     return (
                       <SubmissionItem
                         key={submission.id}
-                        projectId={Number(params.project)}
-                        reviewerId={Number(params.reviewer)}
+                        projectId={Number(projectId)}
+                        reviewerId={Number(reviewerId)}
                         token={token}
                         submission={submission}
                         selected={selected}

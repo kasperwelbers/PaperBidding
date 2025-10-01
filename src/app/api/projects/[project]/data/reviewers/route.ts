@@ -13,13 +13,17 @@ import cryptoRandomString from "crypto-random-string";
 import { and, sql, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
@@ -35,7 +39,7 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
     .from(reviewers)
     .where(
       and(
-        eq(reviewers.projectId, params.project),
+        eq(reviewers.projectId, projectId),
         eq(reviewers.importedFrom, "volunteer"),
       ),
     )
@@ -95,7 +99,7 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
     .from(reviewers)
     .where(
       and(
-        eq(reviewers.projectId, params.project),
+        eq(reviewers.projectId, projectId),
         eq(reviewers.importedFrom, "volunteer"),
       ),
     );
@@ -113,7 +117,7 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
         canReview: row.canReview,
         author: false,
         firstAuthor: false,
-        link: domain + `/bidding/${params.project}/${row.id}/${row.link}`,
+        link: domain + `/bidding/${projectId}/${row.id}/${row.link}`,
         invitationSent: row.invitationSent ? String(row.invitationSent) : null,
         biddings: row.biddings || [],
         manualBiddings: row.biddings?.length || 0,
@@ -149,13 +153,17 @@ export async function GET(req: Request, props: { params: Promise<{ project: numb
   return NextResponse.json({ rows: Object.values(rows), meta: meta[0] });
 }
 
-export async function PUT(req: Request, props: { params: Promise<{ project: number }> }) {
+export async function PUT(
+  req: Request,
+  props: { params: Promise<{ project: string }> },
+) {
   const params = await props.params;
+  const projectId = Number(params.project);
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
 
-  const canEdit = await canEditProject(email, params.project);
+  const canEdit = await canEditProject(email, projectId);
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
@@ -166,10 +174,7 @@ export async function PUT(req: Request, props: { params: Promise<{ project: numb
     .update(reviewers)
     .set(data)
     .where(
-      and(
-        eq(reviewers.projectId, params.project),
-        eq(reviewers.email, data.email),
-      ),
+      and(eq(reviewers.projectId, projectId), eq(reviewers.email, data.email)),
     );
 
   return NextResponse.json({}, { status: 201 });
