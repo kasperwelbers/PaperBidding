@@ -154,7 +154,8 @@ p {
     width: 50px;
     height: 35px;
     background-repeat: no-repeat;
-    background-image: linear-gradient(var(--color) 50px, transparent 0),
+    background-image:
+        linear-gradient(var(--color) 50px, transparent 0),
         linear-gradient(var(--color) 50px, transparent 0),
         linear-gradient(var(--color) 50px, transparent 0),
         linear-gradient(var(--color) 50px, transparent 0),

@@ -6,8 +6,9 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: { project: number; reviewer: number } },
+  props: { params: Promise<{ project: number; reviewer: number }> }
 ) {
+  const params = await props.params;
   const projectId = Number(params.project);
   const reviewer = await authenticateReviewer(req);
   if (!reviewer)

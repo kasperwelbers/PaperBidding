@@ -6,8 +6,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   req: Request,
-  { params }: { params: { project: number; submission: number } }
+  props: { params: Promise<{ project: number; submission: number }> }
 ) {
+  const params = await props.params;
   const reviewer = await authenticateReviewer(req);
   if (!reviewer) return NextResponse.json({}, { statusText: 'Not signed in', status: 403 });
 

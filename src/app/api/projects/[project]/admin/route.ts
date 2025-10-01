@@ -7,10 +7,8 @@ import { z } from "zod";
 
 const EmailSchema = z.object({ email: z.string().email() });
 
-export async function POST(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
@@ -27,10 +25,8 @@ export async function POST(
   return NextResponse.json({}, { status: 201 });
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });

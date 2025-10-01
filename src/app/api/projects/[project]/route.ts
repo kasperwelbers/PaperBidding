@@ -6,10 +6,8 @@ import { GetProject } from "@/types";
 import { NextResponse } from "next/server";
 import { NewProjectSchema } from "@/zodSchemas";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function GET(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
@@ -32,10 +30,8 @@ export async function GET(
   return NextResponse.json(p);
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email, canCreateProject } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });

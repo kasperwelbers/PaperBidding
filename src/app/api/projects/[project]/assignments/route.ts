@@ -4,10 +4,8 @@ import { AssignmentsSchema } from "@/zodSchemas";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function GET(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });
@@ -45,10 +43,8 @@ export async function GET(
   return NextResponse.json(res);
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });

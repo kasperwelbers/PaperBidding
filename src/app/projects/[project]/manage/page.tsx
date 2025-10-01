@@ -9,7 +9,7 @@ import {
 } from "@/hooks/api";
 import { Loading } from "@/components/ui/loading";
 import { Error } from "@/components/ui/error";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 
 import UploadData from "./UploadData";
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,12 @@ export interface ProjectStatus {
   volunteers: boolean;
 }
 
-export default function ProjectPage({
-  params,
-}: {
-  params: { project: number };
-}) {
+export default function ProjectPage(
+  props: {
+    params: Promise<{ project: number }>;
+  }
+) {
+  const params = use(props.params);
   const {
     data: project,
     isLoading,
@@ -154,7 +155,7 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
     project.deadline.toISOString().split("T")[0] !== deadline;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    (<Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="icon" variant="ghost">
           <MdSettings size={30} />
@@ -231,6 +232,6 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
           </Button>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog>)
   );
 }

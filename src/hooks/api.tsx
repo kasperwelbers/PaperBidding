@@ -158,7 +158,7 @@ export function useData(
   let url: string = `/api/projects/${projectId}/data/${what}/?${urlParamsString}`;
 
   const { data, mutate, isLoading, error } = useGET<DataResponse>(url);
-  const staleData = useRef<DataResponse>();
+  const staleData = useRef<DataResponse>(undefined);
   if (!isLoading) staleData.current = data;
 
   const reset = () => {

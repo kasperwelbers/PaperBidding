@@ -5,17 +5,18 @@ import { Error } from "@/components/ui/error";
 import { Loading } from "@/components/ui/loading";
 import { useAllData, useProject } from "@/hooks/api";
 import { GetReviewer, GetMetaSubmission, Bidding } from "@/types";
-import { useState } from "react";
+import { useState, use } from "react";
 import { FaArrowLeft, FaEye } from "react-icons/fa";
 import { useCSVDownloader } from "react-papaparse";
 import Invitations from "./Invitations";
 import Link from "next/link";
 
-export default function BiddingPage({
-  params,
-}: {
-  params: { project: number };
-}) {
+export default function BiddingPage(
+  props: {
+    params: Promise<{ project: number }>;
+  }
+) {
+  const params = use(props.params);
   const project = useProject(params.project);
   const {
     data: reviewers,

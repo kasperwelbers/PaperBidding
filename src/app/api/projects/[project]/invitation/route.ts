@@ -6,10 +6,8 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(
-  req: Request,
-  { params }: { params: { project: number } },
-) {
+export async function POST(req: Request, props: { params: Promise<{ project: number }> }) {
+  const params = await props.params;
   const { email } = await authenticate();
   if (!email)
     return NextResponse.json({}, { statusText: "Not signed in", status: 403 });

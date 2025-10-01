@@ -154,7 +154,8 @@ export default function UploadSubmissions({
     }
   }
 
-  if (modelStatus === "loading") return <Loading msg="Loading Model" />;
+  if (modelStatus === "loading")
+    return <Loading msg="Loading Model" className="w-[400px] mx-auto" />;
   if (dataPage.isLoading && !dataPage.data?.length)
     return <Loading msg="Loading Data" className="w-[400px] mx-auto" />;
   if (status.loading)

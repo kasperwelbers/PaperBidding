@@ -16,7 +16,7 @@ import {
   BySubmission,
   ByReviewer,
 } from "@/types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import { FaArrowLeft, FaCopy, FaEye, FaVideo } from "react-icons/fa";
 import { useCSVDownloader } from "react-papaparse";
 import makeAssignments from "./makeAssignments";
@@ -36,11 +36,12 @@ import {
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export default function BiddingPage({
-  params,
-}: {
-  params: { project: number };
-}) {
+export default function BiddingPage(
+  props: {
+    params: Promise<{ project: number }>;
+  }
+) {
+  const params = use(props.params);
   const [data, setData] = useState<{
     byReviewer: ByReviewer[];
     bySubmission: BySubmission[];

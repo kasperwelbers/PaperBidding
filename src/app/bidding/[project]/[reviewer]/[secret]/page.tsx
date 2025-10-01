@@ -5,7 +5,7 @@ import { Loading } from "@/components/ui/loading";
 import { useAllData, useProject, useReviewer } from "@/hooks/api";
 import { computeRelevantSubmissions } from "@/lib/computeRelevantSubmissions";
 import { GetSubmission } from "@/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, use } from "react";
 import { FaArrowLeft, FaArrowRight, FaQuestionCircle } from "react-icons/fa";
 import { GiVote } from "react-icons/gi";
 import SubmissionItem, { SubmissionItemTitle } from "./SubmissionItem";
@@ -23,11 +23,12 @@ import {
 import { Search, SkipBack, SkipForward } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-export default function Reviewer({
-  params,
-}: {
-  params: { project: number; reviewer: number; secret: number };
-}) {
+export default function Reviewer(
+  props: {
+    params: Promise<{ project: number; reviewer: number; secret: number }>;
+  }
+) {
+  const params = use(props.params);
   const token = params.reviewer + "/" + params.secret;
   const [search, setSearch] = useState("");
   const [filteredSubmissions, setFilteredSubmissions] = useState<

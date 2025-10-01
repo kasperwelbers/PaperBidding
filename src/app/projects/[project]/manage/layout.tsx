@@ -5,17 +5,22 @@ import { SWRConfig } from "swr";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, use } from "react";
 import { FaBackward, FaWindowClose } from "react-icons/fa";
 import { Loading } from "@/components/ui/loading";
 
-export default function ProjectLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: { project: number; reviewer?: number };
-}) {
+export default function ProjectLayout(
+  props: {
+    children: React.ReactNode;
+    params: Promise<{ project: number; reviewer?: number }>;
+  }
+) {
+  const params = use(props.params);
+
+  const {
+    children
+  } = props;
+
   const session = useSession();
   const { data: project, isLoading, error } = useProject(params.project);
   const router = useRouter();

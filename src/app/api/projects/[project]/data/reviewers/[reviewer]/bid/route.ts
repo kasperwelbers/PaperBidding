@@ -18,10 +18,9 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  {
-    params,
-  }: { params: { project: number; reviewer: number; submission: number } },
+  props: { params: Promise<{ project: number; reviewer: number; submission: number }> }
 ) {
+  const params = await props.params;
   try {
     const rev = await authenticateReviewer(req);
     if (!rev)

@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { FaCheck, FaUpload, FaVideo } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
-import { Check, CheckSquare, Square } from "lucide-react";
 import Step from "./Step";
 import useInstitutionData from "@/hooks/useInstitutionResolver";
 import {
