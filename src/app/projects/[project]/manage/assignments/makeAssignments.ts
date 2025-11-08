@@ -39,7 +39,8 @@ export default function makeAssignments(
     }))
     .filter((reviewer) => {
       // remove reviewers that can't review
-      const author = reviewer.submissions.length > 0;
+      // const author = reviewer.submissions.length > 0;
+      const author = reviewer.author;
       const bidder = reviewer.manualBiddings > 0;
 
       if (includeWho === "authors" && !author) return false;
