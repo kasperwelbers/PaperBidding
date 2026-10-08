@@ -1,17 +1,12 @@
-import { NextResponse } from "next/server";
-import db, {
-  admins,
-  projects,
-  reviewers,
-  projectAdmins,
-  biddings,
-} from "@/drizzle/schema";
+import db, { reviewers, biddings } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth/authOptions";
+import { headers } from "next/headers";
+import { auth } from "@/auth/auth";
+
+export { isSuperAdmin, canEditProject, canCreateProject } from "./permissions";
 
 export async function authenticate() {
-  const session = await getServerSession(authOptions);
+  const session = await auth.api.getSession({ headers: await headers() });
   return (
     session?.user || {
       email: undefined,
@@ -19,31 +14,6 @@ export async function authenticate() {
       isSuperAdmin: false,
     }
   );
-}
-
-export function isSuperAdmin(email: string) {
-  return email === process.env.SUPERADMIN;
-}
-
-export async function canEditProject(email: string, projectId: number) {
-  if (email === process.env.SUPERADMIN) return true;
-
-  const projectAdmin = await db
-    .select()
-    .from(projectAdmins)
-    .where(
-      and(
-        eq(projectAdmins.projectId, projectId),
-        eq(projectAdmins.email, email),
-      ),
-    );
-  return projectAdmin.length > 0;
-}
-
-export async function canCreateProject(email: string) {
-  if (email === process.env.SUPERADMIN) return true;
-  const admin = await db.select().from(admins).where(eq(admins.email, email));
-  return admin.length > 0;
 }
 
 interface AuthenticatedReviewer {

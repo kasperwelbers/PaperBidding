@@ -3,10 +3,23 @@ import { z } from "zod";
 // The .string().email() validation appears to work poorly, so we don't use it.
 // In particular fails with domains with many subdomains, which universities tend tot have.
 
+const RegistrationInfoUrl = z
+  .string()
+  .trim()
+  .refine((url) => url === "" || /^https?:\/\//i.test(url), {
+    message: "Must be an http(s) URL",
+  });
+
 export const NewProjectSchema = z.object({
   name: z.string(),
   division: z.string(),
   deadline: z.coerce.date(),
+  registrationInfoUrl: RegistrationInfoUrl.optional(),
+});
+
+export const JoinProjectSchema = z.object({
+  token: z.string(),
+  student: z.boolean(),
 });
 
 export const GetProjectSchema = z.object({
@@ -18,6 +31,8 @@ export const GetProjectSchema = z.object({
   creator: z.string(),
   admins: z.array(z.string()),
   archived: z.boolean(),
+  joinToken: z.string(),
+  registrationInfoUrl: z.string(),
 });
 
 export const ReviewersSchema = z.array(

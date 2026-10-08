@@ -1,10 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
-import AuthProvider from "@/components/authprovider";
 
 const font = Poppins({
-  weight: "400",
+  weight: ["200", "300", "400","600", "700"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -22,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`min-h-screen  ${font.className}`}>
-        <AuthProvider>{children}</AuthProvider>
+        {children}
       </body>
     </html>
   );

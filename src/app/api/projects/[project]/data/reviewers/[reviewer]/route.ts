@@ -58,7 +58,10 @@ export async function GET(
     .where(
       or(
         inArray(authors.submissionId, submissionExternalIds),
-        eq(authors.institution, reviewer.institution),
+        // an empty institution (e.g., self-registered volunteers) is not a conflict
+        reviewer.institution
+          ? eq(authors.institution, reviewer.institution)
+          : undefined,
       ),
     )
     .as("conflictAuthors");

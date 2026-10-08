@@ -83,10 +83,10 @@ export default function CSVReader({
             <div className="flex items-center gap-5">
               {!data ? (
                 <Button
-                  className="w-full h-full flex flex-col hover:text-white bg-white text-black border-2 border-dotted border-gray-700"
+                  className="w-full text-sm h-full flex flex-col hover:text-white bg-white text-black border-2 border-dotted border-gray-700"
                   {...getRootProps()}
                 >
-                  <h5 className="mb-0">Click here to select file</h5>
+                  <h5 className="mb-0 text-base">Click here to select file</h5>
                   {/* <p>{detail}</p> */}
                 </Button>
               ) : (
@@ -109,11 +109,11 @@ export default function CSVReader({
       </div>
       <div className={`w-full ${data ? "" : "opacity-50 pointer-events-none"}`}>
         {/* <h3 className="">Select columns</h3> */}
-        <div className="grid grid-cols-2 sm:grid-cols-[1fr,250px]  items-center gap-x-5 gap-y-1">
+        <div className="grid grid-cols-2 sm:grid-cols-[1fr,250px]  items-center gap-x-5">
           {fields.map((field) => {
             return (
               <div key={field.field} className="contents">
-                <div className="font-bold text-xs whitespace-nowrap md:text-base">
+                <div className="font-bold text-xs whitespace-nowrap md:text-sm">
                   {field.label}
                 </div>
                 <Combobox

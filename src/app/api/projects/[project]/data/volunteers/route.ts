@@ -38,6 +38,7 @@ export async function GET(
       institution: reviewers.institution,
       student: reviewers.student,
       canReview: reviewers.canReview,
+      selfRegistered: reviewers.selfRegistered,
     })
     .from(reviewers)
     .where(
@@ -70,6 +71,7 @@ export async function GET(
         institution: row.institution,
         student: row.student,
         canReview: row.canReview,
+        selfRegistered: row.selfRegistered,
       };
     }
   }
@@ -100,8 +102,37 @@ export async function POST(
       status: 400,
     });
 
+  // Reviewers that registered themselves via the general invitation link might
+  // be in the uploaded list by now. If so, update their existing row (keeping
+  // the email that their bids and bidding link are tied to)
+  const selfRegistered = await db
+    .select({ id: reviewers.id, email: reviewers.email })
+    .from(reviewers)
+    .where(
+      and(
+        eq(reviewers.projectId, projectId),
+        eq(reviewers.selfRegistered, true),
+      ),
+    );
+  const selfRegisteredMap = new Map(
+    selfRegistered.map((r) => [r.email.toLowerCase(), r.id]),
+  );
+
   const newReviewers: NewReviewer[] = [];
   for (let d of validData.data) {
+    const selfRegisteredId = selfRegisteredMap.get(d.email.toLowerCase());
+    if (selfRegisteredId !== undefined) {
+      await db
+        .update(reviewers)
+        .set({
+          institution: d.institution,
+          student: d.student,
+          canReview: d.canReview,
+          selfRegistered: false,
+        })
+        .where(eq(reviewers.id, selfRegisteredId));
+      continue;
+    }
     newReviewers.push({
       email: d.email,
       institution: d.institution,
@@ -113,7 +144,8 @@ export async function POST(
     });
   }
 
-  await db.insert(reviewers).values(newReviewers).onConflictDoNothing();
+  if (newReviewers.length > 0)
+    await db.insert(reviewers).values(newReviewers).onConflictDoNothing();
   return NextResponse.json({ status: 201 });
 }
 
@@ -132,12 +164,14 @@ export async function DELETE(
   if (!canEdit)
     return NextResponse.json({}, { statusText: "Not authorized", status: 403 });
 
+  // Self-registered reviewers are kept, because they cannot be re-uploaded
   await db
     .delete(reviewers)
     .where(
       and(
         eq(reviewers.projectId, projectId),
         eq(reviewers.importedFrom, "volunteer"),
+        eq(reviewers.selfRegistered, false),
       ),
     );
   return NextResponse.json({}, { status: 201 });

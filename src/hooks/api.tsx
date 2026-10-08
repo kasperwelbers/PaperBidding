@@ -7,6 +7,7 @@ import {
   Reviewer,
   GetProject,
   GetInvitation,
+  GetJoinInfo,
   ByReviewer,
   BySubmission,
   Admin,
@@ -14,7 +15,7 @@ import {
   useAllDataParams,
   useGetPaginationParams,
 } from "@/types";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/auth/authClient";
 import { z } from "zod";
 import { GetAssignmentsSchema, GetProjectSchema } from "@/zodSchemas";
 
@@ -238,16 +239,61 @@ export function useAssignments(projectId: number) {
   );
 }
 
-// POST HELPERS
-export function useCreateProject() {
-  return usePOST<{ name: string; division: string; deadline: Date }, Project>(
-    "/api/projects",
+/** Join link info. Works without being signed in, and is refetched when the
+ *  signed in user changes (to see whether they are a known reviewer) */
+export function useJoinInfo(projectId: number, token: string) {
+  const session = useSession();
+  const email = session.data?.user.email || null;
+  const url = `/api/projects/${projectId}/join?${new URLSearchParams({ token })}`;
+
+  return useSWR<GetJoinInfo>(
+    session.status === "loading" ? null : [url, email],
+    async ([url]: [string]) => {
+      const res = await fetch(url);
+      if (res.status === 404) throw new Error("Invalid link");
+      if (!res.ok) throw new Error(res.statusText || "Failed to get data");
+      return res.json();
+    },
+    { revalidateOnFocus: false },
   );
 }
-export function useUpdateProject(projectId: number) {
-  return usePOST<{ name: string; division: string; deadline: Date }, Project>(
-    `/api/projects/${projectId}`,
+
+// POST HELPERS
+export function useJoinProject(projectId: number) {
+  return usePOST<
+    { token: string; student: boolean },
+    { reviewerId: number; secret: string }
+  >(`/api/projects/${projectId}/join`);
+}
+
+export function useRegenerateJoinToken(projectId: number) {
+  return usePOST<{}, { joinToken: string }>(
+    `/api/projects/${projectId}/join`,
+    "PUT",
   );
+}
+
+export function useCreateProject() {
+  return usePOST<
+    {
+      name: string;
+      division: string;
+      deadline: Date;
+      registrationInfoUrl?: string;
+    },
+    Project
+  >("/api/projects");
+}
+export function useUpdateProject(projectId: number) {
+  return usePOST<
+    {
+      name: string;
+      division: string;
+      deadline: Date;
+      registrationInfoUrl?: string;
+    },
+    Project
+  >(`/api/projects/${projectId}`);
 }
 
 export function useAddAdmins() {

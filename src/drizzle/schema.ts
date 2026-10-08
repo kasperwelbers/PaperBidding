@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { type InferSelectModel, type InferInsertModel } from "drizzle-orm";
+import { type InferSelectModel, type InferInsertModel, sql } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
@@ -14,8 +14,6 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import type { AdapterAccount } from "@auth/core/adapters";
-import { randomBytes } from "crypto";
 
 import { neon } from "@neondatabase/serverless";
 import postgres from "postgres";
@@ -25,58 +23,68 @@ import { AssignmentSettings, ByReviewer, BySubmission } from "@/types";
 
 config({ path: ".env.local" });
 
-// AUTH TABLES
+// AUTH TABLES (better-auth)
 
-export const users = pgTable("user", {
-  id: text("id").notNull().primaryKey(),
-  name: text("name"),
-  email: text("email").notNull(),
-  emailVerified: timestamp("emailVerified", { mode: "date" }),
+export const authUser = pgTable("auth_user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const accounts = pgTable(
-  "account",
+export const authSession = pgTable(
+  "auth_session",
   {
-    userId: text("userId")
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expires_at").notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type").$type<AdapterAccount["type"]>().notNull(),
-    provider: text("provider").notNull(),
-    providerAccountId: text("providerAccountId").notNull(),
-    refresh_token: text("refresh_token"),
-    access_token: text("access_token"),
-    expires_at: integer("expires_at"),
-    token_type: text("token_type"),
-    scope: text("scope"),
-    id_token: text("id_token"),
-    session_state: text("session_state"),
+      .references(() => authUser.id, { onDelete: "cascade" }),
   },
-  (account) => ({
-    compoundKey: primaryKey({
-      columns: [account.provider, account.providerAccountId],
-    }),
-  }),
+  (table) => [index("auth_session_user_idx").on(table.userId)],
 );
 
-export const sessions = pgTable("session", {
-  sessionToken: text("sessionToken").notNull().primaryKey(),
-  userId: text("userId")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
-});
-
-export const verificationTokens = pgTable(
-  "verificationToken",
+export const authAccount = pgTable(
+  "auth_account",
   {
-    identifier: text("identifier").notNull(),
-    token: text("token").notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => authUser.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  }),
+  (table) => [index("auth_account_user_idx").on(table.userId)],
+);
+
+export const authVerification = pgTable(
+  "auth_verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("auth_verification_identifier_idx").on(table.identifier)],
 );
 
 // APPLICATION TABLES
@@ -90,6 +98,10 @@ export const projects = pgTable("projects", {
   creator: varchar("creator", { length: 256 }).notNull(),
   archived: boolean("archived").notNull().default(false),
   secretVersion: integer("secret_version").notNull().default(1),
+  joinToken: varchar("join_token", { length: 64 })
+    .notNull()
+    .default(sql`replace(gen_random_uuid()::text, '-', '')`),
+  registrationInfoUrl: text("registration_info_url").notNull().default(""),
 });
 
 export const admins = pgTable("admins", {
@@ -177,6 +189,7 @@ export const reviewers = pgTable(
       enum: ["volunteer", "submission"],
     }),
     secret: varchar("token", { length: 64 }).notNull(),
+    selfRegistered: boolean("self_registered").notNull().default(false),
     invitationSent: timestamp("invitation_sent", { mode: "date" }),
   },
   (table) => {

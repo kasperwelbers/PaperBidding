@@ -59,6 +59,7 @@ export async function GET(
       invitationSent: reviewers.invitationSent,
       biddings: biddings.submissionIds,
       importedFrom: reviewers.importedFrom,
+      selfRegistered: reviewers.selfRegistered,
       author: {
         position: authors.position,
       },
@@ -122,6 +123,7 @@ export async function GET(
         biddings: row.biddings || [],
         manualBiddings: row.biddings?.length || 0,
         volunteer: row.importedFrom === "volunteer",
+        selfRegistered: row.selfRegistered,
         coAuthors: [],
         submissions: [],
       };

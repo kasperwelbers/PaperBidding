@@ -211,10 +211,10 @@ function SubmissionCSVInstruction() {
   if (!manual)
     return (
       <div className="text-left mt-3 w-max prose-sm max-w-full">
-        <div className="flex gap-3 items-center mb-3">
+        <div className="flex gap-3 items-center">
           <h6 className="m-0">How to get this CSV file</h6>
         </div>
-        <ul className="list-disc list-inside min-w-0">
+        <ul className="list-disc list-inside min-w-0 leading-5">
           <li>
             Go to{" "}
             <a
@@ -255,7 +255,7 @@ function SubmissionCSVInstruction() {
         <h6 className="m-0">How to get this CSV file</h6>
         <DownloadCVSVideo />
       </div>
-      <ul className="list-disc list-inside">
+      <ul className="list-disc list-inside leading-5">
         <li>
           Go to{" "}
           <a
@@ -305,7 +305,7 @@ function ReviewerCSVInstruction() {
       <div className="flex gap-3 items-center mb-3">
         <h6 className="m-0">How to get this CSV file</h6>
       </div>
-      <ul className="list-disc list-inside">
+      <ul className="list-disc list-inside leading-5" >
         <li>
           Go to{" "}
           <a

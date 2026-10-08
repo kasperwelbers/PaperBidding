@@ -73,6 +73,7 @@ export interface GetReviewer {
   coAuthors: string[];
   submissions: OwnSubmission[];
   volunteer: boolean;
+  selfRegistered: boolean;
 }
 
 export interface GetVolunteer {
@@ -81,6 +82,19 @@ export interface GetVolunteer {
   institution: string;
   student: boolean;
   canReview: boolean;
+  selfRegistered: boolean;
+}
+
+export interface GetJoinInfo {
+  project: {
+    id: number;
+    name: string;
+    division: string;
+    deadline: string;
+    registrationInfoUrl: string;
+  };
+  email: string | null;
+  reviewer: { reviewerId: number; secret: string } | null;
 }
 export interface GetProject {
   id: number;
@@ -91,6 +105,8 @@ export interface GetProject {
   creator: string;
   admins: string[];
   archived: boolean;
+  joinToken: string;
+  registrationInfoUrl: string;
 }
 
 export interface GetInvitation {

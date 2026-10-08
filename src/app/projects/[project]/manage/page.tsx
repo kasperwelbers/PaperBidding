@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { GetProject, GetReviewer } from "@/types";
 import { MdSettings } from "react-icons/md";
+import { defaultRegistrationUrl } from "@/lib/registrationUrl";
 import Step from "./Step";
 
 type Tab = "submissions" | "references" | "volunteers";
@@ -78,7 +79,7 @@ export default function ProjectPage(props: {
                   </span>
                 </p>
               </div>
-              <UpdateProjectForm project={project} />
+              <UpdateProjectForm project={project} mutateProject={mutate} />
             </div>
             <ProjectAdmins project={project} mutateProject={mutate} />
           </div>
@@ -119,9 +120,10 @@ export default function ProjectPage(props: {
 
 interface updateProjectFormProps {
   project: GetProject;
+  mutateProject: () => void;
 }
 
-function UpdateProjectForm({ project }: updateProjectFormProps) {
+function UpdateProjectForm({ project, mutateProject }: updateProjectFormProps) {
   const [open, setOpen] = useState(false);
   const { data: projects, isLoading } = useProjects();
   const { trigger: updateProject } = useUpdateProject(project.id);
@@ -131,17 +133,22 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
   const [deadline, setDeadline] = useState(
     project.deadline.toISOString().split("T")[0],
   );
+  const [registrationInfoUrl, setRegistrationInfoUrl] = useState(
+    project.registrationInfoUrl,
+  );
 
   useEffect(() => {
     setName(project.name);
     setDivision(project.division);
     setDeadline(project.deadline.toISOString().split("T")[0]);
+    setRegistrationInfoUrl(project.registrationInfoUrl);
   }, [project]);
 
   const changed =
     project.name !== name ||
     project.division !== division ||
-    project.deadline.toISOString().split("T")[0] !== deadline;
+    project.deadline.toISOString().split("T")[0] !== deadline ||
+    project.registrationInfoUrl !== registrationInfoUrl;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -166,7 +173,13 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
               name,
               division,
               deadline: new Date(deadline),
+              registrationInfoUrl: registrationInfoUrl.trim(),
             }).then(async (res) => {
+              if (!res.ok) {
+                alert("Failed to update project");
+                return;
+              }
+              mutateProject();
               setOpen(false);
             });
           }}
@@ -214,6 +227,16 @@ function UpdateProjectForm({ project }: updateProjectFormProps) {
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
               required
+            ></Input>
+            <label htmlFor="registrationInfoUrl" className="leading-tight">
+              ICA registration page
+            </label>
+            <Input
+              name="registrationInfoUrl"
+              type="url"
+              placeholder={defaultRegistrationUrl(new Date(project.created))}
+              value={registrationInfoUrl}
+              onChange={(e) => setRegistrationInfoUrl(e.target.value)}
             ></Input>
           </div>
           <Button disabled={!division || !deadline || !name || !changed}>

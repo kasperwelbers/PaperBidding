@@ -12,13 +12,14 @@ import {
   useInvitations,
   useProjects,
 } from "@/hooks/api";
-import { Session } from "next-auth";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "@/auth/authClient";
+import { EmailOtpLogin } from "@/components/EmailOtpLogin";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GetProject } from "@/types";
 import Markdown from "react-markdown";
 import Link from "next/link";
+import { defaultRegistrationUrl } from "@/lib/registrationUrl";
 import {
   Popover,
   PopoverContent,
@@ -86,24 +87,32 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <div
-        className={`mt-12 px-4 lg:px-10 grid gap-6 grid-cols-1 lg:grid-cols-[1fr,max-content] w-full justify-between max-w-7xl`}
-      >
-        <div className="max-w-2xl">
-          <Markdown>{infoDefault + info()}</Markdown>
+      {session.status === "unauthenticated" ? (
+        <div className="mt-12 px-4 w-full max-w-2xl flex flex-col items-center gap-8">
+          <div className="text-center">
+            <Markdown>{infoDefault + info()}</Markdown>
+          </div>
+          <EmailOtpLogin />
         </div>
-        <div className="flex flex-col lg:flex-row gap-12 ">
-          {session.status === "loading" ? <Loading msg="Loading..." /> : null}
-          {session.status === "unauthenticated" ? <SignInForm /> : null}
-          {session.status === "authenticated" ? (
-            <AdminPanel
-              canCreate={canCreate}
-              projects={projects}
-              loadingProjects={isLoading}
-            />
-          ) : null}
+      ) : (
+        <div
+          className={`mt-12 px-4 lg:px-10 grid gap-6 grid-cols-1 lg:grid-cols-[1fr,max-content] w-full justify-between max-w-7xl`}
+        >
+          <div className="max-w-2xl">
+            <Markdown>{infoDefault + info()}</Markdown>
+          </div>
+          <div className="flex flex-col lg:flex-row gap-12 ">
+            {session.status === "loading" ? <Loading msg="Loading..." /> : null}
+            {session.status === "authenticated" ? (
+              <AdminPanel
+                canCreate={canCreate}
+                projects={projects}
+                loadingProjects={isLoading}
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }
@@ -120,7 +129,7 @@ function SignOutButton() {
       </PopoverTrigger>
       <PopoverContent>
         <div className="text-center">
-          {session.data.user.email}
+          {session.data?.user.email}
           <Button
             className="flex gap-3 items-center justify-center mx-auto"
             variant="ghost"
@@ -157,33 +166,6 @@ function AdminPanel({ canCreate, projects, loadingProjects }: AdminPanelProps) {
   );
 }
 
-function SignInForm() {
-  const [email, setEmail] = useState("");
-  const [signingIn, setSigningIn] = useState(false);
-
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSigningIn(true);
-    signIn("email", { email });
-  }
-
-  if (signingIn) return <Loading msg="Sending..." />;
-
-  return (
-    <form className="flex flex-col gap-1 justify-center" onSubmit={onSubmit}>
-      <Input
-        className="border-2 border-primary px-3 py-1 rounded mt-2"
-        type="email"
-        name="email"
-        placeholder="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <Button disabled={!email}>Send sign-in email</Button>
-    </form>
-  );
-}
-
 interface createProjectFormProps {
   projects?: GetProject[];
 }
@@ -198,6 +180,9 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
     const year = new Date().getFullYear();
     return `${year}-11-10`;
   });
+  const [registrationUrl, setRegistrationUrl] = useState(() =>
+    defaultRegistrationUrl(),
+  );
 
   function onSelect(project: Project) {
     router.push(`/projects/${project.id}/manage`);
@@ -226,7 +211,12 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
           onSubmit={(e) => {
             e.preventDefault();
             setCreating(true);
-            createProject({ name, division, deadline: new Date(deadline) })
+            createProject({
+              name,
+              division,
+              deadline: new Date(deadline),
+              registrationInfoUrl: registrationUrl.trim(),
+            })
               .then(async (res) => {
                 if (!res.ok) throw new Error("Failed to create project");
                 const project = await res.json();
@@ -285,7 +275,21 @@ function CreateProjectForm({ projects }: createProjectFormProps) {
               onChange={(e) => setDeadline(e.target.value)}
               required
             ></Input>
+            <label htmlFor="registrationUrl" className="leading-tight">
+              ICA registration page
+            </label>
+            <Input
+              name="registrationUrl"
+              type="url"
+              placeholder={defaultRegistrationUrl()}
+              value={registrationUrl}
+              onChange={(e) => setRegistrationUrl(e.target.value)}
+            ></Input>
           </div>
+          <p className="text-sm m-0 opacity-70">
+            Where reviewers register (the ICA submission system). People that
+            are not yet in your reviewer list are asked to register here.
+          </p>
           <Button disabled={!division || !deadline || !name}>
             Create project
           </Button>

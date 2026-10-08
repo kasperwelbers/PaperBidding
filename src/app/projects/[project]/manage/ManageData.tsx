@@ -60,14 +60,14 @@ export default function ManageData({
                   if (key === "id") return null;
                   if (key === "features") return null;
                   return (
-                    <th className="pr-3" key={key}>
+                    <th className="pr-3 text-sm text-primary/60" key={key}>
                       {key}
                     </th>
                   );
                 })}
               </tr>
             </thead>
-            <tbody className="min-h-[18rem]">
+            <tbody className="min-h-[18rem] text-xs">
               {dataPage.data.map((row, i) => (
                 <tr key={i}>
                   {Object.keys(row).map((key) => {

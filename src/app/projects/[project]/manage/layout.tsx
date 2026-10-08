@@ -2,7 +2,7 @@
 
 import { useProject } from "@/hooks/api";
 import { SWRConfig } from "swr";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/auth/authClient";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect } from "react";

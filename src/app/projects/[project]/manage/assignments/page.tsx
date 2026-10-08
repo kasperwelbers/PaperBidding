@@ -364,15 +364,17 @@ function SubmissionsByReviewer({
   if (!data) return null;
 
   return (
-    <div className="bg-primary/10 border rounded p-3 lg:p-9  mt-3 flex flex-col gap-9">
+    <div className="bg-primary/10 border rounded p-3 lg:p-9 text-sm  mt-3 flex flex-col gap-9">
       <h3 className="text-center">Uploading to ScholarOne</h3>
       <div>
-        <p>
-          It is (sadly) not yet possible to upload the reviewer assignments
-          directly to ScholarOne. You need to assign the submission IDs per
-          reviewer. To make this as easy as possible, the following steps let
-          you sort the reviewers in the same way, and directly copy-paste the
-          submission IDs
+        <p className="text-sm">
+          ScholarOne does not support bulk assigning reviewers.
+          However, we can make it easier for you to assign the reviewers by providing a
+          table with the submission IDs per reviewer (see video example).
+
+          <br/>
+          <span className="text-xs">We do have a browser automation script in Python: email k.welbers@vu.nl if you want it
+          </span>
         </p>
         <div className="flex justify-center">
           <UploadAssignmentsVideo />
@@ -408,7 +410,7 @@ function SubmissionsByReviewer({
         </ul>
       </div>
       <div>
-        <p className="mt-3 italic">
+        <p className="mt-3 italic text-sm">
           <b>Be carefull</b> that once you start assigning in ScholarOne, you do
           not want the assignments to change! Therefore, before you start, make
           sure to download the CSV file with the current assignments.
@@ -425,7 +427,7 @@ function SubmissionsByReviewer({
         </CSVDownloader>
       </div>
       <div className="flex flex-col gap-6 w-full">
-        <p>
+        <p className='text-sm'>
           <b>Exclude reviewers.</b> If you want to exclude specific reviewers,
           you can uncheck their box. Then when you update the assignments, these
           reviewers will not be assigned
@@ -456,7 +458,7 @@ function SubmissionsByReviewer({
                     {d.student === "Yes" ? " *" : ""}
                     <span
                       title={d.reviewer}
-                      className={d.canReview ? "" : "opacity-50"}
+                      className={d.canReview ? "text-sm" : "opacity-50"}
                     >
                       {" "}
                       {d.reviewer}

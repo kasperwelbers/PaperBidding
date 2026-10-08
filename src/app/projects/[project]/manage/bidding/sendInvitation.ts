@@ -17,7 +17,6 @@ export async function sendInvitation(
       test,
     }),
     headers: {
-      Authorization: `${process.env.MIDDLECAT_MAIL_TOKEN}`,
       "Content-Type": "application/json",
     },
     method: "POST",
