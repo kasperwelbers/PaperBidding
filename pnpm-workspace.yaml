@@ -31,3 +31,6 @@ minimumReleaseAgeExclude:
   - tailwindcss@4.3.4
   - vitest@5.1.0
   - wrangler@4.156.2
+  - '@tanstack/query-core@5.105.3'
+  - '@tanstack/react-query@5.105.3'
+  - '@cloudflare/vitest-plugin@1.5.0'

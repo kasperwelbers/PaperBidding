@@ -1,0 +1,66 @@
+// Sending email. Production: Scaleway Transactional Email (HTTP API).
+// Development: print to the console. Tests: keep in memory.
+
+export interface Email {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+export interface EmailSender {
+  send(email: Email): Promise<void>;
+}
+
+/** Emails "sent" in tests (ENVIRONMENT = "test") */
+export const sentTestEmails: Email[] = [];
+
+const memorySender: EmailSender = {
+  async send(email) {
+    sentTestEmails.push(email);
+  },
+};
+
+const consoleSender: EmailSender = {
+  async send(email) {
+    console.log(`\n[dev] email to ${email.to}\n${email.subject}\n\n${email.text}\n`);
+  },
+};
+
+/** Parses "Name <address>" or "address" */
+function parseFrom(from: string) {
+  const m = from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1] || undefined, email: m[2]! } : { email: from.trim() };
+}
+
+function scalewaySender(env: Env): EmailSender {
+  const region = env.SCW_REGION || "fr-par";
+  const url = `https://api.scaleway.com/transactional-email/v1alpha1/regions/${region}/emails`;
+  return {
+    async send(email) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Auth-Token": env.SCW_SECRET_KEY,
+        },
+        body: JSON.stringify({
+          from: parseFrom(env.EMAIL_FROM),
+          to: [{ email: email.to }],
+          subject: email.subject,
+          text: email.text,
+          project_id: env.SCW_PROJECT_ID,
+        }),
+      });
+      if (!res.ok)
+        throw new Error(`Sending email failed (${res.status}): ${await res.text()}`);
+    },
+  };
+}
+
+export function getEmailSender(env: Env): EmailSender {
+  if (env.ENVIRONMENT === "test") return memorySender;
+  if (env.SCW_SECRET_KEY && env.SCW_PROJECT_ID && env.EMAIL_FROM)
+    return scalewaySender(env);
+  if (env.ENVIRONMENT === "development") return consoleSender;
+  throw new Error("Email is not configured (SCW_SECRET_KEY, SCW_PROJECT_ID, EMAIL_FROM)");
+}

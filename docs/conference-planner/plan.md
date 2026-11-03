@@ -343,7 +343,21 @@ the first version.
    upload, queue parsing, the import job UI, and persons, submissions, and
    reviewers with their division links.
 3. **Embeddings** with Workers AI in the queue, and server-side similarity in
-   `packages/shared`.
+   `packages/shared`. Workers AI only runs on Cloudflare, so local
+   development has three parts:
+   - **Demo project:** `pnpm db:seed:demo` loads a synthetic conference
+     (divisions, persons, keywords, submissions, reviewers) with precomputed
+     embeddings, so every screen works without an account. It is synthetic,
+     with no real data in the repository.
+   - **Stand-in embedder:** without a login, uploads in local development use
+     a lexical feature-hashing embedder (word overlap). It is not semantic, but
+     similar texts still score as similar, so the whole flow can be tested.
+     Production refuses it.
+   - **Real embeddings locally:** `pnpm dev:remote-ai` uses real Workers AI,
+     for developers who are logged in to Cloudflare.
+   - **Embeddings record their model** (an `embedding_model` column), and
+     similarity only compares embeddings from the same model. Demo, stand-in
+     and real embeddings never mix.
 4. **Division setup:** submissions and reviewer pool per division, reference
    source selection, and the join link.
 5. **Optional bidding:** invitations, the bidding page, and the deadline.

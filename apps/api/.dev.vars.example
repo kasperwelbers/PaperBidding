@@ -1,2 +1,18 @@
-# Local secrets for `wrangler dev`. Copy to .dev.vars (not committed)
+# Local secrets for `wrangler dev`. Copy to .dev.vars (not committed).
+
+# "development": sign-in codes are printed to the console instead of emailed
+ENVIRONMENT="development"
+
+# Comma-separated emails of superadmins (can add admins, see everything)
 SUPERADMIN="you@example.com"
+
+# Random secret for sessions: `openssl rand -base64 32`
+BETTER_AUTH_SECRET="change-me"
+# Origin of the app. In development that's the Vite dev server
+BETTER_AUTH_URL="http://localhost:5180"
+
+# Scaleway Transactional Email (optional in development)
+SCW_SECRET_KEY=""
+SCW_PROJECT_ID=""
+SCW_REGION="fr-par"
+EMAIL_FROM="Conference planner <noreply@example.com>"

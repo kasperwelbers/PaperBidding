@@ -21,6 +21,75 @@ const createdAt = () =>
 
 const id = () => integer("id").primaryKey({ autoIncrement: true });
 
+// AUTH (better-auth: users sign in with an email code)
+
+const authTimestamp = (name: string) =>
+  integer(name, { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch('subsec') * 1000)`);
+
+export const authUser = sqliteTable("auth_user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+  image: text("image"),
+  createdAt: authTimestamp("created_at"),
+  updatedAt: authTimestamp("updated_at"),
+});
+
+export const authSession = sqliteTable(
+  "auth_session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: authTimestamp("created_at"),
+    updatedAt: authTimestamp("updated_at"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => authUser.id, { onDelete: "cascade" }),
+  },
+  (t) => [index("auth_session_user_idx").on(t.userId)],
+);
+
+export const authAccount = sqliteTable(
+  "auth_account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => authUser.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: integer("access_token_expires_at", { mode: "timestamp_ms" }),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", { mode: "timestamp_ms" }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: authTimestamp("created_at"),
+    updatedAt: authTimestamp("updated_at"),
+  },
+  (t) => [index("auth_account_user_idx").on(t.userId)],
+);
+
+export const authVerification = sqliteTable(
+  "auth_verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: authTimestamp("created_at"),
+    updatedAt: authTimestamp("updated_at"),
+  },
+  (t) => [index("auth_verification_identifier_idx").on(t.identifier)],
+);
+
 // USERS
 
 /** Can create conferences. Managed by the superadmin (env variable) */

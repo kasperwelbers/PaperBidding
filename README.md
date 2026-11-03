@@ -29,10 +29,12 @@ Requires Node 22+ and pnpm.
 pnpm install
 cp apps/api/.dev.vars.example apps/api/.dev.vars   # local secrets
 pnpm db:migrate:local                              # create the local D1 database
-pnpm dev                                           # API on :8787, web app on :5173
+pnpm dev                                           # API on :8787, web app on :5180
 ```
 
-Open http://localhost:5173. The web dev server sends `/api` to the API.
+Open http://localhost:5180. The web dev server sends `/api` to the API. Sign
+in with the email you set as `SUPERADMIN` in `.dev.vars`. In development the
+sign-in code is printed in the API's terminal output instead of emailed.
 
 `pnpm dev` runs the API with `wrangler dev --local`. Everything (D1, R2,
 Queues) is simulated locally, so you don't need a Cloudflare account. The one
@@ -65,7 +67,13 @@ pnpm exec wrangler login
 pnpm exec wrangler d1 create conference-planner        # put the id in wrangler.jsonc
 pnpm exec wrangler r2 bucket create conference-planner-files
 pnpm exec wrangler queues create conference-planner-imports
-pnpm exec wrangler secret put SUPERADMIN
+pnpm exec wrangler secret put SUPERADMIN          # comma-separated emails
+pnpm exec wrangler secret put BETTER_AUTH_SECRET  # openssl rand -base64 32
+pnpm exec wrangler secret put BETTER_AUTH_URL     # e.g. https://planner.example.org
+pnpm exec wrangler secret put SCW_SECRET_KEY      # Scaleway Transactional Email
+pnpm exec wrangler secret put SCW_PROJECT_ID
+pnpm exec wrangler secret put SCW_REGION          # e.g. fr-par
+pnpm exec wrangler secret put EMAIL_FROM          # e.g. "Conference planner <noreply@example.org>"
 ```
 
 Every deploy, from the repository root (migrations first, then code):
@@ -78,6 +86,6 @@ pnpm deploy
 ### Email
 
 Sign-in codes and invitations are sent by email, through Scaleway
-Transactional Email (not set up yet). **Set up email properly**: use a verified
+Transactional Email (`SCW_*` and `EMAIL_FROM` secrets). **Set up email properly**: use a verified
 sending domain with SPF, DKIM and DMARC records, or your emails will end up in
 spam. In local development, sign-in codes are printed to the console instead.
