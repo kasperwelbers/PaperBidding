@@ -43,3 +43,21 @@ export function ErrorText({ error }: { error: unknown }) {
   const message = error instanceof Error ? error.message : String(error);
   return <p className="text-sm text-red-700">{message}</p>;
 }
+
+/** Renders **bold** and *italic* (used for adapter instructions) */
+export function Markdown({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("**") ? (
+          <b key={i}>{part.slice(2, -2)}</b>
+        ) : part.startsWith("*") && part.length > 2 ? (
+          <i key={i}>{part.slice(1, -1)}</i>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}

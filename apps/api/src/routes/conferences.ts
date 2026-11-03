@@ -11,8 +11,11 @@ import {
 } from "@cp/db";
 import { isUniqueViolation, router, userEmail, type AppEnv } from "../context";
 import { requireUser } from "../middleware";
+import { importRoutes } from "./imports";
+import { conflictRoutes, keywordRoutes } from "./keywords";
+import { loadEdition, requireConferenceAdmin } from "./shared";
+import { summaryRoutes } from "./summary";
 import {
-  canEditConference,
   canView,
   conferenceRole,
   isAdmin,
@@ -37,11 +40,7 @@ const loadConference = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 });
 
-const requireConferenceAdmin = createMiddleware<AppEnv>(async (c, next) => {
-  if (!canEditConference(c.get("role")))
-    return c.json({ error: "Only conference admins can do this" }, 403);
-  await next();
-});
+
 
 /** Throws if a division id does not belong to the conference */
 async function checkDivisions(db: Db, conferenceId: number, divisionIds: number[]) {
@@ -279,7 +278,10 @@ const editionRoutes = router()
         throw e;
       }
     },
-  );
+  )
+  .use("/:editionId/*", loadEdition)
+  .route("/:editionId/imports", importRoutes)
+  .route("/:editionId/summary", summaryRoutes);
 
 // --- conferences ---
 
@@ -364,4 +366,6 @@ export const conferenceRoutes = router()
   )
   .route("/:conferenceId/divisions", divisionRoutes)
   .route("/:conferenceId/users", userRoutes)
-  .route("/:conferenceId/editions", editionRoutes);
+  .route("/:conferenceId/editions", editionRoutes)
+  .route("/:conferenceId/keywords", keywordRoutes)
+  .route("/:conferenceId/conflicts", conflictRoutes);

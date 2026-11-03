@@ -4,6 +4,7 @@ import { api } from "./api";
 import { authClient } from "./auth";
 import Admins from "./pages/Admins";
 import Conference from "./pages/Conference";
+import Edition from "./pages/Edition";
 import Home from "./pages/Home";
 import SignIn from "./pages/SignIn";
 import { Button } from "./ui";
@@ -70,6 +71,7 @@ function Shell() {
             element={me.data.isSuperadmin ? <Admins /> : <Navigate to="/" replace />}
           />
           <Route path="/conferences/:conferenceId" element={<Conference />} />
+          <Route path="/conferences/:conferenceId/editions/:editionId" element={<Edition />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

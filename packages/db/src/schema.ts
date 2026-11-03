@@ -438,3 +438,68 @@ export const assignments = sqliteTable("assignments", {
   /** set when exported to the platform; changes after that are replacements */
   exportedAt: integer("exported_at", { mode: "timestamp_ms" }),
 });
+
+// IMPORTS
+
+export type ImportStatus = "uploaded" | "queued" | "parsing" | "writing" | "done" | "failed";
+
+/** An uploaded file and its processing. The raw file and the parsed record
+ *  chunks are in R2, under `fileKey`'s folder */
+export const importJobs = sqliteTable(
+  "import_jobs",
+  {
+    id: id(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => editions.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["submissions", "persons", "reviewers"] }).notNull(),
+    status: text("status").$type<ImportStatus>().notNull(),
+    filename: text("filename").notNull(),
+    fileKey: text("file_key").notNull(),
+    size: integer("size").notNull(),
+    /** field -> CSV header */
+    mapping: text("mapping", { mode: "json" }).$type<Record<string, string>>(),
+    totalChunks: integer("total_chunks"),
+    doneChunks: integer("done_chunks").notNull().default(0),
+    /** e.g. { records: 6000, created: 120, updated: 5880 } */
+    counts: text("counts", { mode: "json" }).$type<Record<string, number>>().notNull().default({}),
+    warnings: text("warnings", { mode: "json" }).$type<string[]>().notNull().default([]),
+    error: text("error"),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("import_jobs_edition_idx").on(t.editionId)],
+);
+
+/** An import tried to give an identifier (email or person ID) that already
+ *  belongs to another person. Not applied; a conference admin decides */
+export const importConflicts = sqliteTable(
+  "import_conflicts",
+  {
+    id: id(),
+    conferenceId: integer("conference_id")
+      .notNull()
+      .references(() => conferences.id, { onDelete: "cascade" }),
+    importJobId: integer("import_job_id").references(() => importJobs.id, {
+      onDelete: "set null",
+    }),
+    kind: text("kind", { enum: ["platform_id", "email"] }).notNull(),
+    value: text("value").notNull(),
+    /** the person the identifier belongs to */
+    existingPersonId: integer("existing_person_id")
+      .notNull()
+      .references(() => persons.id, { onDelete: "cascade" }),
+    /** the person the import wanted to give it to */
+    incomingPersonId: integer("incoming_person_id")
+      .notNull()
+      .references(() => persons.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("import_conflicts_conference_idx").on(t.conferenceId),
+    // re-running an import does not record the same conflict twice
+    unique().on(t.conferenceId, t.kind, t.value, t.existingPersonId, t.incomingPersonId),
+  ],
+);

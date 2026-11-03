@@ -13,6 +13,8 @@ export type AppEnv = {
     /** set by loadConference, for routes under /conferences/:conferenceId */
     conferenceId: number;
     role: ConferenceRole | null;
+    /** set by loadEdition, for routes under /editions/:editionId */
+    editionId: number;
   };
 };
 

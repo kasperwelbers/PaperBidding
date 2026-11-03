@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { api, unwrap } from "../api";
 import { Button, Card, ErrorText, Input } from "../ui";
 
@@ -34,6 +34,8 @@ export default function Conference() {
       </div>
       <Editions conferenceId={conferenceId} isAdmin={isAdmin} />
       <Divisions conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
+      <Keywords conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
+      <Conflicts conferenceId={conferenceId} isAdmin={isAdmin} />
       <Users conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
     </div>
   );
@@ -65,7 +67,12 @@ function Editions({ conferenceId, isAdmin }: { conferenceId: string; isAdmin: bo
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {editions.data?.map((e) => (
             <li key={e.id}>
-              {e.name}{" "}
+              <Link
+                to={`/conferences/${conferenceId}/editions/${e.id}`}
+                className="text-blue-800 hover:underline"
+              >
+                {e.name}
+              </Link>{" "}
               <span className="text-xs text-slate-500">
                 created {new Date(e.createdAt).toLocaleDateString()}
               </span>
@@ -320,6 +327,156 @@ function Users({
           ) : null}
         </form>
       ) : null}
+    </Card>
+  );
+}
+
+/** Expertise keywords and their divisions. Keywords without a division
+ *  ("orphans") come first, so admins can assign them */
+function Keywords({
+  conferenceId,
+  isAdmin,
+  divisions,
+}: {
+  conferenceId: string;
+  isAdmin: boolean;
+  divisions: Division[];
+}) {
+  const queryClient = useQueryClient();
+  const param = { conferenceId };
+  const key = ["conference", conferenceId, "keywords"];
+  const [showAll, setShowAll] = useState(false);
+  const keywords = useQuery({
+    queryKey: key,
+    queryFn: () => unwrap(api.conferences[":conferenceId"].keywords.$get({ param })),
+  });
+  const assign = useMutation({
+    mutationFn: (v: { keywordId: number; divisionId: number | null }) =>
+      unwrap(
+        api.conferences[":conferenceId"].keywords[":keywordId"].$patch({
+          param: { conferenceId, keywordId: String(v.keywordId) },
+          json: { divisionId: v.divisionId },
+        }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+  const autoAssign = useMutation({
+    mutationFn: () => unwrap(api.conferences[":conferenceId"].keywords["auto-assign"].$post({ param })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+
+  const all = keywords.data ?? [];
+  if (all.length === 0) return null;
+  const orphans = all.filter((k) => k.divisionId === null);
+  const shown = showAll ? all : orphans;
+
+  return (
+    <Card title="Expertise keywords">
+      <ErrorText error={keywords.error || assign.error || autoAssign.error} />
+      <p className="mb-3 text-sm">
+        {all.length} keywords.{" "}
+        {orphans.length > 0 ? (
+          <span className="text-amber-800">
+            {orphans.length} {orphans.length === 1 ? "is" : "are"} not linked to a division, so
+            their reviewers are not linked either.
+          </span>
+        ) : (
+          "All are linked to a division."
+        )}
+      </p>
+      <div className="mb-3 flex gap-2">
+        <Button variant="ghost" onClick={() => setShowAll(!showAll)}>
+          {showAll ? "Show only unlinked" : "Show all"}
+        </Button>
+        {isAdmin ? (
+          <Button variant="ghost" onClick={() => autoAssign.mutate()} disabled={autoAssign.isPending}>
+            Match by division name again
+          </Button>
+        ) : null}
+      </div>
+      <ul className="flex max-h-96 flex-col divide-y divide-slate-100 overflow-auto">
+        {shown.map((k) => (
+          <li key={k.id} className="flex items-center justify-between gap-2 py-1 text-sm">
+            <span>
+              {k.text} <span className="text-xs text-slate-500">({k.reviewers} reviewers)</span>
+            </span>
+            <select
+              disabled={!isAdmin}
+              className="rounded border border-slate-300 px-1 py-0.5 text-xs"
+              value={k.divisionId ?? ""}
+              onChange={(e) =>
+                assign.mutate({
+                  keywordId: k.id,
+                  divisionId: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+            >
+              <option value="">(no division)</option>
+              {divisions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/** Identifiers (emails) that an import could not apply, because they belong
+ *  to another person */
+function Conflicts({ conferenceId, isAdmin }: { conferenceId: string; isAdmin: boolean }) {
+  const queryClient = useQueryClient();
+  const param = { conferenceId };
+  const key = ["conference", conferenceId, "conflicts"];
+  const conflicts = useQuery({
+    queryKey: key,
+    queryFn: () => unwrap(api.conferences[":conferenceId"].conflicts.$get({ param })),
+  });
+  const resolve = useMutation({
+    mutationFn: (v: { conflictId: number; action: "keep" | "move" }) =>
+      unwrap(
+        api.conferences[":conferenceId"].conflicts[":conflictId"].resolve.$post({
+          param: { conferenceId, conflictId: String(v.conflictId) },
+          json: { action: v.action },
+        }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+
+  if (!conflicts.data?.length) return null;
+  const describe = (ids: { kind: string; value: string }[]) =>
+    ids.map((i) => (i.kind === "platform_id" ? `ID ${i.value}` : i.value)).join(", ") || "?";
+
+  return (
+    <Card title="Import conflicts">
+      <ErrorText error={resolve.error} />
+      <p className="mb-3 text-sm">
+        These emails were imported for one person, but already belong to another. They were not
+        moved.
+      </p>
+      <ul className="flex flex-col divide-y divide-slate-100 text-sm">
+        {conflicts.data.map((c) => (
+          <li key={c.id} className="flex items-center justify-between gap-2 py-2">
+            <span>
+              <b>{c.value}</b> belongs to {describe(c.existing.identifiers)}; the import gave it
+              to {describe(c.incoming.identifiers)}
+            </span>
+            {isAdmin ? (
+              <span className="flex shrink-0 gap-1">
+                <Button variant="ghost" onClick={() => resolve.mutate({ conflictId: c.id, action: "keep" })}>
+                  Keep
+                </Button>
+                <Button variant="ghost" onClick={() => resolve.mutate({ conflictId: c.id, action: "move" })}>
+                  Move
+                </Button>
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

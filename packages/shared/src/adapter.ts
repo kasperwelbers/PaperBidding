@@ -26,8 +26,12 @@ export interface ParseResult<T> {
 }
 
 export interface ImportSpec<T, Settings> {
+  label: string;
   instructions(settings: Settings): InstructionStep[];
-  fields: FieldSpec[];
+  fields(settings: Settings): FieldSpec[];
+  /** problems with the chosen columns (e.g. a wrong column for a field) */
+  checkMapping?(mapping: Record<string, string>, settings: Settings): string[];
+  /** rows are keyed by field (see applyMapping) */
   parse(rows: Record<string, string>[], settings: Settings): ParseResult<T>;
 }
 
@@ -58,10 +62,14 @@ export interface EditionLinks {
   registration: string;
 }
 
+export type ImportKind = "submissions" | "persons" | "reviewers";
+
 export interface PlatformAdapter<Settings> {
   id: string;
   name: string;
   presets: Preset<Settings>[];
+  /** the conference settings with defaults filled in */
+  resolveSettings(raw: unknown): Settings;
   links(edition: { name: string; createdAt: Date }, settings: Settings): EditionLinks;
   imports: {
     submissions: ImportSpec<SubmissionRecord, Settings>;

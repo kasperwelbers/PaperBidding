@@ -27,8 +27,23 @@ export async function signIn(email: string) {
     .map((c) => c.split(";")[0])
     .join("; ");
 
-  return (path: string, init: { method?: string; body?: unknown } = {}) =>
-    app.request(
+  return (path: string, init: { method?: string; body?: unknown; file?: string } = {}) => {
+    if (init.file !== undefined)
+      return app.request(
+        path,
+        {
+          method: "POST",
+          headers: {
+            Origin: "http://localhost",
+            Cookie: cookie,
+            "Content-Type": "text/csv",
+            "Content-Length": String(new TextEncoder().encode(init.file).length),
+          },
+          body: init.file,
+        },
+        env,
+      );
+    return app.request(
       path,
       {
         method: init.method ?? "GET",
@@ -37,4 +52,5 @@ export async function signIn(email: string) {
       },
       env,
     );
+  };
 }
