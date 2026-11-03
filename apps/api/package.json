@@ -1,0 +1,28 @@
+{
+  "name": "@cp/api",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts"
+  },
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "types": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply conference-planner --local",
+    "db:migrate:remote": "wrangler d1 migrations apply conference-planner --remote"
+  },
+  "dependencies": {
+    "@cp/db": "workspace:*",
+    "@cp/shared": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.16"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.156.2"
+  }
+}

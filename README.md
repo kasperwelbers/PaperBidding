@@ -1,61 +1,83 @@
-# How to setup
+# Conference planner
 
-## Develop
+Match reviewers to submissions for a conference, with or without paper
+bidding. Bidding is optional: matching also works on automatic similarity
+alone (between the submissions and the reviewers' own work).
 
-First start up a local database. Easiest is to use Postgres in Docker.
+This is the successor of PaperBidding and is under construction. See
+[`docs/conference-planner/plan.md`](docs/conference-planner/plan.md) for the
+plan. The current PaperBidding app (Next.js) is in [`legacy/`](legacy/) for
+reference while porting. It's maintained on the `main` branch.
 
-```bash
-docker run --name postgres -e POSTGRES_USER="devuser" -e POSTGRES_PASSWORD="devpw" -p 5432:5432 -d postgres`
+## Structure
+
+```
+apps/
+  web/                    Vite + React SPA
+  api/                    Hono API on Cloudflare Workers (also serves the SPA)
+packages/
+  shared/                 types, platform adapter interface, similarity
+  db/                     D1 (sqlite) schema and migrations (drizzle)
+  adapter-scholarone/     ScholarOne adapter and presets (ICA)
 ```
 
-Then create a database called `paperbidding` in that database.
+## Development
+
+Requires Node 22+ and pnpm.
 
 ```bash
-docker exec -it postgres psql -U devuser -c "CREATE DATABASE paperbidding;"
+pnpm install
+cp apps/api/.dev.vars.example apps/api/.dev.vars   # local secrets
+pnpm db:migrate:local                              # create the local D1 database
+pnpm dev                                           # API on :8787, web app on :5173
 ```
 
-Now you'll need to set up your environment variables in a `.env.local` file.
-To get the BETTER_AUTH_SECRET you can run `npm run secret`, or use `openssl rand -base64 32`.
-For the RESEND_API_KEY you'll need an account at `https://resend.com`.
-If RESEND_API_KEY is not set in development, sign-in codes are printed to the server console instead.
+Open http://localhost:5173. The web dev server sends `/api` to the API.
 
-Note that BETTER_AUTH_SECRET is also used to create the secret bidding links,
-so changing it breaks all existing bidding links. (This variable used to be called NEXTAUTH_SECRET; keep the same value.)
+`pnpm dev` runs the API with `wrangler dev --local`. Everything (D1, R2,
+Queues) is simulated locally, so you don't need a Cloudflare account. The one
+exception is Workers AI, which only runs on Cloudflare, so embeddings are not
+available in local development.
+
+Other commands:
 
 ```bash
-SUPERADMIN="kasperwelbers@gmail.com"
-DATABASE_URL="postgresql://devuser:devpw@localhost:5432/paperbidding"
-RESEND_API_KEY="..."
-BETTER_AUTH_URL="http://localhost:3000"
-BETTER_AUTH_SECRET="a cryptographic secret"
+pnpm typecheck
+pnpm test
+pnpm db:generate     # after changing packages/db/src/schema.ts: create a migration
 ```
 
-## Deploy
+Database changes are always made through migrations. Change the schema, run
+`pnpm db:generate`, and commit the generated SQL in `packages/db/migrations`.
 
-Easiest to host it on Vercel, and use NEON for the database.
-On Vercel the environment variables almost the same as dev,
-except that you need to use `NEON_DATABASE_URL` instead of `DATABASE_URL`,
-and you set BETTER_AUTH_URL to the URL of your Vercel deployment.
+## Hosting (Cloudflare)
+
+We recommend the **Workers Paid plan** ($5/month). It includes enough compute
+and storage for a conference, plus Workers AI for the embeddings (10,000 free
+neurons per day, then $0.011 per 1,000 neurons). The free plan might work, but
+at your own risk.
+
+First deploy:
 
 ```bash
-SUPERADMIN="kasperwelbers@gmail.com"
-NEON_DATABASE_URL="provided by NEON"
-RESEND_API_KEY="..."
-BETTER_AUTH_URL="https://paperbidding.ica-cm.com"
-BETTER_AUTH_SECRET="a cryptographic secret"
+cd apps/api
+pnpm exec wrangler login
+pnpm exec wrangler d1 create conference-planner        # put the id in wrangler.jsonc
+pnpm exec wrangler r2 bucket create conference-planner-files
+pnpm exec wrangler queues create conference-planner-imports
+pnpm exec wrangler secret put SUPERADMIN
 ```
 
-### Central reference submissions (optional)
-
-To save planners from uploading reference submissions themselves, upload all
-ICA submissions once (Step 1) into a dedicated project, and set its ID (the number in
-`/projects/<id>/manage`):
+Every deploy, from the repository root (migrations first, then code):
 
 ```bash
-REFERENCE_POOL_PROJECT_ID="123"
+pnpm --filter @cp/api db:migrate:remote
+pnpm deploy
 ```
 
-The submissions in this project are then automatically used as reference
-submissions in every other project: for each reviewer, their submissions here
-are used for similarity matching and co-author conflicts (but they do not make
-the reviewer count as an author in the other projects).
+### Email
+
+Sign-in codes and invitations are sent by email, through Scaleway
+Transactional Email (not set up yet). **Set up email properly**: use a verified
+sending domain with SPF, DKIM and DMARC records, or your emails will end up in
+spam. In local development, sign-in codes are printed to the console instead.

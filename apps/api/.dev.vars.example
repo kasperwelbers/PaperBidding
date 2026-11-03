@@ -1,0 +1,2 @@
+# Local secrets for `wrangler dev`. Copy to .dev.vars (not committed)
+SUPERADMIN="you@example.com"
