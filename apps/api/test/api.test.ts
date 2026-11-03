@@ -24,7 +24,14 @@ async function conferenceSetup() {
 describe("health and auth", () => {
   it("reports the database is reachable", async () => {
     const res = await app.request("/api/health", {}, env);
-    expect(await res.json()).toEqual({ ok: true, service: "conference-planner" });
+    expect(await res.json()).toEqual({ ok: true, service: "conference-planner", emailConfigured: true });
+  });
+
+  it("works without email set up, and says so", async () => {
+    const production = { ...env, ENVIRONMENT: "production", SCW_SECRET_KEY: undefined, SCW_PROJECT_ID: undefined };
+    const health = await app.request("/api/health", {}, production);
+    expect(await health.json()).toMatchObject({ ok: true, emailConfigured: false });
+    expect((await app.request("/api/me", {}, production)).status).toBe(401);
   });
 
   it("requires signing in", async () => {

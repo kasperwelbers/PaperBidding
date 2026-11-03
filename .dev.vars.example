@@ -7,7 +7,8 @@ SUPERADMIN="you@example.org"
 # Random secret for sign-in sessions: `openssl rand -base64 32`
 BETTER_AUTH_SECRET="change-me"
 
-# Scaleway Transactional Email (https://www.scaleway.com/en/transactional-email-tem/).
-# Optional locally: without them, sign-in codes are printed to the console
-SCW_SECRET_KEY=""
-SCW_PROJECT_ID=""
+# Email (Scaleway Transactional Email) is added later, once you have verified
+# your sending domain: see the README, Email. Until then, the app works but
+# can't send sign-in codes (locally they are printed to the console).
+# SCW_SECRET_KEY=""
+# SCW_PROJECT_ID=""

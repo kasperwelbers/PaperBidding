@@ -92,8 +92,6 @@ pnpm install
 pnpm exec wrangler login
 pnpm exec wrangler secret put SUPERADMIN          # comma-separated emails
 pnpm exec wrangler secret put BETTER_AUTH_SECRET  # openssl rand -base64 32
-pnpm exec wrangler secret put SCW_SECRET_KEY      # Scaleway Transactional Email
-pnpm exec wrangler secret put SCW_PROJECT_ID
 pnpm run deploy                                   # build, migrate, deploy
 ```
 
@@ -102,8 +100,9 @@ migrations, then deploys the code.
 
 ### Settings and secrets
 
-- **Secrets** (`.dev.vars.example`): `SUPERADMIN`, `BETTER_AUTH_SECRET`,
-  `SCW_SECRET_KEY` and `SCW_PROJECT_ID` (the last two not with Cloudflare email).
+- **Secrets** (`.dev.vars.example`): `SUPERADMIN` and `BETTER_AUTH_SECRET`.
+  Later, once email is set up: `SCW_SECRET_KEY` and `SCW_PROJECT_ID` (see
+  Email). Until then the app works, but can't send sign-in codes.
 - **Settings** (`vars` in `wrangler.jsonc`, also editable in the Cloudflare
   dashboard):
   - `EMAIL_PROVIDER`: `scaleway` (default) or `cloudflare` (see Email)
@@ -139,6 +138,15 @@ through their own channels (e.g. a ScholarOne mass email or a mailing list).
   after planners share their links, when many reviewers request a code on the
   same day. If you use it, request a higher limit in advance.
 
-**Set up email properly**: use a verified sending domain with SPF, DKIM and
-DMARC records, or your emails will end up in spam. In local development,
+**Setting up email** doesn't depend on the app: the sending domain is any
+domain whose DNS you manage (it doesn't have to point to the app).
+
+1. In Scaleway, add your domain to Transactional Email, and add the DNS records
+   it shows (SPF, DKIM, DMARC) where the domain's DNS is managed.
+2. Once Scaleway has verified the domain, create an API key.
+3. In the Cloudflare dashboard (your Worker → Settings → Variables and
+   Secrets), add the secrets `SCW_SECRET_KEY` and `SCW_PROJECT_ID`, and set
+   `EMAIL_FROM` to an address on that domain.
+
+Without verified SPF, DKIM and DMARC records, your emails end up in spam. In local development,
 sign-in codes are printed to the console instead.

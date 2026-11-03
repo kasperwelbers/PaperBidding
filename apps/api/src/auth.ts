@@ -7,8 +7,6 @@ import { getEmailSender } from "./email";
 /** better-auth, created per request because the bindings come with the
  *  request. The app's address: BETTER_AUTH_URL, or else the request's origin */
 export function createAuth(env: Env, db: Db, origin: string) {
-  const sender = getEmailSender(env);
-
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL || origin,
@@ -32,7 +30,8 @@ export function createAuth(env: Env, db: Db, origin: string) {
         // Plain text, code in the subject, no links: university link scanners
         // can't consume it, and spam filters are less suspicious
         async sendVerificationOTP({ email, otp }) {
-          await sender.send({
+          // only here: without email set up, everything else keeps working
+          await getEmailSender(env).send({
             to: email,
             subject: `${otp} is your Conference planner sign-in code`,
             text: `Your sign-in code is:\n\n${otp}\n\nThe code is valid for 10 minutes.\nIf you did not request this code, you can safely ignore this email.`,

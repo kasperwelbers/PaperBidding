@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { api } from "../api";
 import { authClient } from "../auth";
 import { Button, ErrorText, Input } from "../ui";
 
@@ -8,6 +10,7 @@ export default function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
   const [codeSent, setCodeSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const health = useQuery({ queryKey: ["health"], queryFn: async () => (await api.health.$get()).json() });
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -33,6 +36,12 @@ export default function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
     <main className="mx-auto mt-24 max-w-sm p-6">
       <h1 className="text-2xl font-bold">Conference planner</h1>
       <p className="mt-1 mb-6 text-sm text-slate-600">Sign in with a code sent to your email.</p>
+      {health.data && !health.data.emailConfigured ? (
+        <p className="mb-6 rounded border-2 border-amber-400 bg-amber-50 p-3 text-sm">
+          <b>Email is not set up yet</b>, so sign-in codes can't be sent. The administrator needs
+          to add the email settings (see the README, Email).
+        </p>
+      ) : null}
       {!codeSent ? (
         <form onSubmit={sendCode} className="flex flex-col gap-3">
           <Input

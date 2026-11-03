@@ -37,12 +37,6 @@
       "BETTER_AUTH_SECRET": {
         "description": "A random secret for sign-in sessions, e.g. from `openssl rand -base64 32`."
       },
-      "SCW_SECRET_KEY": {
-        "description": "Scaleway Transactional Email API key, for sending sign-in codes and invitations."
-      },
-      "SCW_PROJECT_ID": {
-        "description": "Scaleway project ID of the Transactional Email domain."
-      },
       "EMAIL_FROM": {
         "description": "Sender address on your verified email domain, e.g. \"Conference planner <noreply@example.org>\"."
       },

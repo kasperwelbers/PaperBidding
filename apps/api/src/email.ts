@@ -35,7 +35,7 @@ function parseFrom(from: string) {
   return m ? { name: m[1] || undefined, email: m[2]! } : { email: from.trim() };
 }
 
-function scalewaySender(env: Env): EmailSender {
+function scalewaySender(env: Env, keys: { secretKey: string; projectId: string }): EmailSender {
   const region = env.SCW_REGION || "fr-par";
   const url = `https://api.scaleway.com/transactional-email/v1alpha1/regions/${region}/emails`;
   return {
@@ -44,14 +44,14 @@ function scalewaySender(env: Env): EmailSender {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Auth-Token": env.SCW_SECRET_KEY,
+          "X-Auth-Token": keys.secretKey,
         },
         body: JSON.stringify({
           from: parseFrom(env.EMAIL_FROM),
           to: [{ email: email.to }],
           subject: email.subject,
           text: email.text,
-          project_id: env.SCW_PROJECT_ID,
+          project_id: keys.projectId,
         }),
       });
       if (!res.ok)
@@ -74,10 +74,23 @@ function cloudflareSender(env: Env): EmailSender {
   };
 }
 
+/** Whether sign-in codes can be sent (in development: printed to the console) */
+export function emailConfigured(env: Env) {
+  try {
+    getEmailSender(env);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getEmailSender(env: Env): EmailSender {
   if (env.ENVIRONMENT === "test") return memorySender;
   if (env.EMAIL_PROVIDER === "cloudflare" && env.ENVIRONMENT !== "development") return cloudflareSender(env);
-  if (env.SCW_SECRET_KEY && env.SCW_PROJECT_ID && env.EMAIL_FROM) return scalewaySender(env);
+  if (env.SCW_SECRET_KEY && env.SCW_PROJECT_ID && env.EMAIL_FROM)
+    return scalewaySender(env, { secretKey: env.SCW_SECRET_KEY, projectId: env.SCW_PROJECT_ID });
   if (env.ENVIRONMENT === "development") return consoleSender;
-  throw new Error("Email is not configured (SCW_SECRET_KEY, SCW_PROJECT_ID, EMAIL_FROM)");
+  throw new Error(
+    "Email is not set up yet: add the SCW_SECRET_KEY and SCW_PROJECT_ID secrets (or use EMAIL_PROVIDER=cloudflare). See the README, Email",
+  );
 }

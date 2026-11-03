@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { router } from "./context";
 import { setup } from "./middleware";
+import { emailConfigured } from "./email";
 import { adminRoutes } from "./routes/admins";
 import { conferenceRoutes } from "./routes/conferences";
 import { meRoutes } from "./routes/me";
@@ -18,7 +19,7 @@ export const app = router()
   .on(["GET", "POST"], "/auth/*", (c) => c.get("auth").handler(c.req.raw))
   .get("/health", async (c) => {
     const result = await c.get("db").get<{ ok: number }>(sql`select 1 as ok`);
-    return c.json({ ok: result?.ok === 1, service: "conference-planner" });
+    return c.json({ ok: result?.ok === 1, service: "conference-planner", emailConfigured: emailConfigured(c.env) });
   })
   .route("/me", meRoutes)
   .route("/admins", adminRoutes)
