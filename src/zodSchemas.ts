@@ -98,3 +98,10 @@ export const GetAssignmentsSchema = AssignmentsSchema.extend({
   lastUpdate: z.coerce.date(),
   lastBid: z.coerce.date().nullish(),
 });
+
+export const IcaPersonsSchema = z.array(
+  z.object({
+    email: z.string(),
+    personId: z.string(),
+  }),
+);

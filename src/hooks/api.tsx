@@ -27,6 +27,7 @@ export function useGET<ResponseType>(
   url: string | null,
   token?: string,
   schema?: z.ZodTypeAny,
+  options: { nullOn404?: boolean } = {},
 ) {
   const session = useSession();
   const auth = !!token || session.status === "authenticated";
@@ -39,6 +40,7 @@ export function useGET<ResponseType>(
         method: "GET",
         headers: { Authorization: token },
       });
+      if (options.nullOn404 && res.status === 404) return null;
       if (!res.ok) throw new Error(res.statusText);
       const data = await res.json();
       if (schema) return schema.parse(data);
@@ -231,11 +233,20 @@ export function useAdmins() {
   return useGET<Admin[]>("/api/admins");
 }
 
+/** Returns null if no assignments have been made yet */
 export function useAssignments(projectId: number) {
-  return useGET<z.infer<typeof GetAssignmentsSchema>>(
+  return useGET<z.infer<typeof GetAssignmentsSchema> | null>(
     `/api/projects/${projectId}/assignments`,
     undefined,
     GetAssignmentsSchema,
+    { nullOn404: true },
+  );
+}
+
+/** ICA Person IDs of this project's reviewers, as { [lowercased email]: personId } */
+export function useProjectPersonIds(projectId: number) {
+  return useGET<Record<string, string>>(
+    `/api/projects/${projectId}/person-ids`,
   );
 }
 
@@ -346,6 +357,13 @@ export function useDeleteData(
 export function useReferencePool(projectId: number) {
   return useGET<{ available: boolean; total: number }>(
     `/api/projects/${projectId}/reference-pool`,
+  );
+}
+
+/** Add email -> ICA Person ID pairs to the global list */
+export function useUploadIcaPersons() {
+  return usePOST<{ data: { email: string; personId: string }[] }, { n: number }>(
+    "/api/ica-persons",
   );
 }
 

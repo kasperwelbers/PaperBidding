@@ -5,8 +5,15 @@ import { Button } from "./button";
 import { Combobox } from "./combobox";
 import { X } from "lucide-react";
 
+export interface CSVField {
+  field: string;
+  label: string;
+  /** optional fields do not need to be selected to upload */
+  optional?: boolean;
+}
+
 interface Props {
-  fields: { field: string; label: string }[];
+  fields: CSVField[];
   label: string;
   detail: string;
   onUpload: (data: Row[]) => void;
@@ -32,7 +39,7 @@ export default function CSVReader({
     Record<string, SelectedColumns>
   >({});
   const allColumnsSelected = fields.every(
-    (field) => selectedColumns[field.field],
+    (field) => field.optional || selectedColumns[field.field],
   );
 
   const prepareUpload = () => {
@@ -115,6 +122,9 @@ export default function CSVReader({
               <div key={field.field} className="contents">
                 <div className="font-bold text-xs whitespace-nowrap md:text-sm">
                   {field.label}
+                  {field.optional ? (
+                    <span className="font-normal opacity-60"> (optional)</span>
+                  ) : null}
                 </div>
                 <Combobox
                   items={data?.headers || []}

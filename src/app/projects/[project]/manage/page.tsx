@@ -2,7 +2,9 @@
 
 import {
   useAllData,
+  useAssignments,
   useProject,
+  useProjectPersonIds,
   useProjects,
   useUpdateProject,
 } from "@/hooks/api";
@@ -27,6 +29,7 @@ import { GetProject, GetReviewer } from "@/types";
 import { MdSettings } from "react-icons/md";
 import { defaultRegistrationUrl } from "@/lib/registrationUrl";
 import Step from "./Step";
+import { computeIcaMatch, controlIdsByReviewer } from "./assignments/shared";
 
 type Tab = "submissions" | "references" | "volunteers";
 const tabs: Tab[] = ["submissions", "volunteers", "references"];
@@ -52,6 +55,22 @@ export default function ProjectPage(props: {
     const invited = reviewers.filter((r) => !!r.invitationSent).length;
     return { bidded, invited };
   }, [reviewers]);
+
+  const { data: assignments, isLoading: assignmentsLoading } =
+    useAssignments(projectId);
+  const { data: personIds, isLoading: personIdsLoading } =
+    useProjectPersonIds(projectId);
+  // reviewers with at least one assigned submission
+  const nAssigned = useMemo(() => {
+    if (!assignments) return 0;
+    return controlIdsByReviewer(assignments.byReviewer).filter(
+      (r) => r.ids.length > 0,
+    ).length;
+  }, [assignments]);
+  const icaMatch = useMemo(() => {
+    if (!assignments || !personIds) return null;
+    return computeIcaMatch(assignments.byReviewer, personIds);
+  }, [assignments, personIds]);
 
   const router = useRouter();
   const [status, setStatus] = useState<ProjectStatus>({
@@ -105,11 +124,35 @@ export default function ProjectPage(props: {
             disabled={!status?.submissions || !status?.volunteers}
             title="Step 5. Reviewer assignments"
             hint="Assign reviewers to submissions"
-            doneMsg=""
-            done={false}
-            loading={reviewersLoading}
+            doneMsg={`${nAssigned} reviewer${nAssigned === 1 ? "" : "s"} assigned`}
+            done={nAssigned > 0}
+            loading={reviewersLoading || assignmentsLoading}
             onClick={() => {
               router.push(`/projects/${project.id}/manage/assignments`);
+            }}
+          />
+
+          <Step
+            disabled={nAssigned === 0}
+            title="Step 6. Upload to ICA"
+            hint={
+              icaMatch && icaMatch.assigned > 0
+                ? `Export assignments with ICA Person IDs (${icaMatch.matched}/${icaMatch.assigned} reviewers matched)`
+                : "Export assignments with ICA Person IDs"
+            }
+            doneMsg={
+              icaMatch
+                ? `${icaMatch.matched}/${icaMatch.assigned} reviewers matched`
+                : ""
+            }
+            done={
+              !!icaMatch &&
+              icaMatch.assigned > 0 &&
+              icaMatch.matched === icaMatch.assigned
+            }
+            loading={assignmentsLoading || (nAssigned > 0 && personIdsLoading)}
+            onClick={() => {
+              router.push(`/projects/${project.id}/manage/ica-upload`);
             }}
           />
         </div>

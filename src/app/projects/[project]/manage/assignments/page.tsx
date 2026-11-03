@@ -16,7 +16,6 @@ import {
   ByReviewer,
 } from "@/types";
 import { use, useEffect, useMemo, useState } from "react";
-import { FaCopy, FaVideo } from "react-icons/fa";
 import { useCSVDownloader } from "react-papaparse";
 import makeAssignments from "./makeAssignments";
 import { Dot } from "lucide-react";
@@ -30,8 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import Link from "next/link";
+import { CopyText } from "./shared";
 
 export default function BiddingPage(props: {
   params: Promise<{ project: string }>;
@@ -85,6 +85,7 @@ export default function BiddingPage(props: {
     data: assignments,
     isLoading: assignmentsLoading,
     error: assignmentsError,
+    mutate: mutateAssignments,
   } = useAssignments(projectId);
 
   const { trigger: uploadAssignments } = useUploadAssignments(projectId);
@@ -131,8 +132,9 @@ export default function BiddingPage(props: {
       includeWho,
       autoPenalty,
     );
-    uploadAssignments(data);
     setData(data);
+    // refetch, so that the manage page sees the new assignments (Step 5 done, Step 6 enabled)
+    uploadAssignments(data).then(() => mutateAssignments());
   }
 
   return (
@@ -365,65 +367,32 @@ function SubmissionsByReviewer({
 
   return (
     <div className="bg-primary/10 border rounded p-3 lg:p-9 text-sm  mt-3 flex flex-col gap-9">
-      <h3 className="text-center">Uploading to ScholarOne</h3>
-      <div>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-center mb-0">Next: upload to ICA</h3>
         <p className="text-sm">
-          ScholarOne does not support bulk assigning reviewers.
-          However, we can make it easier for you to assign the reviewers by providing a
-          table with the submission IDs per reviewer (see video example).
-
-          <br/>
-          <span className="text-xs">We do have a browser automation script in Python: email k.welbers@vu.nl if you want it
-          </span>
+          When you are happy with the assignments, go to{" "}
+          <Link
+            href={`/projects/${projectId}/manage/ica-upload`}
+            className="underline text-blue-900 font-bold"
+          >
+            Step 6. Upload to ICA
+          </Link>{" "}
+          to download the file for uploading the assignments to ScholarOne.
         </p>
-        <div className="flex justify-center">
-          <UploadAssignmentsVideo />
-        </div>
-        <ul className="list-disc list-inside mt-3">
-          <li>
-            Go to{" "}
-            <a
-              target="_blank"
-              rel="noreferrer"
-              href="https://ica2026.abstractcentral.com"
-              className="underline text-blue-900"
-            >
-              ScholarOne,
-            </a>{" "}
-            open the <b>Review - Unit Planner</b> tab
-          </li>
-          <li>
-            In the <b>People</b> table add the email column. Hover over the{" "}
-            <i>First Name</i> column and click on the &#x25BC;. Select{" "}
-            <b>Columns</b> &#8594; <b>Email address</b>
-          </li>
-          <li>Click on the email column to sort it like our table below</li>
-          <li>
-            Click on a reviewer in the ScholarOne table to select it, and then
-            click on <b>Multiple Assignments</b> &#8594;{" "}
-            <b> Assign/Unassign by Control ID</b>
-          </li>
-          <li>
-            Copy the control IDs from our table below and paste them into the
-            ScholarOne dialog
-          </li>
-        </ul>
-      </div>
-      <div>
-        <p className="mt-3 italic text-sm">
-          <b>Be carefull</b> that once you start assigning in ScholarOne, you do
-          not want the assignments to change! Therefore, before you start, make
-          sure to download the CSV file with the current assignments.
+        <p className="italic text-sm">
+          <b>Keep a backup.</b> Once you have uploaded the assignments to ICA,
+          you do not want them to change. Download a backup of the current
+          assignments, so you always have a record of what was uploaded.
         </p>
         <CSVDownloader
           type={Type.Button}
           className="flex-auto w-full bg-secondary text-primary p-1 rounded hover:text-secondary hover:bg-primary transition-colors "
-          filename={`reviewer_biddings_${projectId}.csv`}
+          filename={`reviewer_biddings_${projectId}`}
           bom={true}
           disabled={!data}
           data={() => data}
         >
-          Download CSV
+          Download backup of current assignments (CSV)
         </CSVDownloader>
       </div>
       <div className="flex flex-col gap-6 w-full">
@@ -475,53 +444,5 @@ function SubmissionsByReviewer({
         </Table>
       </div>
     </div>
-  );
-}
-
-function CopyText({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <Button
-      size="icon"
-      variant="ghost"
-      className="relative"
-      onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 500);
-      }}
-    >
-      <FaCopy />
-      {copied ? (
-        <div className="absolute -bottom-4 right-0 animate-slide-in">
-          Copied!
-        </div>
-      ) : null}
-    </Button>
-  );
-}
-
-function UploadAssignmentsVideo() {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="text-blue-900 underline flex gap-2 w-max"
-        >
-          <FaVideo />
-          show me
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="w-[1000px]  overflow-auto">
-        <div className="flex flex-col items-center min-w-[400px] pt-6">
-          <video id="instruction-video" autoPlay muted controls>
-            <source src="/assign_reviewers.webm" type="video/webm" />
-          </video>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

@@ -3,7 +3,12 @@ import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/auth/auth";
 
-export { isSuperAdmin, canEditProject, canCreateProject } from "./permissions";
+export {
+  isSuperAdmin,
+  canEditProject,
+  canCreateProject,
+  isAnyProjectAdmin,
+} from "./permissions";
 
 export async function authenticate() {
   const session = await auth.api.getSession({ headers: await headers() });

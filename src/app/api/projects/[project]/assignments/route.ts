@@ -36,6 +36,11 @@ export async function GET(
     .limit(1);
 
   const [a, lastBid] = await Promise.all([aQuery, lastBidQuery]);
+  if (a.length === 0)
+    return NextResponse.json(null, {
+      statusText: "No assignments",
+      status: 404,
+    });
 
   const res = {
     byReviewer: a[0].byReviewer,

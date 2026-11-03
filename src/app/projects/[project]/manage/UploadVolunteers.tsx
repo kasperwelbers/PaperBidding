@@ -1,22 +1,31 @@
-import CSVReader from "@/components/ui/csvUpload";
+import CSVReader, { CSVField } from "@/components/ui/csvUpload";
 import { Loading } from "@/components/ui/loading";
-import { useDeleteData, useUploadData } from "@/hooks/api";
+import {
+  useDeleteData,
+  useUploadData,
+  useUploadIcaPersons,
+} from "@/hooks/api";
 import { DataPage, UploadReviewer } from "@/types";
 import { useEffect, useState } from "react";
 import ManageData from "./ManageData";
 import { InstitutionResolver } from "@/hooks/useInstitutionResolver";
 
-const volunteerFields = [
+const volunteerFields: CSVField[] = [
   { field: "email", label: "Email" },
   { field: "institution", label: "Institution" },
   { field: "student", label: "Student designation" },
   { field: "reviewer", label: "Reviewer flag" },
+  // Required: the Person ID must be stored at upload time. If a reviewer later
+  // changes their email in ScholarOne, we cannot look it up by email anymore
+  { field: "personId", label: "ICA Person ID" },
 ];
 const defaultFields = {
   email: "email",
   institution: "institution",
   student: "student",
   reviewer: "reviewer",
+  // Must be PERSON (ID). Not PERSON (MEMBER ID) or USER ID
+  personId: "person (id)",
 };
 
 interface Props {
@@ -33,6 +42,7 @@ export default function UploadVolunteers({
   closeDialog,
 }: Props) {
   const [status, setStatus] = useState({ loading: "", error: "" });
+  const [warning, setWarning] = useState("");
   const [reviewers, setReviewers] = useState<string>("");
 
   useEffect(() => {
@@ -42,12 +52,26 @@ export default function UploadVolunteers({
   const { trigger: uploadVolunteers } = useUploadData(projectId, "volunteers", {
     volunteer: true,
   });
+  const { trigger: uploadIcaPersons } = useUploadIcaPersons();
   const { trigger: deleteVolunteers } = useDeleteData(projectId, "volunteers", {
     volunteer: true,
   });
 
   async function onUpload(data: Record<string, string>[]) {
     setStatus({ loading: "loading", error: "" });
+    setWarning("");
+
+    const persons = data
+      .filter((row) => row.email?.trim() && row.personId?.trim())
+      .map((row) => ({ email: row.email, personId: row.personId }));
+    if (persons.length === 0) {
+      setStatus({
+        loading: "",
+        error:
+          "The ICA Person ID column is empty. Select the PERSON (ID) column, or add PERSON (ID) to the display items of your ScholarOne search and download the file again.",
+      });
+      return;
+    }
 
     if (!institutionResolver.ready) {
       setStatus({ loading: "", error: "Institution data not loaded" });
@@ -76,13 +100,37 @@ export default function UploadVolunteers({
 
     setStatus({ loading: "Uploading", error: "" });
     try {
-      await uploadVolunteers({ data: body });
+      const res = await uploadVolunteers({ data: body });
+      if (!res.ok) throw new Error(res.statusText || "Failed to upload");
       setStatus({ loading: "", error: "" });
       dataPage.reset();
-      closeDialog();
     } catch (e: any) {
       setStatus({ loading: "", error: e.message });
+      return;
     }
+
+    // Add ICA Person IDs to the global list (used in Step 6). If this fails,
+    // the reviewer upload still succeeded, so we only show a warning
+    try {
+      const res = await uploadIcaPersons({ data: persons });
+      if (!res.ok) throw new Error(res.statusText);
+    } catch (e: any) {
+      setWarning(
+        "Reviewers were uploaded, but saving the ICA Person IDs failed. Please try uploading the same file again.",
+      );
+      return;
+    }
+
+    const nMissing = data.filter(
+      (row) => row.email?.trim() && !row.personId?.trim(),
+    ).length;
+    if (nMissing > 0) {
+      setWarning(
+        `Reviewers were uploaded, but ${nMissing} row${nMissing === 1 ? " has" : "s have"} no ICA Person ID. These reviewers cannot be included in the ICA upload file (Step 6) until they are matched.`,
+      );
+      return;
+    }
+    closeDialog();
   }
 
   // if (status.loading) return <Loading msg={status.loading} />;
@@ -94,6 +142,7 @@ export default function UploadVolunteers({
   return (
     <div className="mt-6 w-full">
       {status.error && <div className="text-red-500">{status.error}</div>}
+      {warning && <div className="text-amber-700 mb-3">{warning}</div>}
       <CSVReader
         fields={volunteerFields}
         label="Volunteers"

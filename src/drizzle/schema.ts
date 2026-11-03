@@ -238,6 +238,15 @@ export const assignments = pgTable(
   },
 );
 
+/** Global (not per project) mapping of email to ICA (ScholarOne) Person ID.
+ *  Used to export reviewer assignments in the format ICA accepts for bulk upload.
+ *  Emails are stored trimmed and lowercased */
+export const icaPersons = pgTable("ica_persons", {
+  email: varchar("email", { length: 256 }).primaryKey(),
+  personId: varchar("person_id", { length: 64 }).notNull(),
+  updated: timestamp("updated").notNull().defaultNow(),
+});
+
 export type Project = InferSelectModel<typeof projects>;
 export type NewProject = InferInsertModel<typeof projects>;
 

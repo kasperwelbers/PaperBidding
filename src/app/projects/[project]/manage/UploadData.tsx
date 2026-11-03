@@ -29,6 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ProjectStatus } from "./page";
+import { ScholarOneLink } from "./assignments/shared";
 import ReferencePool from "./ReferencePool";
 
 export default function UploadData({
@@ -98,7 +99,7 @@ export default function UploadData({
               Upload a CSV file with the submitted abstracts.
             </DialogDescription>
           </DialogHeader>
-          <SubmissionCSVInstruction />
+          <SubmissionCSVInstruction created={project.created} />
           <div className="flex items-center mt-6">
             <UploadSubmissions
               projectId={project.id}
@@ -133,7 +134,7 @@ export default function UploadData({
               reviewers that said they are willing to review will be included.
             </DialogDescription>
           </DialogHeader>
-          <ReviewerCSVInstruction />
+          <ReviewerCSVInstruction created={project.created} />
           <UploadVolunteers
             projectId={project.id}
             dataPage={data.volunteers}
@@ -148,7 +149,7 @@ export default function UploadData({
           <Step
             disabled={!submissions?.n || !volunteers?.n}
             optional
-            title="Step 3. Add old submissions"
+            title="Step 3. Add reference submissions"
             hint="Improve automatic matching"
             doneMsg={`Uploaded ${references.n} submission${references.n === 1 ? "" : "s"}`}
             done={!!references?.n}
@@ -160,12 +161,12 @@ export default function UploadData({
           onInteractOutside={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Upload Previous Submissions</DialogTitle>
+            <DialogTitle>Upload Reference Submissions</DialogTitle>
             <DialogDescription>
               Reviewers are automatically matched to abstracts based on
               similarity to their own submissions. This affects both the bidding
               process and matching for reviewers that did not bid. You can
-              upload old ICA submissions to improve accuracy
+              upload ICA submissions from other division or previous years here to improve accuracy
             </DialogDescription>
           </DialogHeader>
           <ReferencePool projectId={project.id} />
@@ -207,7 +208,7 @@ function DownloadCVSVideo() {
   );
 }
 
-function SubmissionCSVInstruction() {
+function SubmissionCSVInstruction({ created }: { created: Date | string }) {
   const [manual, setManual] = useState(false);
 
   if (!manual)
@@ -218,30 +219,29 @@ function SubmissionCSVInstruction() {
         </div>
         <ul className="list-disc list-inside min-w-0 leading-5">
           <li>
-            Go to{" "}
-            <a
-              target="_blank"
-              rel="noreferrer"
-              href="https://ica2026.abstractcentral.com"
-              className="underline text-blue-900"
-            >
-              ScholarOne,
-            </a>{" "}
-            open the <b>Admin</b> tab and go to <b>Search</b>
+            Go to <ScholarOneLink created={created} />, open the <b>Admin</b>{" "}
+            tab and go to <b>Search</b> (<b>Submissions</b> tab)
           </li>
           <li className="min-w-0">
-            In <b>Saved Searchers</b> select{" "}
+            Under <b>Saved Searches</b> select{" "}
             <i>&quot;Paper Bidding (select division yourself)&quot;</i>. Then
             click <b>Actions</b>: <b>Load</b>
           </li>
           <li>
-            Under <b>Search Criteria</b> use {"  "}
-            <i>Current Category</i> to select your division
+            Under <b>Search Criteria</b> use <i>Current Category</i> to select
+            your division.{" "}
+            <b className="text-red-700">
+              Make sure to do this, or you will get the submissions of all
+              divisions!
+            </b>
           </li>
           <li>
-            Now click <b>Run</b> at the bottom
+            Optionally <b>save</b> the search so you can return to it. Then
+            click <b>Run</b> at the bottom, and download the comma delimited
+            file
           </li>
         </ul>
+        <CheckSubmissionFile />
         <div className="mt-3 italic">
           If you cannot use the saved search, you can also{" "}
           <Button className="h-6 px-1 ml-2" onClick={() => setManual(true)}>
@@ -259,38 +259,33 @@ function SubmissionCSVInstruction() {
       </div>
       <ul className="list-disc list-inside leading-5">
         <li>
-          Go to{" "}
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href="https://ica2026.abstractcentral.com"
-            className="underline text-blue-900"
-          >
-            ScholarOne,
-          </a>{" "}
-          open the <b>Admin</b> tab and go to <b>Search</b>
+          Go to <ScholarOneLink created={created} />, open the <b>Admin</b> tab
+          and go to <b>Search</b> (<b>Submissions</b> tab)
         </li>
         <li>
           In <b>Select Format</b> select <i>Comma delimited</i>
         </li>
         <li>
-          In <b>Select Search Criteria</b> select <i>Current Category</i> and{" "}
-          <b>Add</b>
+          In <b>Select Search Criteria</b> add <i>Current Category</i> and{" "}
+          <i>ABSTRACT STATUS</i>
         </li>
         <li>
-          Under <b>Search Criteria</b> use {"  "}
-          <i>Current Category</i> to select your division
+          Under <b>Search Criteria</b> use <i>Current Category</i> to select
+          your division, and set <i>ABSTRACT STATUS</i> to{" "}
+          <i>Submitted</i>, <i>Resubmitted</i> and <i>Scored</i>
         </li>
         <li>
           In <b>Select Display Items</b> add:{"    "}
-          <b className="text-blue-700">ABSTRACT BODY</b>,{"  "}{" "}
-          <b className="text-blue-700">AUTHORS (ADDRES &#38; EMAIL)</b>,{"  "}
+          <b className="text-blue-700">TITLE</b>,{"  "}
+          <b className="text-blue-700">ABSTRACT BODY</b>,{"  "}
+          <b className="text-blue-700">AUTHORS (ADDRESS &#38; EMAIL)</b>,{"  "}
           <b className="text-blue-700">INSTITUTIONS (ALL)</b>
         </li>
         <li>
           Now click <b>Run</b> at the bottom
         </li>
       </ul>
+      <CheckSubmissionFile />
       <div className="mt-3 italic">
         Instructions for using
         <Button className="h-6 px-1 ml-2" onClick={() => setManual(false)}>
@@ -301,35 +296,49 @@ function SubmissionCSVInstruction() {
   );
 }
 
-function ReviewerCSVInstruction() {
+function CheckSubmissionFile() {
+  return (
+    <div className="mt-3 text-sm border rounded p-2 bg-secondary/50 whitespace-normal max-w-[40rem]">
+      <b>Check your file.</b> It needs the columns <b>CONTROL ID</b>,{" "}
+      <b>TITLE</b>, <b>ABSTRACT BODY</b>, <b>AUTHORS (ADDRESS &#38; EMAIL)</b>{" "}
+      and <b>INSTITUTIONS (ALL)</b>. Other columns are fine.{" "}
+      <i>PRESENTER (EMAIL)</i> or <i>SUBMITTER (EMAIL)</i> will <b>not</b> work
+      in place of the authors column. After selecting the file, all column
+      boxes should be filled. Processing can take a few minutes.
+    </div>
+  );
+}
+
+function ReviewerCSVInstruction({ created }: { created: Date | string }) {
   return (
     <div className="text-left mt-3 w-max prose-sm max-w-full">
       <div className="flex gap-3 items-center mb-3">
         <h6 className="m-0">How to get this CSV file</h6>
       </div>
-      <ul className="list-disc list-inside leading-5" >
+      <ul className="list-disc list-inside leading-5">
         <li>
-          Go to{" "}
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href="https://ica2026.abstractcentral.com"
-            className="underline text-blue-900"
-          >
-            ScholarOne,
-          </a>{" "}
-          open the <b>Admin</b> tab and go to <b>Search</b>
+          Go to <ScholarOneLink created={created} />, open the <b>Admin</b> tab
+          and go to <b>Search</b>
         </li>
         <li>
           At the top, select the <b>People</b> tab
         </li>
         <li>
-          In <b>Saved Searches</b> select{" "}
-          <i>&quot;[Your division] Reviewers&quot;</i>. Then click{" "}
-          <b>Actions</b>: <b>Load</b>
+          Under <b>Saved Searches</b> select{" "}
+          <i>&quot;[Your division] Reviewers&quot;</i> (some divisions have a{" "}
+          <i>&quot;…wID&quot;</i> variant). Then click <b>Actions</b>:{" "}
+          <b>Load</b>. It should cover your division and all its areas of
+          expertise
+        </li>
+        <li className="whitespace-normal">
+          <b>Required:</b> make sure the <b>Display Items</b> include{" "}
+          <b className="text-blue-700">PERSON (ID)</b>. If not, add it and save
+          the search. This is needed to upload the assignments to ICA in Step
+          6, and has to be stored now: if a reviewer later changes their email
+          address in ScholarOne, we can no longer look it up
         </li>
         <li>
-          Now click <b>Run</b> at the bottom
+          Now click <b>Run</b> at the bottom, and download the file
         </li>
       </ul>
     </div>

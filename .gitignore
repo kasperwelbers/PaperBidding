@@ -36,3 +36,6 @@ next-env.d.ts
 
 # drizzle migrations
 /drizzle-output
+
+# temporary
+/temp
