@@ -29,6 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ProjectStatus } from "./page";
+import ReferencePool from "./ReferencePool";
 
 export default function UploadData({
   projectId,
@@ -167,6 +168,10 @@ export default function UploadData({
               upload old ICA submissions to improve accuracy
             </DialogDescription>
           </DialogHeader>
+          <ReferencePool
+            projectId={project.id}
+            onCopied={() => data.references.reset()}
+          />
           <UploadSubmissions
             projectId={project.id}
             modelStatus={modelStatus}

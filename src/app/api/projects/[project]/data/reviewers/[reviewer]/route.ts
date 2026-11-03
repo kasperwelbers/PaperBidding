@@ -29,7 +29,13 @@ export async function GET(
       features: submissions.features,
     })
     .from(authors)
-    .leftJoin(submissions, eq(authors.submissionId, submissions.submissionId))
+    .leftJoin(
+      submissions,
+      and(
+        eq(submissions.projectId, authors.projectId),
+        eq(submissions.submissionId, authors.submissionId),
+      ),
+    )
     .where(
       and(eq(authors.projectId, projectId), eq(authors.email, reviewer.email)),
     );
@@ -52,16 +58,22 @@ export async function GET(
     });
   }
 
+  // All queries are scoped to this project. Control IDs can occur in many
+  // projects (e.g., as reference submissions), so joining on control ID alone
+  // would pull in (duplicate) rows from every project in the system
   const conflictAuthors = db
     .selectDistinct({ email: authors.email })
     .from(authors)
     .where(
-      or(
-        inArray(authors.submissionId, submissionExternalIds),
-        // an empty institution (e.g., self-registered volunteers) is not a conflict
-        reviewer.institution
-          ? eq(authors.institution, reviewer.institution)
-          : undefined,
+      and(
+        eq(authors.projectId, projectId),
+        or(
+          inArray(authors.submissionId, submissionExternalIds),
+          // an empty institution (e.g., self-registered volunteers) is not a conflict
+          reviewer.institution
+            ? eq(authors.institution, reviewer.institution)
+            : undefined,
+        ),
       ),
     )
     .as("conflictAuthors");
@@ -70,7 +82,14 @@ export async function GET(
     .selectDistinct({ id: submissions.id })
     .from(authors)
     .innerJoin(conflictAuthors, eq(authors.email, conflictAuthors.email))
-    .leftJoin(submissions, eq(authors.submissionId, submissions.submissionId));
+    .innerJoin(
+      submissions,
+      and(
+        eq(submissions.projectId, authors.projectId),
+        eq(submissions.submissionId, authors.submissionId),
+      ),
+    )
+    .where(eq(authors.projectId, projectId));
 
   return NextResponse.json({
     id: reviewer.id,

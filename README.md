@@ -44,3 +44,17 @@ RESEND_API_KEY="..."
 BETTER_AUTH_URL="https://paperbidding.ica-cm.com"
 BETTER_AUTH_SECRET="a cryptographic secret"
 ```
+
+### Central reference submissions (optional)
+
+To save planners from uploading reference submissions themselves, upload all
+ICA submissions once into a dedicated project, and set its ID (the number in
+`/projects/<id>/manage`):
+
+```bash
+REFERENCE_POOL_PROJECT_ID="123"
+```
+
+Planners then see a "Use the ICA reference submissions" button in Step 3, which
+copies these submissions into their project as reference submissions.
+Clicking it again later only adds submissions that are new.
