@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { api, unwrap } from "../api";
 import { Button, ErrorText } from "../ui";
 import SignIn from "./SignIn";
@@ -23,7 +23,9 @@ export default function Join() {
 
   if (info.error) return <Message title="This link does not work">{info.error.message}</Message>;
   if (!info.data) return null;
-  const { conference, division, edition, signedInAs, joined, platformName, registrationUrl } = info.data;
+  const { conference, division, edition, signedInAs, joined, platformName, registrationUrl, biddingDeadline } =
+    info.data;
+  const biddingOpen = !!biddingDeadline && new Date(biddingDeadline) > new Date();
   const heading = `${division} · ${edition}`;
 
   if (!signedInAs)
@@ -47,11 +49,24 @@ export default function Join() {
     </p>
   );
 
-  // TODO (phase 5): go straight to the bidding page from here
   if (joined)
     return (
       <Message title={`You are a reviewer for ${heading}`}>
-        <p>You are in the reviewer pool of this division. Paper bidding is opened from this page.</p>
+        {biddingOpen ? (
+          <>
+            <p className="mb-3">
+              Paper bidding is open until {new Date(biddingDeadline!).toLocaleString()}.
+            </p>
+            <Link to={`/bid/${divisionEditionId}`} className="rounded bg-slate-900 px-3 py-1.5 text-white">
+              Go to bidding
+            </Link>
+          </>
+        ) : (
+          <p>
+            You are in the reviewer pool of this division. Paper bidding is not open; you can come
+            back to this link when it is.
+          </p>
+        )}
         {accountNote}
       </Message>
     );

@@ -19,6 +19,7 @@ import {
 import { conferences, createDb, editions, importJobs, submissions, type Db } from "@cp/db";
 import { Buffer } from "node:buffer";
 import { getEmbedder } from "../embeddings";
+import { sendInvitations, type InviteMessage } from "../invitations";
 import { scholarOneAdapter } from "@cp/adapter-scholarone";
 import { chunk } from "./d1";
 import { writePersons, writeReviewers, writeSubmissions, type ChunkResult } from "./write";
@@ -29,7 +30,9 @@ export type ImportMessage =
   | { jobId: number; step: "parse" }
   | { jobId: number; step: "write"; chunk: number }
   /** jobId: the import that triggered it, to report progress (optional) */
-  | { step: "embed"; editionId: number; jobId?: number };
+  | { step: "embed"; editionId: number; jobId?: number }
+  /** bidding invitations (not an import, but the same queue) */
+  | InviteMessage;
 
 /** In tests (ENVIRONMENT = "test") messages are kept here, and processed with
  *  drainTestQueue, so tests are deterministic */
@@ -144,6 +147,7 @@ async function embedStep(env: Env, db: Db, message: Extract<ImportMessage, { ste
 export async function processImportMessage(env: Env, message: ImportMessage) {
   const db = createDb(env.DB);
   if (message.step === "embed") return embedStep(env, db, message);
+  if (message.step === "invite") return sendInvitations(env, db, message);
   const loaded = await loadJob(db, message.jobId);
   if (!loaded) return; // job deleted
   const { job, edition, conference } = loaded;

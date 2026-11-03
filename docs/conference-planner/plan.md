@@ -399,7 +399,7 @@ the first version.
    and the join link; planners can take keyword reviewers out of their own
    division only), reference source selection with each reviewer's number of
    own submissions in it, and the join link.
-5. **Optional bidding:** invitations, the bidding page, and the deadline.
+5. **Optional bidding** (done): invitations, the bidding page, and the deadline.
    - **Imported reviewers** get an invitation email with a personal bidding
      link.
    - **People who join via the join link** go straight to bidding from the

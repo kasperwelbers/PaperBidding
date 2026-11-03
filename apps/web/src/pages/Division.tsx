@@ -38,6 +38,7 @@ export default function Division() {
       {canEdit && info.data.joinToken ? (
         <JoinLink param={param} divisionEditionId={info.data.divisionEditionId} token={info.data.joinToken} />
       ) : null}
+      <BiddingCard param={param} canEdit={canEdit} deadline={info.data.biddingDeadline} />
       <References param={param} canEdit={canEdit} sources={info.data.referenceSources} />
       <Reviewers param={param} canEdit={canEdit} />
       <Submissions param={param} />
@@ -244,6 +245,7 @@ function Reviewers({ param, canEdit }: { param: Params; canEdit: boolean }) {
               <th className="font-normal" title="Own submissions in the reference sources">
                 Own subm.
               </th>
+              <th className="font-normal">Bids</th>
               <th />
             </tr>
           </thead>
@@ -265,6 +267,9 @@ function Reviewers({ param, canEdit }: { param: Params; canEdit: boolean }) {
                 <td className="text-xs">{r.sources.map((s) => sourceLabels[s] ?? s).join(", ")}</td>
                 <td className={r.divisions >= 3 ? "font-bold text-amber-800" : ""}>{r.divisions}</td>
                 <td className={r.ownSubmissions === 0 ? "text-amber-800" : ""}>{r.ownSubmissions}</td>
+                <td className="text-xs">
+                  {r.bids > 0 ? r.bids : r.invitedAt ? <span className="text-slate-500">invited</span> : "–"}
+                </td>
                 <td className="text-right">
                   {canEdit ? (
                     r.excluded ? (
@@ -362,5 +367,147 @@ function Submissions({ param }: { param: Params }) {
         </>
       )}
     </Card>
+  );
+}
+
+/** Paper bidding is optional: without a deadline, matching uses similarity only */
+function BiddingCard({
+  param,
+  canEdit,
+  deadline,
+}: {
+  param: Params;
+  canEdit: boolean;
+  deadline: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const toLocalInput = (d: string | null) =>
+    d ? new Date(new Date(d).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
+  const [value, setValue] = useState(toLocalInput(deadline));
+  const [composing, setComposing] = useState(false);
+  const reviewers = useQuery({
+    queryKey: ["division", param.editionId, param.divisionId, "reviewers"],
+    queryFn: () => unwrap(divisionApi().reviewers.$get({ param })),
+  });
+  const save = useMutation({
+    mutationFn: (biddingDeadline: Date | null) =>
+      unwrap(
+        divisionApi().$patch({
+          param,
+          json: { biddingDeadline: biddingDeadline ? biddingDeadline.toISOString() : null } as never,
+        }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["division", param.editionId, param.divisionId] }),
+  });
+
+  const open = !!deadline && new Date(deadline) > new Date();
+  const pool = (reviewers.data ?? []).filter((r) => !r.excluded && r.canReview);
+  const invited = pool.filter((r) => r.invitedAt).length;
+  const bidded = pool.filter((r) => r.bids > 0).length;
+
+  return (
+    <Card title="Paper bidding (optional)">
+      <ErrorText error={save.error} />
+      <p className="mb-3 text-sm">
+        Reviewers can bid on the submissions they would like to review. Without bidding, the
+        matching uses similarity to their own work only.
+      </p>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+        <span>Deadline</span>
+        <input
+          type="datetime-local"
+          disabled={!canEdit}
+          className="rounded border border-slate-300 px-2 py-1"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        {canEdit ? (
+          <>
+            <Button disabled={!value || save.isPending} onClick={() => save.mutate(new Date(value))}>
+              Save
+            </Button>
+            {deadline ? (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setValue("");
+                  save.mutate(null);
+                }}
+              >
+                No bidding
+              </Button>
+            ) : null}
+          </>
+        ) : null}
+        <span className={open ? "text-green-700" : "text-slate-500"}>
+          {open ? "open" : deadline ? "closed" : "no bidding"}
+        </span>
+      </div>
+      {deadline ? (
+        <p className="mb-3 text-sm">
+          {invited} of {pool.length} reviewers invited, {bidded} have bid.
+        </p>
+      ) : null}
+      {canEdit && open ? (
+        composing ? (
+          <Invite param={param} notInvited={pool.length - invited} onDone={() => setComposing(false)} />
+        ) : (
+          <Button onClick={() => setComposing(true)} disabled={pool.length === invited}>
+            {pool.length === invited ? "Everyone is invited" : `Invite reviewers (${pool.length - invited} not invited yet)`}
+          </Button>
+        )
+      ) : null}
+    </Card>
+  );
+}
+
+function Invite({ param, notInvited, onDone }: { param: Params; notInvited: number; onDone: () => void }) {
+  const queryClient = useQueryClient();
+  const template = useQuery({
+    queryKey: ["invitation-template"],
+    queryFn: () => unwrap(divisionApi().invitations.template.$get({ param })),
+  });
+  const [subject, setSubject] = useState<string>();
+  const [body, setBody] = useState<string>();
+  const send = useMutation({
+    mutationFn: () =>
+      unwrap(
+        divisionApi().invitations.$post({
+          param,
+          json: { subject: subject ?? template.data!.subject, body: body ?? template.data!.body },
+        }),
+      ),
+    onSuccess: () => {
+      setTimeout(
+        () => queryClient.invalidateQueries({ queryKey: ["division", param.editionId, param.divisionId, "reviewers"] }),
+        3000,
+      );
+      onDone();
+    },
+  });
+  if (!template.data) return null;
+  return (
+    <div className="flex flex-col gap-2 rounded border border-slate-200 p-3 text-sm">
+      <p className="text-slate-600">
+        Each reviewer gets a personal bidding link (no sign-in needed). You can use{" "}
+        <code>{"{division}"}</code>, <code>{"{conference}"}</code>, <code>{"{deadline}"}</code> and{" "}
+        <code>{"{link}"}</code>.
+      </p>
+      <Input value={subject ?? template.data.subject} onChange={(e) => setSubject(e.target.value)} />
+      <textarea
+        className="h-64 rounded border border-slate-300 p-2 font-mono text-xs"
+        value={body ?? template.data.body}
+        onChange={(e) => setBody(e.target.value)}
+      />
+      <div className="flex gap-2">
+        <Button onClick={() => send.mutate()} disabled={send.isPending}>
+          Send to {notInvited} reviewers
+        </Button>
+        <Button variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+      <ErrorText error={send.error} />
+    </div>
   );
 }

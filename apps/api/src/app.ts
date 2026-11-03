@@ -8,6 +8,7 @@ import { platformRoutes } from "./routes/platforms";
 import { institutionSearchRoutes } from "./routes/institutions";
 import { devRoutes } from "./routes/dev";
 import { joinRoutes } from "./routes/join";
+import { biddingRoutes } from "./routes/bidding";
 
 // Routes are chained, so the type of `app` describes the whole API. The web
 // app uses it for a typed client (hono/client)
@@ -25,6 +26,7 @@ export const app = router()
   .route("/conferences", conferenceRoutes)
   .route("/institutions", institutionSearchRoutes)
   .route("/dev", devRoutes)
-  .route("/join", joinRoutes);
+  .route("/join", joinRoutes)
+  .route("/bidding", biddingRoutes);
 
 export type AppType = typeof app;

@@ -20,6 +20,10 @@ import { canEditDivision, normalizeEmail } from "../permissions";
 import { addToPool, divisionPool, divisionsOfReviewers } from "../pool";
 import { referenceCounts, referenceScope } from "../references";
 import { randomToken } from "../util";
+import { bids, invitations } from "@cp/db";
+import { biddingOpen } from "../bidding";
+import { enqueue } from "../imports/process";
+import { defaultInvitation, inviteMessages } from "../invitations";
 
 /** The division (of this conference) and its settings for this edition
  *  (created on first use) */
@@ -217,6 +221,12 @@ export const divisionRoutes = router()
         authorsHere.add(a.personId);
     }
     const divisionCounts = await divisionsOfReviewers(db, pool.map((p) => p.reviewerId));
+    const invited = new Map(
+      (await db.select().from(invitations).where(eq(invitations.divisionEditionId, de.id))).map((i) => [i.reviewerId, i.sentAt]),
+    );
+    const bidRows = new Map(
+      (await db.select().from(bids).where(eq(bids.divisionEditionId, de.id))).map((b) => [b.reviewerId, b]),
+    );
     const basis = await referenceCounts(db, personIds, referenceScope(editionId, divisionId, de.referenceSources));
 
     return c.json(
@@ -235,6 +245,9 @@ export const divisionRoutes = router()
           authorHere: authorsHere.has(p.personId),
           /** own submissions in the reference sources (the basis for similarity) */
           ownSubmissions: basis.get(p.personId) ?? 0,
+          invitedAt: invited.get(p.reviewerId) ?? null,
+          bids: bidRows.get(p.reviewerId)?.submissionIds.length ?? 0,
+          bidsUpdatedAt: bidRows.get(p.reviewerId)?.updatedAt ?? null,
         }))
         .sort((a, b) => (a.emails[0] ?? "").localeCompare(b.emails[0] ?? "")),
     );
@@ -297,4 +310,40 @@ export const divisionRoutes = router()
         ),
       );
     return c.json({ reviewerId: Number(c.req.param("reviewerId")) });
-  });
+  })
+  .get("/invitations/template", (c) => c.json(defaultInvitation))
+  /** Email reviewers a personal bidding link (sent in the background) */
+  .post(
+    "/invitations",
+    requireDivisionEditor,
+    zValidator(
+      "json",
+      z.object({
+        /** specific reviewers, or everyone in the pool who was not invited yet */
+        reviewerIds: z.array(z.number().int()).optional(),
+        subject: z.string().trim().min(1).max(300),
+        body: z.string().trim().min(1).max(10000),
+      }),
+    ),
+    async (c) => {
+      const db = c.get("db");
+      const de = await loadSettings(c);
+      if (!biddingOpen(de)) return c.json({ error: "Set a bidding deadline in the future first" }, 400);
+      const body = c.req.valid("json");
+      const pool = (await divisionPool(db, c.get("editionId"), c.get("divisionId"))).filter(
+        (r) => !r.excluded && r.canReview,
+      );
+      const invited = new Set(
+        (await db.select().from(invitations).where(eq(invitations.divisionEditionId, de.id))).map((i) => i.reviewerId),
+      );
+      const targets = body.reviewerIds
+        ? pool.filter((r) => body.reviewerIds!.includes(r.reviewerId))
+        : pool.filter((r) => !invited.has(r.reviewerId));
+      for (const message of inviteMessages(
+        { divisionEditionId: de.id, subject: body.subject, body: body.body },
+        targets.map((r) => r.reviewerId),
+      ))
+        await enqueue(c.env, message);
+      return c.json({ queued: targets.length });
+    },
+  );

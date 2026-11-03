@@ -7,6 +7,7 @@ import Conference from "./pages/Conference";
 import Edition from "./pages/Edition";
 import Division from "./pages/Division";
 import Join from "./pages/Join";
+import Bidding from "./pages/Bidding";
 import Home from "./pages/Home";
 import SignIn from "./pages/SignIn";
 import { Button } from "./ui";
@@ -24,6 +25,8 @@ export default function App() {
         <Routes>
           {/* works before signing in */}
           <Route path="/join/:divisionEditionId/:token" element={<Join />} />
+          <Route path="/bid/:divisionEditionId/:reviewerId/:secret" element={<Bidding />} />
+          <Route path="/bid/:divisionEditionId" element={<Bidding />} />
           <Route path="*" element={<Shell />} />
         </Routes>
       </BrowserRouter>
