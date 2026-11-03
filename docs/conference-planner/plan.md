@@ -96,9 +96,12 @@ docs/
 - **Hosting:** Cloudflare. The SPA runs on Workers static assets, the API on
   Workers, and the database on D1. Raw uploaded files go to R2. Long imports
   (parsing, embeddings) run through Queues.
-- **Embeddings:** Workers AI (e.g. `@cf/baai/bge-small-en-v1.5`, 384
-  dimensions), computed in the queue on the server. Nothing heavy runs in the
-  browser.
+- **Embeddings:** Workers AI, computed in the queue on the server. Nothing
+  heavy runs in the browser. The model is a conference setting: English
+  (`@cf/baai/bge-base-en-v1.5`) or multilingual (`@cf/baai/bge-m3`).
+- **Deploying:** `wrangler.jsonc` is at the repository root and has no
+  resource IDs, so the "Deploy to Cloudflare" button and `pnpm run deploy`
+  create D1, R2 and the queue themselves.
 - **Plan:** we recommend the Workers Paid plan ($5/month) to anyone hosting
   this. It includes enough compute and storage, and Workers AI (10,000 free
   neurons per day, then $0.011 per 1,000 neurons). The free plan might work,

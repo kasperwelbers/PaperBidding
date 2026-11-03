@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { blobToEmbedding, rankBySimilarity } from "@cp/shared";
-import { divisions, submissions } from "@cp/db";
+import { conferences, divisions, submissions } from "@cp/db";
 import { router } from "../context";
 import { getEmbedder } from "../embeddings";
 import { enqueue, needsEmbedding } from "../imports/process";
@@ -13,7 +13,8 @@ export const embeddingRoutes = router()
   .get("/", async (c) => {
     const db = c.get("db");
     const editionId = c.get("editionId");
-    const model = getEmbedder(c.env).model;
+    const conference = await db.query.conferences.findFirst({ where: eq(conferences.id, c.get("conferenceId")) });
+    const model = getEmbedder(c.env, conference?.embeddingLanguage).model;
     const [total] = await db
       .select({ n: sql<number>`count(*)` })
       .from(submissions)

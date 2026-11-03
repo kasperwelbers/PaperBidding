@@ -11,7 +11,7 @@ export default defineConfig(async () => {
       cloudflareTest({
         // remote bindings (Workers AI) are not available in tests
         remoteBindings: false,
-        wrangler: { configPath: "./wrangler.jsonc" },
+        wrangler: { configPath: "../../wrangler.jsonc" },
         miniflare: {
           bindings: {
             TEST_MIGRATIONS: migrations,

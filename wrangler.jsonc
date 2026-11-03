@@ -1,0 +1,55 @@
+{
+  // The whole repository is one Worker: the API (apps/api) also serves the
+  // built web app (apps/web). This file is at the root so the "Deploy to
+  // Cloudflare" button and `pnpm run deploy` work on the whole monorepo.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "conference-planner",
+  "main": "apps/api/src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // /api/* goes to the Worker, everything else to the SPA
+  "assets": {
+    "directory": "apps/web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // No resource IDs: `wrangler deploy` (and the deploy button) create the
+  // database, bucket and queue on the first deploy
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "conference-planner",
+      "migrations_dir": "packages/db/migrations"
+    }
+  ],
+
+  // raw uploaded files (imports)
+  "r2_buckets": [{ "binding": "FILES" }],
+
+  // import processing (parsing, embeddings) and invitations, in chunks
+  "queues": {
+    "producers": [{ "binding": "IMPORTS", "queue": "conference-planner-imports" }],
+    "consumers": [{ "queue": "conference-planner-imports", "max_batch_size": 10 }]
+  },
+
+  // embeddings (Workers AI; remote only: `pnpm dev` uses a local stand-in,
+  // `pnpm dev:remote-ai` the real one)
+  "ai": { "binding": "AI", "remote": true },
+
+  // Settings (not secret). Secrets are in .dev.vars locally, and set with
+  // `wrangler secret put` (or the deploy button) in production: see
+  // .dev.vars.example
+  "vars": {
+    // "development" only locally (the dev scripts set it)
+    "ENVIRONMENT": "production",
+    // empty: Workers AI in production. "dev-hash" only in development
+    "EMBEDDINGS": "",
+    // the app's address; empty = the address it is visited on
+    "BETTER_AUTH_URL": "",
+    // sender of sign-in codes and invitations (a verified domain)
+    "EMAIL_FROM": "Conference planner <noreply@example.org>",
+    "SCW_REGION": "fr-par"
+  }
+}

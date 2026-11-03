@@ -111,6 +111,7 @@ export const assignmentRoutes = router()
       divisionId: c.get("divisionId"),
       divisionEdition: de,
       conflictRules: conference.conflictRules,
+      embeddingLanguage: conference.embeddingLanguage,
     });
     const result = matchReviewers(input.submissionIds, input.reviewers, settings);
     const values = { settings, result: result.assignments, backups: result.backups, computedAt: new Date() };

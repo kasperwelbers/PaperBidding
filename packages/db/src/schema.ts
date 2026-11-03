@@ -116,6 +116,10 @@ export const conferences = sqliteTable("conferences", {
     .$type<Record<string, unknown>>()
     .notNull()
     .default({}),
+  /** english or multilingual: which embedding model is used for similarity */
+  embeddingLanguage: text("embedding_language", { enum: ["english", "multilingual"] })
+    .notNull()
+    .default("english"),
   /** who may review whom (see conflictReason in @cp/shared) */
   conflictRules: text("conflict_rules", { mode: "json" })
     .$type<ConflictRules>()

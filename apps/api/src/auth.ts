@@ -4,13 +4,14 @@ import { emailOTP } from "better-auth/plugins";
 import { authAccount, authSession, authUser, authVerification, type Db } from "@cp/db";
 import { getEmailSender } from "./email";
 
-/** better-auth, created per request because the bindings come with the request */
-export function createAuth(env: Env, db: Db) {
+/** better-auth, created per request because the bindings come with the
+ *  request. The app's address: BETTER_AUTH_URL, or else the request's origin */
+export function createAuth(env: Env, db: Db, origin: string) {
   const sender = getEmailSender(env);
 
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_URL,
+    baseURL: env.BETTER_AUTH_URL || origin,
     basePath: "/api/auth",
     database: drizzleAdapter(db, {
       provider: "sqlite",

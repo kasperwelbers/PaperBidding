@@ -1,7 +1,15 @@
 // Embeddings record the model that made them, and are only compared with
 // embeddings of the same model.
 
-export const WORKERS_AI_MODEL = "@cf/baai/bge-small-en-v1.5";
+/** Workers AI models per language choice (a conference setting) */
+export const EMBEDDING_MODELS = {
+  /** English only */
+  english: "@cf/baai/bge-base-en-v1.5",
+  /** 100+ languages, long texts; also good for English */
+  multilingual: "@cf/baai/bge-m3",
+} as const;
+export type EmbeddingLanguage = keyof typeof EMBEDDING_MODELS;
+
 export const DEV_HASH_MODEL = "dev-hash-384";
 export const EMBEDDING_DIMENSIONS = 384;
 

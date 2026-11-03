@@ -7,7 +7,7 @@ import { normalizeEmail } from "./permissions";
 /** Database, auth, and the signed in user for every request */
 export const setup = createMiddleware<AppEnv>(async (c, next) => {
   const db = createDb(c.env.DB);
-  const auth = createAuth(c.env, db);
+  const auth = createAuth(c.env, db, new URL(c.req.url).origin);
   c.set("db", db);
   c.set("auth", auth);
 

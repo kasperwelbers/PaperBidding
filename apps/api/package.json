@@ -6,14 +6,13 @@
     ".": "./src/app.ts"
   },
   "scripts": {
-    "dev": "wrangler dev --local",
-    "deploy": "wrangler deploy",
+    "dev": "wrangler dev -c ../../wrangler.jsonc --local --var ENVIRONMENT:development --var EMBEDDINGS:dev-hash --var BETTER_AUTH_URL:http://localhost:5180",
+    "dev:remote-ai": "wrangler dev -c ../../wrangler.jsonc --var ENVIRONMENT:development --var EMBEDDINGS:workers-ai --var BETTER_AUTH_URL:http://localhost:5180",
     "typecheck": "tsc -p .",
     "test": "vitest run",
-    "types": "wrangler types",
-    "db:migrate:local": "wrangler d1 migrations apply conference-planner --local",
-    "db:migrate:remote": "wrangler d1 migrations apply conference-planner --remote",
-    "dev:remote-ai": "wrangler dev --var EMBEDDINGS:workers-ai"
+    "types": "wrangler types -c ../../wrangler.jsonc --strict-vars false worker-configuration.d.ts",
+    "db:migrate:local": "wrangler d1 migrations apply DB -c ../../wrangler.jsonc --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB -c ../../wrangler.jsonc --remote"
   },
   "dependencies": {
     "@cp/adapter-scholarone": "workspace:*",

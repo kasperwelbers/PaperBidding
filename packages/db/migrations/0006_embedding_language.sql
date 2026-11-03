@@ -1,0 +1,1 @@
+ALTER TABLE `conferences` ADD `embedding_language` text DEFAULT 'english' NOT NULL;

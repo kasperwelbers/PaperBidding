@@ -18,10 +18,11 @@ export async function matchingInput(
     divisionId: number;
     divisionEdition: typeof divisionEditions.$inferSelect;
     conflictRules: Parameters<typeof conflictReason>[2];
+    embeddingLanguage: "english" | "multilingual";
   },
 ) {
   const { edition, divisionId, divisionEdition } = args;
-  const model = getEmbedder(env).model;
+  const model = getEmbedder(env, args.embeddingLanguage).model;
   const candidates = await divisionCandidates(db, edition.id, divisionId, model);
   const submissionIds = candidates.map((c) => c.id);
 

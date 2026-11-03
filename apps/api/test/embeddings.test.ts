@@ -77,7 +77,9 @@ describe("embeddings", () => {
 
   it("refuses the stand-in embedder in production", () => {
     expect(() => getEmbedder({ ...env, ENVIRONMENT: "production", EMBEDDINGS: "dev-hash" })).toThrow();
-    expect(getEmbedder({ ...env, ENVIRONMENT: "production", EMBEDDINGS: "" }).model).toBe("@cf/baai/bge-small-en-v1.5");
+    const production = { ...env, ENVIRONMENT: "production", EMBEDDINGS: "" };
+    expect(getEmbedder(production).model).toBe("@cf/baai/bge-base-en-v1.5");
+    expect(getEmbedder(production, "multilingual").model).toBe("@cf/baai/bge-m3");
   });
 });
 

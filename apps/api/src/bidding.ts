@@ -102,7 +102,7 @@ export function biddingOpen(de: { biddingDeadline: Date | null }, now = new Date
 /** The submissions a reviewer may bid on, most similar to their own work first */
 export async function biddingList(env: Env, db: Db, bidder: Bidder) {
   const { edition, division, reviewer } = bidder;
-  const model = getEmbedder(env).model;
+  const model = getEmbedder(env, bidder.conference.embeddingLanguage).model;
   const candidates = await divisionCandidates(db, edition.id, division.id, model);
 
   // conflicts (own, co-authors, institution) are left out

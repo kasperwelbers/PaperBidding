@@ -10,10 +10,45 @@
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter @cp/db generate",
     "db:migrate:local": "pnpm --filter @cp/api db:migrate:local",
-    "deploy": "pnpm build && pnpm --filter @cp/api deploy",
+    "deploy": "(wrangler d1 migrations apply DB --remote || echo \"No database yet: it is created by the first deploy\") && wrangler deploy && wrangler d1 migrations apply DB --remote",
     "dev:remote-ai": "pnpm --parallel --filter @cp/api --filter @cp/web dev:remote-ai"
   },
   "devDependencies": {
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "wrangler": "^4.156.2"
+  },
+  "cloudflare": {
+    "bindings": {
+      "DB": {
+        "description": "The database (D1)."
+      },
+      "FILES": {
+        "description": "Uploaded import files (R2)."
+      },
+      "IMPORTS": {
+        "description": "Background processing of imports and invitations (Queues)."
+      },
+      "AI": {
+        "description": "Embeddings for similarity between submissions (Workers AI)."
+      },
+      "SUPERADMIN": {
+        "description": "Comma-separated emails of superadmins: they add the admins who create conferences."
+      },
+      "BETTER_AUTH_SECRET": {
+        "description": "A random secret for sign-in sessions, e.g. from `openssl rand -base64 32`."
+      },
+      "SCW_SECRET_KEY": {
+        "description": "Scaleway Transactional Email API key, for sending sign-in codes and invitations."
+      },
+      "SCW_PROJECT_ID": {
+        "description": "Scaleway project ID of the Transactional Email domain."
+      },
+      "EMAIL_FROM": {
+        "description": "Sender address on your verified email domain, e.g. \"Conference planner <noreply@example.org>\"."
+      },
+      "BETTER_AUTH_URL": {
+        "description": "The app's address, if you use a custom domain. Leave empty to use the address it is visited on."
+      }
+    }
   }
 }

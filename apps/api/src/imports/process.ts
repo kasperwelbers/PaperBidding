@@ -110,7 +110,12 @@ async function embedStep(env: Env, db: Db, message: Extract<ImportMessage, { ste
     ? await db.query.importJobs.findFirst({ where: eq(importJobs.id, message.jobId) })
     : undefined;
   try {
-    const embedder = getEmbedder(env);
+    const edition = await db.query.editions.findFirst({ where: eq(editions.id, message.editionId) });
+    const conference = edition
+      ? await db.query.conferences.findFirst({ where: eq(conferences.id, edition.conferenceId) })
+      : undefined;
+    if (!conference) return;
+    const embedder = getEmbedder(env, conference.embeddingLanguage);
     const batch = await db
       .select({ id: submissions.id, title: submissions.title, abstract: submissions.abstract })
       .from(submissions)

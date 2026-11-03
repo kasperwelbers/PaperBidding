@@ -366,6 +366,7 @@ export const conferenceRoutes = router()
       z.object({
         name: name.optional(),
         settings: z.record(z.string(), z.unknown()).optional(),
+        embeddingLanguage: z.enum(["english", "multilingual"]).optional(),
         conflictRules: z
           .object({
             coAuthorsCurrentEdition: z.boolean(),

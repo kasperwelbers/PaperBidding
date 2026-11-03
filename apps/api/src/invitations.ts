@@ -43,6 +43,8 @@ function fill(template: string, values: Record<string, string>) {
 
 export interface InviteMessage {
   step: "invite";
+  /** the app's address, for the bidding links */
+  origin: string;
   divisionEditionId: number;
   reviewerIds: number[];
   subject: string;
@@ -74,7 +76,7 @@ export async function sendInvitations(env: Env, db: Db, message: InviteMessage) 
   for (const r of rows) {
     const to = emails.find((e) => e.personId === r.personId)?.value;
     if (!to) continue;
-    const link = biddingLink(env.BETTER_AUTH_URL, de.id, r);
+    const link = biddingLink(message.origin, de.id, r);
     let text = fill(message.body, { ...values, link });
     if (!message.body.includes("{link}")) text += `\n\n${link}`;
     try {

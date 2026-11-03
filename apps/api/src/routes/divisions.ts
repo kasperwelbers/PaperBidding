@@ -341,7 +341,12 @@ export const divisionRoutes = router()
         ? pool.filter((r) => body.reviewerIds!.includes(r.reviewerId))
         : pool.filter((r) => !invited.has(r.reviewerId));
       for (const message of inviteMessages(
-        { divisionEditionId: de.id, subject: body.subject, body: body.body },
+        {
+          origin: c.env.BETTER_AUTH_URL || new URL(c.req.url).origin,
+          divisionEditionId: de.id,
+          subject: body.subject,
+          body: body.body,
+        },
         targets.map((r) => r.reviewerId),
       ))
         await enqueue(c.env, message);

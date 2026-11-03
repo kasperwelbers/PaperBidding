@@ -39,6 +39,11 @@ export default function Conference() {
         isAdmin={isAdmin}
         rules={conference.data.conflictRules}
       />
+      <EmbeddingLanguage
+        conferenceId={conferenceId}
+        isAdmin={isAdmin}
+        language={conference.data.embeddingLanguage}
+      />
       <Institutions conferenceId={conferenceId} isAdmin={isAdmin} />
       <Keywords conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
       <Conflicts conferenceId={conferenceId} isAdmin={isAdmin} />
@@ -625,5 +630,55 @@ function UniversityPicker({ onPick }: { onPick: (name: string) => void }) {
       </datalist>
       <Button disabled={!found.data?.some((u) => u.name === q)}>Use</Button>
     </form>
+  );
+}
+
+/** Which embedding model is used for similarity. Changing it means computing
+ *  the embeddings again (per edition: "Compute missing embeddings") */
+function EmbeddingLanguage({
+  conferenceId,
+  isAdmin,
+  language,
+}: {
+  conferenceId: string;
+  isAdmin: boolean;
+  language: "english" | "multilingual";
+}) {
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: (embeddingLanguage: "english" | "multilingual") =>
+      unwrap(api.conferences[":conferenceId"].$patch({ param: { conferenceId }, json: { embeddingLanguage } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["conference", conferenceId] }),
+  });
+  return (
+    <Card title="Language of the submissions">
+      <ErrorText error={save.error} />
+      <div className="flex flex-col gap-1 text-sm">
+        {(
+          [
+            ["english", "English", "bge-base-en-v1.5"],
+            ["multilingual", "Multilingual (100+ languages)", "bge-m3"],
+          ] as const
+        ).map(([value, label, model]) => (
+          <label key={value} className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="embeddingLanguage"
+              disabled={!isAdmin || save.isPending}
+              checked={language === value}
+              onChange={() => {
+                if (confirm("Change the model? Similarity then needs the embeddings to be computed again, per edition."))
+                  save.mutate(value);
+              }}
+            />
+            {label} <span className="text-xs text-slate-500">({model})</span>
+          </label>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-slate-500">
+        Used to find similar submissions. Embeddings record their model, and only embeddings of
+        the same model are compared.
+      </p>
+    </Card>
   );
 }

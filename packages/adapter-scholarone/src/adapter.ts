@@ -38,7 +38,9 @@ export const scholarOneAdapter: PlatformAdapter<ScholarOneSettings> = {
       filename: () => "reviewer_assignments.csv",
       bom: true,
       instructions: () => [
-        { text: "Upload this file in ScholarOne with the bulk reviewer assignment upload" },
+        {
+          text: "In ScholarOne, go to **Review** → **Assign Reviewers** → **Multiple Assignments** → **Import Assignment**, and upload this file",
+        },
       ],
       rows: (input) => [
         ["Person ID", "Control ID"],
