@@ -344,7 +344,7 @@ export const reviewers = sqliteTable(
       .references(() => persons.id, { onDelete: "cascade" }),
     student: integer("student", { mode: "boolean" }).notNull().default(false),
     canReview: integer("can_review", { mode: "boolean" }).notNull().default(true),
-    source: text("source", { enum: ["import", "join_link"] }).notNull(),
+    source: text("source", { enum: ["import", "planner", "join_link"] }).notNull(),
     /** for the secret bidding link */
     secret: text("secret").notNull(),
     createdAt: createdAt(),
@@ -382,6 +382,23 @@ export const reviewerDivisions = sqliteTable(
     primaryKey({ columns: [t.reviewerId, t.divisionId, t.source] }),
     index("reviewer_divisions_division_idx").on(t.divisionId),
   ],
+);
+
+/** A planner took a reviewer out of their division's pool. Needed because
+ *  keyword links come from the central import and are kept */
+export const divisionReviewerExclusions = sqliteTable(
+  "division_reviewer_exclusions",
+  {
+    reviewerId: integer("reviewer_id")
+      .notNull()
+      .references(() => reviewers.id, { onDelete: "cascade" }),
+    divisionId: integer("division_id")
+      .notNull()
+      .references(() => divisions.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.reviewerId, t.divisionId] })],
 );
 
 // PER DIVISION, PER EDITION
@@ -491,6 +508,8 @@ export const importJobs = sqliteTable(
       .notNull()
       .references(() => editions.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: ["submissions", "persons", "reviewers"] }).notNull(),
+    /** a planner's reviewers import: the reviewers are linked to this division */
+    divisionId: integer("division_id").references(() => divisions.id, { onDelete: "set null" }),
     status: text("status").$type<ImportStatus>().notNull(),
     filename: text("filename").notNull(),
     fileKey: text("file_key").notNull(),

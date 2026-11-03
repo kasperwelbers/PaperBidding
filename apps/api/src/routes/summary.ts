@@ -1,5 +1,5 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
-import { divisions, reviewerDivisions, reviewers, submissions } from "@cp/db";
+import { divisionReviewerExclusions, divisions, reviewerDivisions, reviewers, submissions } from "@cp/db";
 import { router } from "../context";
 
 /** Counts per division for an edition, and how many divisions reviewers are in */
@@ -24,14 +24,24 @@ export const summaryRoutes = router().get("/", async (c) => {
     })
     .from(reviewerDivisions)
     .innerJoin(reviewers, eq(reviewers.id, reviewerDivisions.reviewerId))
-    .where(eq(reviewers.editionId, editionId))
+    .leftJoin(
+      divisionReviewerExclusions,
+      and(
+        eq(divisionReviewerExclusions.reviewerId, reviewerDivisions.reviewerId),
+        eq(divisionReviewerExclusions.divisionId, reviewerDivisions.divisionId),
+      ),
+    )
+    .where(and(eq(reviewers.editionId, editionId), isNull(divisionReviewerExclusions.reviewerId)))
     .groupBy(reviewerDivisions.divisionId);
 
   // number of divisions per reviewer -> number of reviewers
   const load = await db.all<{ divisions: number; reviewers: number }>(sql`
     select divisions, count(*) as reviewers from (
       select r.id, count(distinct rd.division_id) as divisions
-      from reviewers r left join reviewer_divisions rd on rd.reviewer_id = r.id
+      from reviewers r
+      left join reviewer_divisions rd on rd.reviewer_id = r.id
+        and not exists (select 1 from division_reviewer_exclusions x
+                        where x.reviewer_id = rd.reviewer_id and x.division_id = rd.division_id)
       where r.edition_id = ${editionId}
       group by r.id
     ) group by divisions order by divisions`);

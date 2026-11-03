@@ -5,6 +5,8 @@ import { authClient } from "./auth";
 import Admins from "./pages/Admins";
 import Conference from "./pages/Conference";
 import Edition from "./pages/Edition";
+import Division from "./pages/Division";
+import Join from "./pages/Join";
 import Home from "./pages/Home";
 import SignIn from "./pages/SignIn";
 import { Button } from "./ui";
@@ -19,7 +21,11 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Shell />
+        <Routes>
+          {/* works before signing in */}
+          <Route path="/join/:divisionEditionId/:token" element={<Join />} />
+          <Route path="*" element={<Shell />} />
+        </Routes>
       </BrowserRouter>
     </QueryClientProvider>
   );
@@ -72,6 +78,10 @@ function Shell() {
           />
           <Route path="/conferences/:conferenceId" element={<Conference />} />
           <Route path="/conferences/:conferenceId/editions/:editionId" element={<Edition />} />
+          <Route
+            path="/conferences/:conferenceId/editions/:editionId/divisions/:divisionId"
+            element={<Division />}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

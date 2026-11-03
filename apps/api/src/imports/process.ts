@@ -190,7 +190,8 @@ export async function processImportMessage(env: Env, message: ImportMessage) {
     if (job.kind === "submissions")
       result = await writeSubmissions(db, ctx, records as SubmissionRecord[]);
     else if (job.kind === "persons") result = await writePersons(db, ctx, records as PersonRecord[]);
-    else result = await writeReviewers(db, ctx, records as ReviewerRecord[], settings);
+    else
+      result = await writeReviewers(db, ctx, records as ReviewerRecord[], settings, job.divisionId);
 
     const doneChunks = message.chunk + 1;
     const last = doneChunks >= (job.totalChunks ?? 0);

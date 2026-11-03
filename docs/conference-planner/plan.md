@@ -394,8 +394,11 @@ the first version.
    - **Embeddings record their model** (an `embedding_model` column), and
      similarity only compares embeddings from the same model. Demo, stand-in
      and real embeddings never mix.
-4. **Division setup:** submissions and reviewer pool per division, reference
-   source selection, and the join link.
+4. **Division setup** (done): submissions and reviewer pool per division
+   (keyword links, reviewers added by planners or imported for the division,
+   and the join link; planners can take keyword reviewers out of their own
+   division only), reference source selection with each reviewer's number of
+   own submissions in it, and the join link.
 5. **Optional bidding:** invitations, the bidding page, and the deadline.
 6. **Matching:** compute (with division load), review, exclude, replace with
    backups, and lock.

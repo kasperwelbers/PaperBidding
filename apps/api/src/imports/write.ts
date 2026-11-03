@@ -5,7 +5,9 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ScholarOneSettings } from "@cp/adapter-scholarone";
 import type { PersonRecord, ReviewerRecord, SubmissionRecord } from "@cp/shared";
 import {
+  divisionReviewerExclusions,
   divisions,
+  reviewerDivisions,
   reviewerKeywords,
   reviewers,
   submissionAuthors,
@@ -16,6 +18,7 @@ import { chunkRows, chunkValues } from "./d1";
 import { recomputeKeywordDivisions, upsertKeywords } from "./keywords";
 import { resolvePersons, type ImportContext } from "./persons";
 import { conferenceResolver } from "../institutions";
+import { randomToken } from "../util";
 
 export interface ChunkResult {
   counts: Record<string, number>;
@@ -24,10 +27,6 @@ export interface ChunkResult {
 
 const normalizeKey = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
-function randomSecret() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
 
 export async function writeSubmissions(
   db: Db,
@@ -162,6 +161,8 @@ export async function writeReviewers(
   ctx: ImportContext,
   records: ReviewerRecord[],
   settings: ScholarOneSettings,
+  /** a planner's import: link everyone to this division */
+  divisionId?: number | null,
 ): Promise<ChunkResult> {
   const resolveInstitution = await conferenceResolver(db, ctx.conferenceId);
   const resolved = await resolvePersons(
@@ -190,7 +191,7 @@ export async function writeReviewers(
         student: r.student,
         canReview: r.willingToReview,
         source: "import",
-        secret: randomSecret(),
+        secret: randomToken(),
       })
       .onConflictDoUpdate({
         target: [reviewers.editionId, reviewers.personId],
@@ -213,6 +214,24 @@ export async function writeReviewers(
   for (const part of chunkRows(links, 2))
     await db.insert(reviewerKeywords).values(part).onConflictDoNothing();
   await recomputeKeywordDivisions(db, reviewerIds);
+
+  if (divisionId) {
+    for (const part of chunkRows(reviewerIds, 3))
+      await db
+        .insert(reviewerDivisions)
+        .values(part.map((reviewerId) => ({ reviewerId, divisionId, source: "planner" as const })))
+        .onConflictDoNothing();
+    // importing someone is explicit, so they are no longer excluded
+    for (const part of chunkValues(reviewerIds))
+      await db
+        .delete(divisionReviewerExclusions)
+        .where(
+          and(
+            eq(divisionReviewerExclusions.divisionId, divisionId),
+            inArray(divisionReviewerExclusions.reviewerId, part),
+          ),
+        );
+  }
 
   return {
     counts: {

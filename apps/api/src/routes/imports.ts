@@ -4,9 +4,22 @@ import { z } from "zod";
 import { detectColumns, missingFields, parseCsvHeaders } from "@cp/shared";
 import { scholarOneAdapter } from "@cp/adapter-scholarone";
 import { conferences, importJobs } from "@cp/db";
-import { router, userEmail } from "../context";
+import { divisions } from "@cp/db";
+import type { Context } from "hono";
+import { router, userEmail, type AppEnv } from "../context";
 import { enqueue, jobFolder } from "../imports/process";
-import { requireConferenceAdmin } from "./shared";
+import { canEditConference, canEditDivision } from "../permissions";
+
+/** Conference admins import everything. Planners can import a reviewer list
+ *  for a division they work on (the reviewers are linked to that division) */
+async function canImport(c: Context<AppEnv>, kind: string, divisionId: number | null | undefined) {
+  if (canEditConference(c.get("role"))) return true;
+  if (kind !== "reviewers" || !divisionId) return false;
+  const division = await c.get("db").query.divisions.findFirst({
+    where: and(eq(divisions.id, divisionId), eq(divisions.conferenceId, c.get("conferenceId"))),
+  });
+  return !!division && (await canEditDivision(c.env, c.get("db"), userEmail(c), divisionId));
+}
 
 const kinds = ["submissions", "persons", "reviewers"] as const;
 const MAX_SIZE = 95 * 1024 * 1024; // Workers accept request bodies up to 100 MB
@@ -48,10 +61,18 @@ export const importRoutes = router()
    *  column mapping from the header row */
   .post(
     "/",
-    requireConferenceAdmin,
-    zValidator("query", z.object({ kind: z.enum(kinds), filename: z.string().min(1).max(200) })),
+    zValidator(
+      "query",
+      z.object({
+        kind: z.enum(kinds),
+        filename: z.string().min(1).max(200),
+        divisionId: z.coerce.number().int().positive().optional(),
+      }),
+    ),
     async (c) => {
-      const { kind, filename } = c.req.valid("query");
+      const { kind, filename, divisionId } = c.req.valid("query");
+      if (!(await canImport(c, kind, divisionId)))
+        return c.json({ error: "You cannot import this" }, 403);
       const size = Number(c.req.header("content-length") ?? 0);
       if (!c.req.raw.body || size === 0) return c.json({ error: "The file is empty" }, 400);
       if (size > MAX_SIZE) return c.json({ error: "The file is too large (max 95 MB)" }, 400);
@@ -64,6 +85,7 @@ export const importRoutes = router()
         .values({
           editionId,
           kind,
+          divisionId: divisionId ?? null,
           status: "uploaded",
           filename,
           fileKey: "",
@@ -92,7 +114,6 @@ export const importRoutes = router()
   /** Start (or restart) an import with the chosen column mapping */
   .post(
     "/:jobId/start",
-    requireConferenceAdmin,
     zValidator("json", z.object({ mapping: z.record(z.string(), z.string()) })),
     async (c) => {
       const db = c.get("db");
@@ -101,6 +122,8 @@ export const importRoutes = router()
         where: and(eq(importJobs.id, jobId), eq(importJobs.editionId, c.get("editionId"))),
       });
       if (!job) return c.json({ error: "Not found" }, 404);
+      if (!(await canImport(c, job.kind, job.divisionId)))
+        return c.json({ error: "You cannot import this" }, 403);
       if (!["uploaded", "failed", "done"].includes(job.status))
         return c.json({ error: "This import is already running" }, 409);
 

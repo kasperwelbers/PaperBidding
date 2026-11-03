@@ -60,7 +60,14 @@ export default function Edition() {
               <tbody>
                 {summary.data.divisions.map((d) => (
                   <tr key={d.id} className="border-t border-slate-100">
-                    <td className="py-1">{d.name}</td>
+                    <td className="py-1">
+                      <Link
+                        to={`/conferences/${conferenceId}/editions/${editionId}/divisions/${d.id}`}
+                        className="text-blue-800 hover:underline"
+                      >
+                        {d.name}
+                      </Link>
+                    </td>
                     <td>{d.submissions}</td>
                     <td>{d.reviewers}</td>
                   </tr>
@@ -218,14 +225,27 @@ function Imports({ conferenceId, editionId }: { conferenceId: string; editionId:
   );
 }
 
-type Spec = {
+export type Spec = {
   kind: Kind;
   label: string;
   instructions: { text: string; warning?: string }[];
   fields: { field: string; label: string; required: boolean }[];
 };
 
-function ImportForm({ conferenceId, editionId, spec }: { conferenceId: string; editionId: string; spec: Spec }) {
+export function ImportForm({
+  conferenceId,
+  editionId,
+  spec,
+  divisionId,
+  onStarted,
+}: {
+  conferenceId: string;
+  editionId: string;
+  spec: Spec;
+  /** a planner's reviewers import for their division */
+  divisionId?: string;
+  onStarted?: () => void;
+}) {
   const queryClient = useQueryClient();
   const param = { conferenceId, editionId };
   const imports = api.conferences[":conferenceId"].editions[":editionId"].imports;
@@ -236,7 +256,7 @@ function ImportForm({ conferenceId, editionId, spec }: { conferenceId: string; e
     mutationFn: (file: File) =>
       unwrap(
         imports.$post(
-          { param, query: { kind: spec.kind, filename: file.name } },
+          { param, query: { kind: spec.kind, filename: file.name, divisionId } },
           { init: { body: file, headers: { "Content-Type": "text/csv" } } },
         ),
       ),
@@ -256,6 +276,7 @@ function ImportForm({ conferenceId, editionId, spec }: { conferenceId: string; e
     onSuccess: () => {
       setUploaded(undefined);
       queryClient.invalidateQueries({ queryKey: ["edition", editionId, "imports"] });
+      onStarted?.();
     },
   });
 

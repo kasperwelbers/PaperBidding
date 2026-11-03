@@ -1,0 +1,5 @@
+/** Random URL-safe token (24 bytes) */
+export function randomToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}

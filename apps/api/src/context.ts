@@ -15,6 +15,11 @@ export type AppEnv = {
     role: ConferenceRole | null;
     /** set by loadEdition, for routes under /editions/:editionId */
     editionId: number;
+    /** set by loadDivision, for routes under /divisions/:divisionId */
+    divisionId: number;
+    divisionEditionId: number;
+    /** conference admin, or a planner of this division */
+    canEditDivision: boolean;
   };
 };
 

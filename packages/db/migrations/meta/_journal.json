@@ -29,6 +29,13 @@
       "when": 1793707821335,
       "tag": "0003_embedding_model",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793708216929,
+      "tag": "0004_division_pools",
+      "breakpoints": true
     }
   ]
 }

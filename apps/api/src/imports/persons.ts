@@ -31,7 +31,8 @@ export interface PersonInput {
 export interface ImportContext {
   conferenceId: number;
   editionId: number;
-  importJobId: number;
+  /** null when not from an import (e.g. a planner adds a reviewer) */
+  importJobId: number | null;
 }
 
 export interface ResolveResult {
