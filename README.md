@@ -48,13 +48,14 @@ BETTER_AUTH_SECRET="a cryptographic secret"
 ### Central reference submissions (optional)
 
 To save planners from uploading reference submissions themselves, upload all
-ICA submissions once into a dedicated project, and set its ID (the number in
+ICA submissions once (Step 1) into a dedicated project, and set its ID (the number in
 `/projects/<id>/manage`):
 
 ```bash
 REFERENCE_POOL_PROJECT_ID="123"
 ```
 
-Planners then see a "Use the ICA reference submissions" button in Step 3, which
-copies these submissions into their project as reference submissions.
-Clicking it again later only adds submissions that are new.
+The submissions in this project are then automatically used as reference
+submissions in every other project: for each reviewer, their submissions here
+are used for similarity matching and co-author conflicts (but they do not make
+the reviewer count as an author in the other projects).

@@ -168,10 +168,7 @@ export default function UploadData({
               upload old ICA submissions to improve accuracy
             </DialogDescription>
           </DialogHeader>
-          <ReferencePool
-            projectId={project.id}
-            onCopied={() => data.references.reset()}
-          />
+          <ReferencePool projectId={project.id} />
           <UploadSubmissions
             projectId={project.id}
             modelStatus={modelStatus}

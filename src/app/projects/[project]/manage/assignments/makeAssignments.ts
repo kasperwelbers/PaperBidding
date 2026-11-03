@@ -81,7 +81,8 @@ export default function makeAssignments(
         student: reviewer.student,
         order: (nrHash + internalId * 77777) % 1000,
         submissionRank: 0,
-        author: reviewer.submissions.length > 0,
+        // not submissions.length, because that includes reference submissions
+        author: reviewer.author,
       });
     }
   }

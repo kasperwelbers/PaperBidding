@@ -342,15 +342,9 @@ export function useDeleteData(
   return usePOST<any, Project>(url, "DELETE");
 }
 
-/** Central ICA reference submissions that can be copied into this project */
+/** Central ICA reference project, whose submissions are used automatically */
 export function useReferencePool(projectId: number) {
-  return useGET<{ available: boolean; total: number; inProject: number }>(
-    `/api/projects/${projectId}/reference-pool`,
-  );
-}
-
-export function useCopyReferencePool(projectId: number) {
-  return usePOST<{}, { added: number; authors: number }>(
+  return useGET<{ available: boolean; total: number }>(
     `/api/projects/${projectId}/reference-pool`,
   );
 }

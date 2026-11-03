@@ -11,6 +11,7 @@ import { GetReviewer } from "@/types";
 import { ReviewersSchema, UpdateReviewerSchema } from "@/zodSchemas";
 import cryptoRandomString from "crypto-random-string";
 import { and, sql, eq, inArray } from "drizzle-orm";
+import { referencePoolProjectId } from "@/lib/referencePool";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -30,6 +31,12 @@ export async function GET(
   const searchParams = new URL(req.url).searchParams;
   const offset = Number(searchParams.get("offset")) || 0;
   const limit = Number(searchParams.get("limit")) || 10;
+
+  // Submissions of the reviewer in the central reference project are used as
+  // reference submissions (for similarity and co-authors), but not for authorship
+  const poolId = referencePoolProjectId();
+  const authorProjects =
+    poolId && poolId !== projectId ? [projectId, poolId] : [projectId];
 
   // first look up the distinct reviewers, so that the limit applies to reviewers and not the joins
   const sq = db
@@ -62,6 +69,7 @@ export async function GET(
       selfRegistered: reviewers.selfRegistered,
       author: {
         position: authors.position,
+        projectId: authors.projectId,
       },
       submission: {
         id: submissions.id,
@@ -76,7 +84,7 @@ export async function GET(
     .leftJoin(
       authors,
       and(
-        eq(authors.projectId, reviewers.projectId),
+        inArray(authors.projectId, authorProjects),
         eq(authors.email, reviewers.email),
       ),
     )
@@ -128,21 +136,33 @@ export async function GET(
         submissions: [],
       };
     }
-    if (row.author) {
+    const fromPool = row.author?.projectId !== projectId;
+    if (row.author && !fromPool) {
       if (row.author.position === 0) rows[row.email].firstAuthor = true;
     }
     if (row.submission) {
-      if (!row.submission.isReference) {
+      const isReference = row.submission.isReference || fromPool;
+      if (!isReference) {
         rows[row.email].author = true;
         if (row.author && row.author.position === 0)
           rows[row.email].firstAuthor = true;
       }
-      rows[row.email].submissions.push({
+
+      // The same control ID can be in this project and in the reference
+      // project. Use it once, and prefer this project's row (its id is used
+      // to exclude own submissions)
+      const own = rows[row.email].submissions;
+      const i = own.findIndex(
+        (s) => s.submissionId === row.submission!.submissionId,
+      );
+      const submission = {
         id: row.submission.id,
         submissionId: row.submission.submissionId,
         features: row.submission.features,
-        isReference: row.submission.isReference,
-      });
+        isReference,
+      };
+      if (i === -1) own.push(submission);
+      else if (!fromPool) own[i] = submission;
 
       for (let author of row.submission.authors) {
         if (!rows[row.email].coAuthors.includes(author)) {

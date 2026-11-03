@@ -3,6 +3,7 @@ import { authenticateReviewer } from "@/lib/authenticate";
 
 import { and, eq, inArray, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { referencePoolProjectId } from "@/lib/referencePool";
 
 export async function GET(
   req: Request,
@@ -21,12 +22,19 @@ export async function GET(
       { status: 404, statusText: `Invalid project ${projectId} reviewer` },
     );
 
-  const ownSubmissions = await db
+  // The reviewer's submissions in the central reference project are also used
+  // (for similarity and co-authors)
+  const poolId = referencePoolProjectId();
+  const authorProjects =
+    poolId && poolId !== projectId ? [projectId, poolId] : [projectId];
+
+  const submissionRows = await db
     .select({
       id: submissions.id,
       submissionId: submissions.submissionId,
       title: submissions.title,
       features: submissions.features,
+      projectId: authors.projectId,
     })
     .from(authors)
     .leftJoin(
@@ -37,15 +45,25 @@ export async function GET(
       ),
     )
     .where(
-      and(eq(authors.projectId, projectId), eq(authors.email, reviewer.email)),
+      and(
+        inArray(authors.projectId, authorProjects),
+        eq(authors.email, reviewer.email),
+      ),
     );
 
-  const submissionExternalIds: string[] = [];
-  for (let s of ownSubmissions) {
-    if (s.submissionId !== null) {
-      submissionExternalIds.push(s.submissionId);
-    }
+  // Use each control ID once, preferring this project's row (its id is used
+  // to exclude the reviewer's own submissions from the bidding list)
+  const byControlId = new Map<string, (typeof submissionRows)[number]>();
+  for (const s of submissionRows) {
+    if (s.submissionId === null) continue;
+    const existing = byControlId.get(s.submissionId);
+    if (!existing || (existing.projectId !== projectId && s.projectId === projectId))
+      byControlId.set(s.submissionId, s);
   }
+  const ownSubmissions = [...byControlId.values()].map(
+    ({ projectId, ...s }) => s,
+  );
+  const submissionExternalIds = [...byControlId.keys()];
 
   if (submissionExternalIds.length === 0) {
     return NextResponse.json({
@@ -58,22 +76,25 @@ export async function GET(
     });
   }
 
-  // All queries are scoped to this project. Control IDs can occur in many
-  // projects (e.g., as reference submissions), so joining on control ID alone
+  // Scoped to this project (and the reference project for co-authors).
+  // Control IDs can occur in many projects, so joining on control ID alone
   // would pull in (duplicate) rows from every project in the system
   const conflictAuthors = db
     .selectDistinct({ email: authors.email })
     .from(authors)
     .where(
-      and(
-        eq(authors.projectId, projectId),
-        or(
+      or(
+        and(
+          inArray(authors.projectId, authorProjects),
           inArray(authors.submissionId, submissionExternalIds),
-          // an empty institution (e.g., self-registered volunteers) is not a conflict
-          reviewer.institution
-            ? eq(authors.institution, reviewer.institution)
-            : undefined,
         ),
+        // an empty institution (e.g., self-registered volunteers) is not a conflict
+        reviewer.institution
+          ? and(
+              eq(authors.projectId, projectId),
+              eq(authors.institution, reviewer.institution),
+            )
+          : undefined,
       ),
     )
     .as("conflictAuthors");
