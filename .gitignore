@@ -39,3 +39,7 @@ next-env.d.ts
 
 # temporary
 /temp
+
+# PNPM (remove after migration to pnpm)
+pnpm-lock.yaml
+pnpm-workspace.yaml

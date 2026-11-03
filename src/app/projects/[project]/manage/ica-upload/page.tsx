@@ -20,7 +20,6 @@ import {
   useUploadIcaPersons,
 } from "@/hooks/api";
 import Link from "next/link";
-import { defaultRegistrationUrl } from "@/lib/registrationUrl";
 import { use, useMemo, useState } from "react";
 import { useCSVDownloader } from "react-papaparse";
 import { GetReviewer } from "@/types";
@@ -108,16 +107,11 @@ export default function IcaUploadPage(props: {
     <div className="max-w-3xl mx-auto p-3 lg:p-6 mt-6 flex flex-col gap-9 text-sm">
       <div>
         <h3>Step 6. Upload to ICA</h3>
-        <p>
-          ICA (ScholarOne) can import reviewer assignments from a CSV file. This
-          file needs the <b>ICA Person ID</b> of each reviewer, so we first
-          need to match the reviewer emails to Person IDs.
-        </p>
         <p className="m-0">
-          It is possible that not every reviewer has a Person ID in our system
-          yet. If so, you will see a warning below. First try updating the
-          matching list. If someone is still missing after that, they probably
-          do not have an ICA account yet, and you can ask them to make one.
+          ICA (ScholarOne) imports reviewer assignments by <b>ICA Person ID</b>,
+          so each reviewer email needs to be matched to a Person ID. Not every
+          reviewer may be matched yet; if so, you&apos;ll see how to fix it
+          below.
         </p>
       </div>
 
@@ -139,11 +133,6 @@ export default function IcaUploadPage(props: {
         <UnmatchedReviewers
           unmatchedEmails={match.unmatchedEmails}
           created={project.created}
-          registrationUrl={
-            project.registrationInfoUrl ||
-            defaultRegistrationUrl(new Date(project.created))
-          }
-          division={project.division}
           reviewerInfo={reviewers.data ? reviewerInfo : undefined}
           onUploaded={() => mutatePersonIds()}
         />
@@ -183,15 +172,11 @@ export default function IcaUploadPage(props: {
 function UnmatchedReviewers({
   unmatchedEmails,
   created,
-  registrationUrl,
-  division,
   reviewerInfo,
   onUploaded,
 }: {
   unmatchedEmails: string[];
   created: Date | string;
-  registrationUrl: string;
-  division: string;
   /** undefined while loading */
   reviewerInfo?: Map<string, GetReviewer>;
   onUploaded: () => void;
@@ -220,222 +205,85 @@ function UnmatchedReviewers({
   }
 
   return (
-    <section className="border-2 border-amber-400 bg-amber-50 rounded p-4 flex flex-col gap-4">
-      <div>
-        <h4 className="mb-1 text-amber-900">
-          ⚠ {unmatchedEmails.length} assigned reviewer
-          {unmatchedEmails.length === 1 ? " has" : "s have"} no ICA Person ID
-        </h4>
-        <p className="m-0">
-          Their assignments will <b>not</b> be in the ICA file. Upload a
-          matching list to fix this, or assign them manually (see the fallback
-          at the bottom).
-        </p>
-      </div>
+    <section className="border-2 border-amber-400 bg-amber-50 rounded p-4 flex flex-col gap-3">
+      <h4 className="m-0 text-amber-900">
+        ⚠ {unmatchedEmails.length} assigned reviewer
+        {unmatchedEmails.length === 1 ? " has" : "s have"} no Person ID, so
+        their assignments are left out of the ICA file
+      </h4>
 
-      <div className="bg-white rounded border p-3">
-        <div className="flex items-center justify-between mb-1">
-          <b>Reviewers without a Person ID</b>
-          <div className="flex items-center gap-1 text-xs">
-            copy all
-            <CopyText text={unmatchedEmails.join("\n")} />
-          </div>
-        </div>
-        <div className="max-h-96 overflow-auto">
-          <Table className="text-xs">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Added via</TableHead>
-                <TableHead>Bids</TableHead>
-                <TableHead title="First or co-author of a submission in this division">
-                  Author
-                </TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Institution</TableHead>
-                <TableHead title="Found them in ScholarOne? Enter their Person ID here">
-                  Person ID
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {unmatchedEmails.map((email) => (
-                <UnmatchedRow
-                  key={email}
-                  email={email}
-                  reviewer={reviewerInfo?.get(email.trim().toLowerCase())}
-                  loading={!reviewerInfo}
-                  onSaved={onUploaded}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <p className="mt-2 mb-0 text-xs opacity-70">
-          <b>Reviewer list</b>: in the reviewer CSV uploaded in Step 2, which
-          comes from ScholarOne, so they should be in ScholarOne (check the
-          email address there). <b>Invitation link</b>: joined via the general
-          invitation link and is not in the uploaded reviewer list, so they
-          may not have an ICA account. Reviewers without bids were assigned
-          based on similarity to their own submissions. If you find someone in
-          ScholarOne (e.g., by name, because their email address changed), you
-          can enter their Person ID in the last column.
-        </p>
-      </div>
-
-      <div>
-        <Button
-          variant={open ? "outline" : "default"}
-          className="w-full"
-          onClick={() => setOpen(!open)}
-        >
-          {open ? "▾ Hide" : "▸ First try:"} update the matching list from
-          ScholarOne
-        </Button>
-      </div>
-
-      {open ? (
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="mb-1">
-              Download a list of emails and Person IDs from ScholarOne:
-            </p>
-            <ol className="list-decimal list-inside leading-6">
-              <li>
-                Go to <ScholarOneLink created={created} />, open the{" "}
-                <b>Admin</b> tab, go to <b>Search</b> and select the{" "}
-                <b>People</b> tab
-              </li>
-              <li>
-                Do <b>not</b> filter on division or category. The list should
-                be as complete as possible
-              </li>
-              <li>
-                In <b>Select Format</b> select <i>Comma delimited</i>
-              </li>
-              <li>
-                In <b>Select Display Items</b> only add{" "}
-                <b className="text-blue-700">PERSON (EMAIL)</b> and{" "}
-                <b className="text-blue-700">PERSON (ID)</b>
-              </li>
-              <li>
-                Click <b>Run</b> at the bottom, and upload the file below
-              </li>
-            </ol>
-            <p className="mt-2 italic">
-              This list is shared across all divisions, so other divisions may
-              already have filled it in for most people. If a reviewer is still
-              unmatched after uploading, they may not have an ICA account yet.
-            </p>
-          </div>
-
-          <div className="bg-white rounded p-3">
-            {status.error && <div className="text-red-500">{status.error}</div>}
-            {status.msg && <div className="text-green-700">{status.msg}</div>}
-            {status.loading ? (
-              <Loading msg="Uploading" />
-            ) : (
-              <CSVReader
-                fields={matchingFields}
-                label="Matching list"
-                detail="Requires columns for email and ICA Person ID"
-                onUpload={onUpload}
-                defaultFields={matchingDefaultFields}
+      <div className="bg-white rounded border max-h-96 overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <span className="flex items-center gap-1">
+                  Email <CopyText text={unmatchedEmails.join("\n")} />
+                </span>
+              </TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead className="w-48">Person ID</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {unmatchedEmails.map((email) => (
+              <UnmatchedRow
+                key={email}
+                email={email}
+                reviewer={reviewerInfo?.get(email.trim().toLowerCase())}
+                loading={!reviewerInfo}
+                onSaved={onUploaded}
               />
-            )}
-          </div>
-        </div>
-      ) : null}
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-      <StillMissing
-        unmatchedEmails={unmatchedEmails}
-        registrationUrl={registrationUrl}
-        division={division}
-      />
-    </section>
-  );
-}
-
-/** What to do with reviewers that are not in the matching list at all. This
- *  happens when someone bid (e.g., via the general invitation link) but never
- *  made an ICA account */
-function StillMissing({
-  unmatchedEmails,
-  registrationUrl,
-  division,
-}: {
-  unmatchedEmails: string[];
-  registrationUrl: string;
-  division: string;
-}) {
-  const subject = `Please create an ICA account (${division} reviewing)`;
-  const body = `Dear reviewer,
-
-Thank you for reviewing for the ${division} division. To assign submissions to you, you need an account in the ICA submission system (ScholarOne), but we could not find one for this email address.
-
-Could you please create an account (or add this email address to your existing account) here:
-${registrationUrl}
-
-Please let us know once you have done this, so that we can assign the submissions to you.
-
-Kind regards,`;
-  const mailto =
-    `mailto:?bcc=${encodeURIComponent(unmatchedEmails.join(","))}` +
-    `&subject=${encodeURIComponent(subject)}` +
-    `&body=${encodeURIComponent(body)}`;
-
-  return (
-    <div className="flex flex-col gap-2 border-t border-amber-300 pt-4">
-      <h5 className="mb-0">Still missing after updating the matching list?</h5>
-      <p className="m-0">
-        Check the <i>Added via</i> column above:
-      </p>
-      <ul className="list-disc list-inside leading-6 m-0">
-        <li>
-          <b>Reviewer list</b>: they came from a ScholarOne export, so they
-          should be in ScholarOne. Search for their email address on this
-          year&apos;s ScholarOne site. Their account may use a different main
-          email address now, or the reviewer list was an older export.
-        </li>
-        <li>
-          <b>Invitation link</b>: they joined via the general invitation link,
-          and probably never made an ICA account (or use a different email
-          address there).
-        </li>
-      </ul>
-      <p className="m-0">If you cannot find them in ScholarOne:</p>
       <ol className="list-decimal list-inside leading-6 m-0">
         <li>
-          Ask them to create an ICA account with this email address, at{" "}
-          <a
-            href={registrationUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="underline text-blue-900 break-all"
+          <button
+            className="underline text-blue-900 font-bold"
+            onClick={() => setOpen(!open)}
           >
-            {registrationUrl}
-          </a>
-          .{" "}
-          <a href={mailto} className="underline text-blue-900 font-bold">
-            Open an email to these reviewers
-          </a>{" "}
-          <span className="opacity-70">
-            (they are added as BCC; or use the copy all button above)
-          </span>
+            Update the matching list
+          </button>{" "}
+          from ScholarOne. This fixes most cases.
         </li>
         <li>
-          Once they have registered, download the matching list from ScholarOne
-          again and upload it here
+          Still missing? Their ScholarOne email may have changed. Find them by
+          name and enter the Person ID in the table.
+        </li>
+        <li>
+          Not in ScholarOne at all (bidders using the general invitation link might not have registered, or used a different email address)?
+          They need to create an ICA account first.
         </li>
       </ol>
-      <p className="m-0 italic">
-        If someone cannot or will not register, you can assign their
-        submissions to other reviewers by hand in ScholarOne (see the fallback
-        at the bottom). You could also exclude them in Step 5 and update the
-        assignments, but note that this can change the assignments of other
-        reviewers as well, so only do this before uploading anything to ICA.
-      </p>
-    </div>
+
+      {open ? (
+        <div className="bg-white rounded border p-3 flex flex-col gap-3">
+          <p className="m-0">
+            In <ScholarOneLink created={created} />: <b>Admin</b> →{" "}
+            <b>Search</b> → <b>People</b>, without a division or category
+            filter. Format <i>Comma delimited</i>, display items only{" "}
+            <b>PERSON (EMAIL)</b> and <b>PERSON (ID)</b>. Run, and upload the
+            file here. The list is shared by all divisions.
+          </p>
+          {status.error && <div className="text-red-500">{status.error}</div>}
+          {status.msg && <div className="text-green-700">{status.msg}</div>}
+          {status.loading ? (
+            <Loading msg="Uploading" />
+          ) : (
+            <CSVReader
+              fields={matchingFields}
+              label="Matching list"
+              detail="Requires columns for email and ICA Person ID"
+              onUpload={onUpload}
+              defaultFields={matchingDefaultFields}
+            />
+          )}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -450,23 +298,20 @@ function UnmatchedRow({
   loading: boolean;
   onSaved: () => void;
 }) {
-  const dash = loading ? "…" : "-";
-  let addedVia = loading ? "…" : "not in reviewer list";
+  // reviewer list = Step 2 upload (from ScholarOne); invitation link = joined
+  // via the general link, so possibly no ICA account
+  let source = loading ? "…" : "not in reviewer list";
   if (reviewer)
-    addedVia = reviewer.selfRegistered ? "invitation link" : "reviewer list";
+    source = reviewer.selfRegistered ? "invitation link" : "reviewer list";
 
   return (
     <TableRow>
-      <TableCell className="break-all font-medium">{email}</TableCell>
+      <TableCell className="break-all">{email}</TableCell>
       <TableCell
         className={`whitespace-nowrap ${reviewer?.selfRegistered ? "text-amber-800 font-bold" : ""}`}
       >
-        {addedVia}
+        {source}
       </TableCell>
-      <TableCell>{reviewer ? reviewer.manualBiddings || "none" : dash}</TableCell>
-      <TableCell>{reviewer ? (reviewer.author ? "yes" : "no") : dash}</TableCell>
-      <TableCell>{reviewer ? (reviewer.student ? "yes" : "no") : dash}</TableCell>
-      <TableCell>{reviewer ? reviewer.institution || "-" : dash}</TableCell>
       <TableCell>
         <SetPersonId email={email} onSaved={onSaved} />
       </TableCell>
@@ -555,8 +400,9 @@ function DownloadIcaFile({
       {nUnmatched > 0 ? (
         <p className="m-0 text-amber-800">
           <b>Warning:</b> the assignments of {nUnmatched} unmatched reviewer
-          {nUnmatched === 1 ? " is" : "s are"} left out of this file. You will
-          need to assign them manually (see below).
+          {nUnmatched === 1 ? " is" : "s are"} left out of this file, so their assigned submissions will have fewer reviewers.
+          If its a few cases, you can go ahead an manually assign other reviewers in ScholarOne.
+          You can also exclude these reviewers from the assignments in Step 5, and update the assignments.
         </p>
       ) : null}
       {rows.length === 0 ? (
@@ -611,10 +457,6 @@ function ManualAssignment({
             providing a table with the control IDs per reviewer (see video
             example).
             <br />
-            <span className="text-xs">
-              We do have a browser automation script in Python: email
-              k.welbers@vu.nl if you want it
-            </span>
           </p>
           <div className="flex justify-center">
             <UploadAssignmentsVideo />
