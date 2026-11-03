@@ -8,7 +8,7 @@
 // An email that already belongs to another person is not moved; it is
 // recorded as a conflict for the conference admin.
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   editionPersons,
   importConflicts,
@@ -22,7 +22,10 @@ export interface PersonInput {
   personId?: string;
   emails: string[];
   name?: string;
-  institution?: string;
+  /** best guess of the current institution */
+  institution?: string | null;
+  /** as written in the export */
+  institutionRaw?: string;
 }
 
 export interface ImportContext {
@@ -103,7 +106,12 @@ export async function resolvePersons(
 
   // New persons get negative placeholder ids until they are inserted
   let nextPlaceholder = -1;
-  const newPersons: { placeholder: number; name?: string; institution?: string }[] = [];
+  const newPersons: {
+    placeholder: number;
+    name?: string;
+    institution?: string | null;
+    institutionRaw?: string;
+  }[] = [];
   const newIdentifiers: { person: number; kind: "platform_id" | "email"; value: string }[] = [];
   const conflicts: { kind: "email"; value: string; existing: number; incoming: number }[] = [];
   const ids: number[] = [];
@@ -120,7 +128,12 @@ export async function resolvePersons(
     }
     if (person === undefined) {
       person = nextPlaceholder--;
-      newPersons.push({ placeholder: person, name: p.name, institution: p.institution });
+      newPersons.push({
+        placeholder: person,
+        name: p.name,
+        institution: p.institution,
+        institutionRaw: p.institutionRaw,
+      });
     }
 
     if (p.personId && !byPlatform.has(p.personId)) {
@@ -147,7 +160,12 @@ export async function resolvePersons(
       newPersons.map((p) =>
         db
           .insert(persons)
-          .values({ conferenceId: ctx.conferenceId, name: p.name, institution: p.institution })
+          .values({
+            conferenceId: ctx.conferenceId,
+            name: p.name,
+            institution: p.institution,
+            institutionRaw: p.institutionRaw,
+          })
           .returning({ id: persons.id }),
       ) as [any, ...any[]],
     );
@@ -181,34 +199,39 @@ export async function resolvePersons(
       })),
     ).onConflictDoNothing();
 
-  // the person as seen in this edition (latest import wins)
-  const seen = new Map<number, { name?: string; institution?: string }>();
+  // Existing persons: the latest import sets their name and current
+  // institution (we keep no history of these)
+  const latest = new Map<number, { name?: string; institution?: string | null; institutionRaw?: string }>();
   clean.forEach((p, i) => {
-    const prev = seen.get(finalIds[i]!) ?? {};
-    seen.set(finalIds[i]!, {
+    const id = finalIds[i]!;
+    if (ids[i]! < 0) return; // new: already inserted with these values
+    const prev = latest.get(id) ?? {};
+    latest.set(id, {
       name: p.name || prev.name,
       institution: p.institution || prev.institution,
+      institutionRaw: p.institutionRaw || prev.institutionRaw,
     });
   });
-  for (const part of chunkRows([...seen], 5))
+  const updates = [...latest]
+    .filter(([, v]) => v.name || v.institution)
+    .map(([id, v]) =>
+      db
+        .update(persons)
+        .set({
+          ...(v.name ? { name: v.name } : {}),
+          ...(v.institution ? { institution: v.institution, institutionRaw: v.institutionRaw ?? null } : {}),
+        })
+        .where(eq(persons.id, id)),
+    );
+  if (updates.length > 0) await db.batch(updates as [any, ...any[]]);
+
+  // in which editions a person appears
+  const appears = [...new Set(finalIds)];
+  for (const part of chunkRows(appears, 3))
     await db
       .insert(editionPersons)
-      .values(
-        part.map(([personId, p]) => ({
-          editionId: ctx.editionId,
-          personId,
-          name: p.name,
-          institution: p.institution,
-          source,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [editionPersons.editionId, editionPersons.personId],
-        set: {
-          name: sql`coalesce(excluded.name, ${editionPersons.name})`,
-          institution: sql`coalesce(excluded.institution, ${editionPersons.institution})`,
-        },
-      });
+      .values(part.map((personId) => ({ editionId: ctx.editionId, personId, source })))
+      .onConflictDoNothing();
 
   return { ids: finalIds, created: newPersons.length, conflicts: conflicts.length };
 }

@@ -15,6 +15,13 @@
       "when": 1793704554787,
       "tag": "0001_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793706024586,
+      "tag": "0002_institutions_conflicts",
+      "breakpoints": true
     }
   ]
 }

@@ -34,6 +34,12 @@ export default function Conference() {
       </div>
       <Editions conferenceId={conferenceId} isAdmin={isAdmin} />
       <Divisions conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
+      <ConflictRulesCard
+        conferenceId={conferenceId}
+        isAdmin={isAdmin}
+        rules={conference.data.conflictRules}
+      />
+      <Institutions conferenceId={conferenceId} isAdmin={isAdmin} />
       <Keywords conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
       <Conflicts conferenceId={conferenceId} isAdmin={isAdmin} />
       <Users conferenceId={conferenceId} isAdmin={isAdmin} divisions={divisions.data ?? []} />
@@ -433,12 +439,12 @@ function Conflicts({ conferenceId, isAdmin }: { conferenceId: string; isAdmin: b
   const key = ["conference", conferenceId, "conflicts"];
   const conflicts = useQuery({
     queryKey: key,
-    queryFn: () => unwrap(api.conferences[":conferenceId"].conflicts.$get({ param })),
+    queryFn: () => unwrap(api.conferences[":conferenceId"]["import-conflicts"].$get({ param })),
   });
   const resolve = useMutation({
     mutationFn: (v: { conflictId: number; action: "keep" | "move" }) =>
       unwrap(
-        api.conferences[":conferenceId"].conflicts[":conflictId"].resolve.$post({
+        api.conferences[":conferenceId"]["import-conflicts"][":conflictId"].resolve.$post({
           param: { conferenceId, conflictId: String(v.conflictId) },
           json: { action: v.action },
         }),
@@ -478,5 +484,146 @@ function Conflicts({ conferenceId, isAdmin }: { conferenceId: string; isAdmin: b
         ))}
       </ul>
     </Card>
+  );
+}
+
+type ConflictRules = {
+  coAuthorsCurrentEdition: boolean;
+  coAuthorsPreviousEditions: boolean;
+  sameInstitution: boolean;
+};
+
+const ruleLabels: Record<keyof ConflictRules, string> = {
+  coAuthorsCurrentEdition: "Not their co-authors in this edition",
+  coAuthorsPreviousEditions: "Not their co-authors in earlier editions of this conference",
+  sameInstitution: "Not submissions with an author from their current institution",
+};
+
+/** Who may review whom: used by both the bidding page and the matching */
+function ConflictRulesCard({
+  conferenceId,
+  isAdmin,
+  rules,
+}: {
+  conferenceId: string;
+  isAdmin: boolean;
+  rules: ConflictRules;
+}) {
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: (conflictRules: ConflictRules) =>
+      unwrap(api.conferences[":conferenceId"].$patch({ param: { conferenceId }, json: { conflictRules } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["conference", conferenceId] }),
+  });
+
+  return (
+    <Card title="Who may review whom">
+      <ErrorText error={save.error} />
+      <p className="mb-2 text-sm">Reviewers never review their own submissions, and:</p>
+      <div className="flex flex-col gap-1 text-sm">
+        {(Object.keys(ruleLabels) as (keyof ConflictRules)[]).map((key) => (
+          <label key={key} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              disabled={!isAdmin || save.isPending}
+              checked={rules[key]}
+              onChange={(e) => save.mutate({ ...rules, [key]: e.target.checked })}
+            />
+            {ruleLabels[key]}
+          </label>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/** Institution names in the data that are not in the university list. Admins
+ *  can map them to a university, or confirm them as their own institution */
+function Institutions({ conferenceId, isAdmin }: { conferenceId: string; isAdmin: boolean }) {
+  const queryClient = useQueryClient();
+  const param = { conferenceId };
+  const key = ["conference", conferenceId, "institutions"];
+  const [showAll, setShowAll] = useState(false);
+  const unresolved = useQuery({
+    queryKey: key,
+    queryFn: () => unwrap(api.conferences[":conferenceId"].institutions.unresolved.$get({ param })),
+  });
+  const alias = useMutation({
+    mutationFn: (v: { text: string; institution: string }) =>
+      unwrap(api.conferences[":conferenceId"].institutions.aliases.$put({ param, json: v })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+
+  const all = unresolved.data ?? [];
+  if (all.length === 0) return null;
+  const shown = showAll ? all : all.slice(0, 15);
+
+  return (
+    <Card title="Institutions">
+      <ErrorText error={unresolved.error || alias.error} />
+      <p className="mb-3 text-sm">
+        {all.length} institution {all.length === 1 ? "name is" : "names are"} not in the
+        university list, so they only match when written exactly the same. Pick the right
+        university, or keep a name as an institution of its own.
+      </p>
+      <ul className="flex flex-col divide-y divide-slate-100">
+        {shown.map((u) => (
+          <li key={u.name} className="flex flex-wrap items-center justify-between gap-2 py-1 text-sm">
+            <span>
+              {u.name} <span className="text-xs text-slate-500">({u.count})</span>
+            </span>
+            {isAdmin ? (
+              <span className="flex items-center gap-1">
+                <UniversityPicker onPick={(institution) => alias.mutate({ text: u.name, institution })} />
+                <Button variant="ghost" onClick={() => alias.mutate({ text: u.name, institution: u.name })}>
+                  Keep as is
+                </Button>
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {all.length > shown.length || showAll ? (
+        <Button variant="ghost" onClick={() => setShowAll(!showAll)}>
+          {showAll ? "Show fewer" : `Show all ${all.length}`}
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
+function UniversityPicker({ onPick }: { onPick: (name: string) => void }) {
+  const [q, setQ] = useState("");
+  const found = useQuery({
+    queryKey: ["universities", q],
+    queryFn: () => unwrap(api.institutions.search.$get({ query: { q } })),
+    enabled: q.trim().length >= 3,
+  });
+  const listId = `universities-${q}`;
+  return (
+    <form
+      className="flex gap-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const match = found.data?.find((u) => u.name === q);
+        if (match) onPick(match.name);
+      }}
+    >
+      <Input
+        list={listId}
+        placeholder="search university"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        className="w-56 py-0.5 text-xs"
+      />
+      <datalist id={listId}>
+        {found.data?.map((u) => (
+          <option key={u.name} value={u.name}>
+            {u.country}
+          </option>
+        ))}
+      </datalist>
+      <Button disabled={!found.data?.some((u) => u.name === q)}>Use</Button>
+    </form>
   );
 }

@@ -164,16 +164,16 @@ describe("imports", () => {
     expect(job.counts).toMatchObject({ newPersons: 1, conflicts: 1 });
     await runImport("persons", other);
 
-    const conflicts = await json(await superadmin(`${base}/conflicts`));
+    const conflicts = await json(await superadmin(`${base}/import-conflicts`));
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0]).toMatchObject({ kind: "email", value: "a@uni.edu" });
     expect(conflicts[0].incoming.identifiers).toEqual([{ kind: "platform_id", value: "p9" }]);
 
-    await superadmin(`${base}/conflicts/${conflicts[0].id}/resolve`, {
+    await superadmin(`${base}/import-conflicts/${conflicts[0].id}/resolve`, {
       method: "POST",
       body: { action: "move" },
     });
-    expect(await json(await superadmin(`${base}/conflicts`))).toEqual([]);
+    expect(await json(await superadmin(`${base}/import-conflicts`))).toEqual([]);
   });
 
   it("only lets conference admins import", async () => {

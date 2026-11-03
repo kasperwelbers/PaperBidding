@@ -4,6 +4,7 @@
 // an edition.
 
 import { sql } from "drizzle-orm";
+import { defaultConflictRules, type ConflictRules } from "@cp/shared";
 import {
   blob,
   index,
@@ -110,6 +111,11 @@ export const conferences = sqliteTable("conferences", {
     .$type<Record<string, unknown>>()
     .notNull()
     .default({}),
+  /** who may review whom (see conflictReason in @cp/shared) */
+  conflictRules: text("conflict_rules", { mode: "json" })
+    .$type<ConflictRules>()
+    .notNull()
+    .default(defaultConflictRules),
   createdBy: text("created_by").notNull(),
   createdAt: createdAt(),
 });
@@ -186,7 +192,10 @@ export const persons = sqliteTable(
       .notNull()
       .references(() => conferences.id, { onDelete: "cascade" }),
     name: text("name"),
+    /** best guess of the current institution (latest import wins; no history) */
     institution: text("institution"),
+    /** the institution as written in the latest import, for resolving again */
+    institutionRaw: text("institution_raw"),
     createdAt: createdAt(),
   },
   (t) => [index("persons_conference_idx").on(t.conferenceId)],
@@ -216,7 +225,8 @@ export const personIdentifiers = sqliteTable(
   ],
 );
 
-/** A person as seen in an edition (as author, reviewer, or in a persons export) */
+/** In which editions a person appears (as author, reviewer, or in a persons
+ *  export). No names or institutions: we don't keep a history of those */
 export const editionPersons = sqliteTable(
   "edition_persons",
   {
@@ -226,11 +236,26 @@ export const editionPersons = sqliteTable(
     personId: integer("person_id")
       .notNull()
       .references(() => persons.id, { onDelete: "cascade" }),
-    name: text("name"),
-    institution: text("institution"),
     source: text("source").notNull(),
   },
   (t) => [primaryKey({ columns: [t.editionId, t.personId] })],
+);
+
+// INSTITUTIONS
+// The list of universities is bundled data (@cp/institutions). Aliases are
+// per conference: corrections for how institutions are written in its data
+
+export const institutionAliases = sqliteTable(
+  "institution_aliases",
+  {
+    conferenceId: integer("conference_id")
+      .notNull()
+      .references(() => conferences.id, { onDelete: "cascade" }),
+    /** normalized (see normalizeInstitution in @cp/institutions) */
+    raw: text("raw").notNull(),
+    institution: text("institution").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.conferenceId, t.raw] })],
 );
 
 // KEYWORDS
@@ -292,7 +317,10 @@ export const submissionAuthors = sqliteTable(
       .references(() => persons.id, { onDelete: "cascade" }),
     /** 0 = first author */
     position: integer("position").notNull(),
+    /** best guess of the institution on this submission */
     institution: text("institution"),
+    /** as written in the export */
+    institutionRaw: text("institution_raw"),
   },
   (t) => [
     primaryKey({ columns: [t.submissionId, t.position] }),

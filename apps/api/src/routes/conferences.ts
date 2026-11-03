@@ -12,9 +12,10 @@ import {
 import { isUniqueViolation, router, userEmail, type AppEnv } from "../context";
 import { requireUser } from "../middleware";
 import { importRoutes } from "./imports";
-import { conflictRoutes, keywordRoutes } from "./keywords";
+import { importConflictRoutes, keywordRoutes } from "./keywords";
 import { loadEdition, requireConferenceAdmin } from "./shared";
 import { summaryRoutes } from "./summary";
+import { conferenceInstitutionRoutes } from "./institutions";
 import {
   canView,
   conferenceRole,
@@ -353,7 +354,20 @@ export const conferenceRoutes = router()
   .patch(
     "/:conferenceId",
     requireConferenceAdmin,
-    zValidator("json", z.object({ name: name.optional(), settings: z.record(z.string(), z.unknown()).optional() })),
+    zValidator(
+      "json",
+      z.object({
+        name: name.optional(),
+        settings: z.record(z.string(), z.unknown()).optional(),
+        conflictRules: z
+          .object({
+            coAuthorsCurrentEdition: z.boolean(),
+            coAuthorsPreviousEditions: z.boolean(),
+            sameInstitution: z.boolean(),
+          })
+          .optional(),
+      }),
+    ),
     async (c) => {
         const [row] = await c
         .get("db")
@@ -368,4 +382,5 @@ export const conferenceRoutes = router()
   .route("/:conferenceId/users", userRoutes)
   .route("/:conferenceId/editions", editionRoutes)
   .route("/:conferenceId/keywords", keywordRoutes)
-  .route("/:conferenceId/conflicts", conflictRoutes);
+  .route("/:conferenceId/import-conflicts", importConflictRoutes)
+  .route("/:conferenceId/institutions", conferenceInstitutionRoutes);

@@ -15,6 +15,7 @@ import {
 import { chunkRows, chunkValues } from "./d1";
 import { recomputeKeywordDivisions, upsertKeywords } from "./keywords";
 import { resolvePersons, type ImportContext } from "./persons";
+import { conferenceResolver } from "../institutions";
 
 export interface ChunkResult {
   counts: Record<string, number>;
@@ -42,12 +43,20 @@ export async function writeSubmissions(
     divisionRows.map((d) => [normalizeKey(d.key || d.name), d.id] as const),
   );
 
-  const authors = records.flatMap((r) => r.authors);
+  const resolveInstitution = await conferenceResolver(db, ctx.conferenceId);
+  const authors = records.flatMap((r) =>
+    r.authors.map((a) => ({ ...a, resolved: resolveInstitution(a.email, a.institution) })),
+  );
   const resolved = await resolvePersons(
     db,
     ctx,
     "author",
-    authors.map((a) => ({ personId: a.personId, emails: [a.email], institution: a.institution })),
+    authors.map((a) => ({
+      personId: a.personId,
+      emails: [a.email],
+      institution: a.resolved,
+      institutionRaw: a.institution || undefined,
+    })),
   );
 
   const existing = new Set<string>();
@@ -95,14 +104,18 @@ export async function writeSubmissions(
     await db.delete(submissionAuthors).where(inArray(submissionAuthors.submissionId, part));
   let a = 0;
   const authorRows = records.flatMap((r, i) =>
-    r.authors.map((author) => ({
-      submissionId: submissionIds[i]!,
-      personId: resolved.ids[a++]!,
-      position: author.position,
-      institution: author.institution || null,
-    })),
+    r.authors.map((author) => {
+      const institution = authors[a]!.resolved;
+      return {
+        submissionId: submissionIds[i]!,
+        personId: resolved.ids[a++]!,
+        position: author.position,
+        institution,
+        institutionRaw: author.institution || null,
+      };
+    }),
   );
-  for (const part of chunkRows(authorRows, 4))
+  for (const part of chunkRows(authorRows, 5))
     await db.insert(submissionAuthors).values(part).onConflictDoNothing();
 
   return {
@@ -126,7 +139,17 @@ export async function writePersons(
   ctx: ImportContext,
   records: PersonRecord[],
 ): Promise<ChunkResult> {
-  const resolved = await resolvePersons(db, ctx, "persons", records);
+  const resolveInstitution = await conferenceResolver(db, ctx.conferenceId);
+  const resolved = await resolvePersons(
+    db,
+    ctx,
+    "persons",
+    records.map((p) => ({
+      ...p,
+      institution: resolveInstitution(p.emails[0], p.institution),
+      institutionRaw: p.institution,
+    })),
+  );
   return {
     counts: { persons: records.length, newPersons: resolved.created, conflicts: resolved.conflicts },
     warnings: [],
@@ -139,11 +162,16 @@ export async function writeReviewers(
   records: ReviewerRecord[],
   settings: ScholarOneSettings,
 ): Promise<ChunkResult> {
+  const resolveInstitution = await conferenceResolver(db, ctx.conferenceId);
   const resolved = await resolvePersons(
     db,
     ctx,
     "reviewer",
-    records.map((r) => r.person),
+    records.map((r) => ({
+      ...r.person,
+      institution: resolveInstitution(r.person.emails[0], r.person.institution),
+      institutionRaw: r.person.institution,
+    })),
   );
   const keywordIds = await upsertKeywords(
     db,

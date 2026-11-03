@@ -146,9 +146,10 @@ D1 and Workers limits to design for:
     - **Conflicts:** an import that would move an identifier to another person
       records a conflict for the conference admin instead of overwriting it
       (section 7).
-  - `edition_persons`: edition, person, institution and name as seen in that
-    edition, and the source. One row for every edition in which a person
-    appears (as author, reviewer or in the persons export).
+  - `edition_persons`: edition, person, and the source. One row for every
+    edition in which a person appears (as author, reviewer or in the persons
+    export). No names or institutions per edition: `persons` only keeps a best
+    guess of the current institution (section 9).
 - **Submissions:**
   - `submissions`: edition, `external_id` (Control ID), title, abstract,
     division (from CURRENT CATEGORY), status, embedding (blob).
@@ -283,7 +284,42 @@ support it as the starting point for the reviewer pools.
   from other divisions in the same edition. A ScholarOne API adapter could sync
   all assignments later.
 
-## 9. Flow in the new version
+## 9. Institutions, and who may review whom
+
+**Institutions** (implemented):
+
+- **The university list** is the Hipo university-domains-list (MIT). A compact
+  copy is in `packages/institutions/data`, pinned to a commit, and bundled into
+  the Worker. It is refreshed only by hand (`pnpm --filter @cp/institutions
+  update`).
+- **Resolving** happens on the server during imports:
+  1. a per-conference alias
+  2. the email domain, including parent domains, never webmail
+  3. a name match, preferring the most specific university
+  4. otherwise, the text as written
+- **What is stored:** for authors, the institution on that submission (best
+  guess plus raw text). For persons, only a best guess of the *current*
+  institution, overwritten by the latest import. There is no history of
+  affiliations, for privacy.
+- **Unresolved names** are listed for the conference admin, who maps them to a
+  university or keeps them as their own institution (an alias).
+
+**Who may review whom** (implemented as `conflictReason` in `@cp/shared`):
+
+- **One function** for both the bidding page and the matching, working on
+  person IDs and resolved institutions.
+- **Always:** reviewers never review their own submissions.
+- **Conference settings** (`conflict_rules`), each on/off:
+  - co-authors in the current edition
+  - co-authors in earlier editions of this conference
+  - an author with the reviewer's current institution, per submission
+- **Missing data is never a conflict.** That fixes a legacy bug where reviewers
+  without an institution were blocked from submissions where an author had
+  none.
+- **Only data from the conference itself.** No relationships (e.g. advisor and
+  student).
+
+## 10. Flow in the new version
 
 **Superadmin:** adds admins.
 
@@ -318,12 +354,12 @@ support it as the starting point for the reviewer pools.
 ScholarOne exports) as past editions with submissions only. That's not part of
 the first version.
 
-## 10. What carries over from the current code
+## 11. What carries over from the current code
 
 - **Matching:** `makeAssignments.ts`, `computeRelevantSubmissions.ts` and
   cosine similarity move to `packages/shared` and get unit tests. Keep the
   backups that are now thrown away, and add the division-load setting.
-- **Institutions:** the institution resolver and `institution_domains.json`.
+- **Institutions:** ported to `packages/institutions` (section 9).
 - **CSV handling:** column detection from `csvUpload.tsx`. The defaults move
   into the adapter's field specs and the preset.
 - **UI pieces:** Steps, the bidding page, invitations, and Step 6 (matching
@@ -331,7 +367,7 @@ the first version.
 - **Lessons:** queries scoped to one edition and division, and no joins on
   Control ID alone.
 
-## 11. Phases
+## 12. Phases
 
 0. **Scaffold** the monorepo (`apps/web`, `apps/api`, `packages/*`), wrangler
    config with local D1, R2 and Queues, drizzle schema and the first
@@ -374,7 +410,7 @@ Later:
 - importing the backlog of earlier editions
 - other platforms
 
-## 12. Open questions
+## 13. Open questions
 
 1. Do ScholarOne person IDs stay the same between yearly ICA sites? Probably
    yes. The data model works either way (section 5, `person_identifiers`), but
