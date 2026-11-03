@@ -379,12 +379,12 @@ the first version.
    upload, queue parsing, the import job UI, and persons, submissions, and
    reviewers with their division links.
 3. **Embeddings** with Workers AI in the queue, and server-side similarity in
-   `packages/shared`. Workers AI only runs on Cloudflare, so local
-   development has three parts:
-   - **Demo project:** `pnpm db:seed:demo` loads a synthetic conference
-     (divisions, persons, keywords, submissions, reviewers) with precomputed
-     embeddings, so every screen works without an account. It is synthetic,
-     with no real data in the repository.
+   `packages/shared` (done, together with institutions and conflict rules).
+   Workers AI only runs on Cloudflare, so local development has three parts:
+   - **Demo project:** a "Load demo conference" button (development only)
+     creates a synthetic conference (divisions, persons, keywords,
+     submissions, reviewers) through the normal import pipeline, embedded with
+     the stand-in. It is synthetic, with no real data in the repository.
    - **Stand-in embedder:** without a login, uploads in local development use
      a lexical feature-hashing embedder (word overlap). It is not semantic, but
      similar texts still score as similar, so the whole flow can be tested.

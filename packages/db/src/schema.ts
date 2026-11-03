@@ -298,6 +298,8 @@ export const submissions = sqliteTable(
     status: text("status"),
     /** float32 values, see embeddingToBlob in @cp/shared */
     embedding: blob("embedding", { mode: "buffer" }),
+    /** the model that made the embedding; only same-model embeddings are compared */
+    embeddingModel: text("embedding_model"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -469,7 +471,15 @@ export const assignments = sqliteTable("assignments", {
 
 // IMPORTS
 
-export type ImportStatus = "uploaded" | "queued" | "parsing" | "writing" | "done" | "failed";
+export type ImportStatus =
+  | "uploaded"
+  | "queued"
+  | "parsing"
+  | "writing"
+  /** submissions: computing embeddings */
+  | "embedding"
+  | "done"
+  | "failed";
 
 /** An uploaded file and its processing. The raw file and the parsed record
  *  chunks are in R2, under `fileKey`'s folder */

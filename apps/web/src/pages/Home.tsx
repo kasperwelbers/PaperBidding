@@ -33,6 +33,7 @@ export default function Home({ me }: { me: Me }) {
         )}
       </Card>
       {me.isAdmin ? <CreateConference /> : null}
+      {import.meta.env.DEV && me.isSuperadmin ? <LoadDemo /> : null}
       {me.isSuperadmin ? (
         <p className="text-sm">
           <Link to="/admins" className="text-blue-800 hover:underline">
@@ -99,6 +100,31 @@ function CreateConference() {
         <Button disabled={create.isPending}>Create</Button>
       </form>
       <ErrorText error={create.error} />
+    </Card>
+  );
+}
+
+/** Development only: a synthetic conference, loaded through the import pipeline */
+function LoadDemo() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const load = useMutation({
+    mutationFn: () => unwrap(api.dev.demo.$post()),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["conferences"] });
+      navigate(`/conferences/${res.conferenceId}/editions/${res.editionId}`);
+    },
+  });
+  return (
+    <Card title="Development">
+      <p className="mb-2 text-sm text-slate-600">
+        Load a demo conference with synthetic submissions and reviewers (two editions, four
+        divisions). It uses the local stand-in embeddings.
+      </p>
+      <Button onClick={() => load.mutate()} disabled={load.isPending}>
+        Load demo conference
+      </Button>
+      <ErrorText error={load.error} />
     </Card>
   );
 }

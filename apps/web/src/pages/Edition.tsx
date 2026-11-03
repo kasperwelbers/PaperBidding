@@ -24,7 +24,9 @@ export default function Edition() {
     queryFn: () => unwrap(editionApi.imports.$get({ param })),
     // follow running imports
     refetchInterval: (query) =>
-      query.state.data?.some((j) => ["queued", "parsing", "writing"].includes(j.status)) ? 1500 : false,
+      query.state.data?.some((j) => ["queued", "parsing", "writing", "embedding"].includes(j.status))
+        ? 1500
+        : false,
   });
   const summary = useQuery({
     queryKey: ["edition", editionId, "summary", jobs.data?.filter((j) => j.status === "done").length],
@@ -87,6 +89,13 @@ export default function Edition() {
         ) : null}
       </Card>
 
+      <Embeddings
+        conferenceId={conferenceId}
+        editionId={editionId}
+        isAdmin={isAdmin}
+        refreshKey={jobs.data?.map((j) => `${j.id}:${j.status}:${j.counts.embedded ?? 0}`).join()}
+      />
+
       {isAdmin ? (
         <Imports conferenceId={conferenceId} editionId={editionId} />
       ) : (
@@ -126,6 +135,52 @@ export default function Edition() {
   );
 }
 
+/** Embeddings make the similarity matching work. Computed after importing
+ *  submissions; can be computed again, e.g. after the model changed */
+function Embeddings({
+  conferenceId,
+  editionId,
+  isAdmin,
+  refreshKey,
+}: {
+  conferenceId: string;
+  editionId: string;
+  isAdmin: boolean;
+  refreshKey?: string;
+}) {
+  const param = { conferenceId, editionId };
+  const embeddingsApi = api.conferences[":conferenceId"].editions[":editionId"].embeddings;
+  const status = useQuery({
+    queryKey: ["edition", editionId, "embeddings", refreshKey],
+    queryFn: () => unwrap(embeddingsApi.$get({ param })),
+    refetchInterval: (query) => ((query.state.data?.pending ?? 0) > 0 ? 3000 : false),
+  });
+  const compute = useMutation({
+    mutationFn: () => unwrap(embeddingsApi.$post({ param })),
+    onSuccess: () => status.refetch(),
+  });
+  if (!status.data || status.data.total === 0) return null;
+  const { model, total, pending } = status.data;
+
+  return (
+    <Card title="Embeddings">
+      <ErrorText error={status.error || compute.error} />
+      <p className="text-sm">
+        {total - pending} of {total} submissions have an embedding{" "}
+        <span className="text-xs text-slate-500">({model})</span>.
+        {model.startsWith("dev-") ? (
+          <span className="text-amber-800"> Development stand-in: similarity is based on shared words only.</span>
+        ) : null}
+      </p>
+      {pending > 0 && isAdmin ? (
+        <Button className="mt-2" onClick={() => compute.mutate()} disabled={compute.isPending}>
+          Compute missing embeddings
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
 function JobStatus({ status, done, total }: { status: string; done: number; total: number | null }) {
   const color =
     status === "done" ? "text-green-700" : status === "failed" ? "text-red-700" : "text-blue-700";
@@ -133,6 +188,7 @@ function JobStatus({ status, done, total }: { status: string; done: number; tota
     <span className={`text-xs ${color}`}>
       {status}
       {status === "writing" && total ? ` ${done}/${total}` : ""}
+      {status === "embedding" ? "…" : ""}
     </span>
   );
 }

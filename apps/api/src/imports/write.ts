@@ -92,6 +92,7 @@ export async function writeSubmissions(
           status: sql`excluded.status`,
           // the embedding is recomputed only if the text changed
           embedding: sql`case when ${submissions.title} = excluded.title and ${submissions.abstract} = excluded.abstract then ${submissions.embedding} else null end`,
+          embeddingModel: sql`case when ${submissions.title} = excluded.title and ${submissions.abstract} = excluded.abstract then ${submissions.embeddingModel} else null end`,
         },
       })
       .returning({ id: submissions.id });

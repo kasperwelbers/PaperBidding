@@ -32,8 +32,9 @@
     "consumers": [{ "queue": "conference-planner-imports", "max_batch_size": 10 }]
   },
 
-  // embeddings (Workers AI)
-  "ai": { "binding": "AI" }
+  // embeddings (Workers AI; remote only: `pnpm dev` uses a local stand-in,
+  // `pnpm dev:remote-ai` the real one)
+  "ai": { "binding": "AI", "remote": true }
   // Secrets (not in this file): SUPERADMIN. Locally in .dev.vars, in
   // production with `wrangler secret put SUPERADMIN`
 }

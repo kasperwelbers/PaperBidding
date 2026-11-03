@@ -15,6 +15,7 @@ import { importRoutes } from "./imports";
 import { importConflictRoutes, keywordRoutes } from "./keywords";
 import { loadEdition, requireConferenceAdmin } from "./shared";
 import { summaryRoutes } from "./summary";
+import { embeddingRoutes, submissionRoutes } from "./submissions";
 import { conferenceInstitutionRoutes } from "./institutions";
 import {
   canView,
@@ -282,7 +283,9 @@ const editionRoutes = router()
   )
   .use("/:editionId/*", loadEdition)
   .route("/:editionId/imports", importRoutes)
-  .route("/:editionId/summary", summaryRoutes);
+  .route("/:editionId/summary", summaryRoutes)
+  .route("/:editionId/embeddings", embeddingRoutes)
+  .route("/:editionId/submissions", submissionRoutes);
 
 // --- conferences ---
 

@@ -12,7 +12,8 @@
     "test": "vitest run",
     "types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply conference-planner --local",
-    "db:migrate:remote": "wrangler d1 migrations apply conference-planner --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply conference-planner --remote",
+    "dev:remote-ai": "wrangler dev --var EMBEDDINGS:workers-ai"
   },
   "dependencies": {
     "@cp/adapter-scholarone": "workspace:*",

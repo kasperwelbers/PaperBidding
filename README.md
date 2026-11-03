@@ -37,9 +37,18 @@ in with the email you set as `SUPERADMIN` in `.dev.vars`. In development the
 sign-in code is printed in the API's terminal output instead of emailed.
 
 `pnpm dev` runs the API with `wrangler dev --local`. Everything (D1, R2,
-Queues) is simulated locally, so you don't need a Cloudflare account. The one
-exception is Workers AI, which only runs on Cloudflare, so embeddings are not
-available in local development.
+Queues) is simulated locally, so you don't need a Cloudflare account.
+
+**Demo data:** as superadmin, click **Load demo conference** on the home page
+(development only). It creates a synthetic conference (two editions, four
+divisions, submissions and reviewers) through the normal import pipeline.
+
+**Embeddings:** Workers AI only runs on Cloudflare. Locally, `pnpm dev` uses a
+stand-in embedder (`dev-hash-384`) that is based on shared words: not as good,
+but enough to develop with. For real embeddings, log in with
+`pnpm --filter @cp/api exec wrangler login` and run `pnpm dev:remote-ai`.
+Every embedding records its model, and embeddings of different models are
+never compared. Production refuses the stand-in.
 
 Other commands:
 

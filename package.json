@@ -10,7 +10,8 @@
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter @cp/db generate",
     "db:migrate:local": "pnpm --filter @cp/api db:migrate:local",
-    "deploy": "pnpm build && pnpm --filter @cp/api deploy"
+    "deploy": "pnpm build && pnpm --filter @cp/api deploy",
+    "dev:remote-ai": "pnpm --parallel --filter @cp/api --filter @cp/web dev:remote-ai"
   },
   "devDependencies": {
     "typescript": "~6.0.3"

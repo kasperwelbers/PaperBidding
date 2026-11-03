@@ -106,22 +106,13 @@ describe("imports", () => {
     expect(n).toBe(451);
   });
 
-  it("is safe to run again, and resets embeddings of changed texts only", async () => {
-    const { runImport, editionId } = await setup();
+  // (that only changed texts get new embeddings is tested in embeddings.test.ts)
+  it("is safe to run again", async () => {
+    const { runImport } = await setup();
     await runImport("submissions", submissionsCsv(2));
-    const db = createDb(env.DB);
-    await db.run(sql`update submissions set embedding = x'00000000' where edition_id = ${editionId}`);
-
     const changed = submissionsCsv(2).replace("Abstract 0", "Changed abstract");
     const { job } = await runImport("submissions", changed);
     expect(job.counts).toMatchObject({ created: 0, updated: 2, newPersons: 0 });
-    const rows = await db.all<{ external_id: string; has: number }>(
-      sql`select external_id, embedding is not null as has from submissions where edition_id = ${editionId} order by external_id`,
-    );
-    expect(rows).toEqual([
-      { external_id: "1000", has: 0 },
-      { external_id: "1001", has: 1 },
-    ]);
   });
 
   it("links reviewers to divisions through keywords, and authors by email", async () => {

@@ -16,3 +16,7 @@ SCW_SECRET_KEY=""
 SCW_PROJECT_ID=""
 SCW_REGION="fr-par"
 EMAIL_FROM="Conference planner <noreply@example.com>"
+
+# Embeddings: "dev-hash" (local stand-in, default in development) or
+# "workers-ai" (real, needs a Cloudflare login: use `pnpm dev:remote-ai`)
+EMBEDDINGS="dev-hash"

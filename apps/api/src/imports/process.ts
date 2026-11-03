@@ -2,11 +2,23 @@
 //   parse:  read the file from R2, parse it with the platform adapter, and
 //           store the normalized records in R2 in chunks
 //   write:  write one chunk to D1, then queue the next chunk
+//   embed:  (submissions) compute missing or outdated embeddings of the
+//           edition, a batch at a time, then queue the next batch
 // Chunks are written one after the other, so persons are never created twice
 
-import { eq } from "drizzle-orm";
-import { applyMapping, parseCsv, type PersonRecord, type ReviewerRecord, type SubmissionRecord } from "@cp/shared";
-import { conferences, createDb, editions, importJobs, type Db } from "@cp/db";
+import { and, eq, gt, inArray, isNull, lt, ne, or } from "drizzle-orm";
+import {
+  applyMapping,
+  embeddingToBlob,
+  parseCsv,
+  submissionText,
+  type PersonRecord,
+  type ReviewerRecord,
+  type SubmissionRecord,
+} from "@cp/shared";
+import { conferences, createDb, editions, importJobs, submissions, type Db } from "@cp/db";
+import { Buffer } from "node:buffer";
+import { getEmbedder } from "../embeddings";
 import { scholarOneAdapter } from "@cp/adapter-scholarone";
 import { chunk } from "./d1";
 import { writePersons, writeReviewers, writeSubmissions, type ChunkResult } from "./write";
@@ -15,15 +27,38 @@ export const RECORDS_PER_CHUNK = 200;
 
 export type ImportMessage =
   | { jobId: number; step: "parse" }
-  | { jobId: number; step: "write"; chunk: number };
+  | { jobId: number; step: "write"; chunk: number }
+  /** jobId: the import that triggered it, to report progress (optional) */
+  | { step: "embed"; editionId: number; jobId?: number };
 
 /** In tests (ENVIRONMENT = "test") messages are kept here, and processed with
  *  drainTestQueue, so tests are deterministic */
 export const testQueue: ImportMessage[] = [];
 
-export async function enqueue(env: Env, message: ImportMessage) {
+export async function enqueue(env: Env, message: ImportMessage, delaySeconds?: number) {
   if (env.ENVIRONMENT === "test") testQueue.push(message);
-  else await env.IMPORTS.send(message);
+  else await env.IMPORTS.send(message, delaySeconds ? { delaySeconds } : undefined);
+}
+
+/** Imports of a conference are written one at a time, so that two imports
+ *  never create the same person twice. A job waits while an earlier job of
+ *  the same conference is still parsing or writing */
+async function earlierJobActive(db: Db, conferenceId: number, jobId: number) {
+  const rows = await db
+    .select({ id: importJobs.id })
+    .from(importJobs)
+    .innerJoin(editions, eq(editions.id, importJobs.editionId))
+    .where(
+      and(
+        eq(editions.conferenceId, conferenceId),
+        lt(importJobs.id, jobId),
+        inArray(importJobs.status, ["parsing", "writing"]),
+        // a job that hasn't moved for 15 minutes is stuck: don't wait for it
+        gt(importJobs.updatedAt, new Date(Date.now() - 15 * 60 * 1000)),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
 }
 
 export async function drainTestQueue(env: Env) {
@@ -59,11 +94,63 @@ function mergeCounts(a: Record<string, number>, b: Record<string, number>) {
   return out;
 }
 
+/** Submissions of an edition without an embedding of the current model */
+export function needsEmbedding(editionId: number, model: string) {
+  return and(
+    eq(submissions.editionId, editionId),
+    or(isNull(submissions.embedding), isNull(submissions.embeddingModel), ne(submissions.embeddingModel, model)),
+  );
+}
+
+async function embedStep(env: Env, db: Db, message: Extract<ImportMessage, { step: "embed" }>) {
+  const job = message.jobId
+    ? await db.query.importJobs.findFirst({ where: eq(importJobs.id, message.jobId) })
+    : undefined;
+  try {
+    const embedder = getEmbedder(env);
+    const batch = await db
+      .select({ id: submissions.id, title: submissions.title, abstract: submissions.abstract })
+      .from(submissions)
+      .where(needsEmbedding(message.editionId, embedder.model))
+      .limit(embedder.batchSize);
+
+    if (batch.length > 0) {
+      const vectors = await embedder.embed(batch.map(submissionText));
+      await db.batch(
+        batch.map((s, i) =>
+          db
+            .update(submissions)
+            .set({ embedding: Buffer.from(embeddingToBlob(vectors[i]!)), embeddingModel: embedder.model })
+            .where(eq(submissions.id, s.id)),
+        ) as [any, ...any[]],
+      );
+    }
+    const finished = batch.length < embedder.batchSize;
+    if (job) {
+      const counts = { ...job.counts, embedded: (job.counts.embedded ?? 0) + batch.length };
+      await updateJob(db, job.id, { status: finished ? "done" : "embedding", counts });
+    }
+    if (!finished) await enqueue(env, message);
+  } catch (e) {
+    console.error(`embeddings for edition ${message.editionId} failed`, e);
+    if (job)
+      await updateJob(db, job.id, {
+        status: "failed",
+        error: `Computing embeddings failed: ${e instanceof Error ? e.message : String(e)}`,
+      });
+  }
+}
+
 export async function processImportMessage(env: Env, message: ImportMessage) {
   const db = createDb(env.DB);
+  if (message.step === "embed") return embedStep(env, db, message);
   const loaded = await loadJob(db, message.jobId);
   if (!loaded) return; // job deleted
   const { job, edition, conference } = loaded;
+  if (await earlierJobActive(db, conference.id, job.id)) {
+    await enqueue(env, message, 10);
+    return;
+  }
   const folder = jobFolder(conference.id, edition.id, job.id);
   const settings = scholarOneAdapter.resolveSettings(conference.settings);
 
@@ -107,13 +194,15 @@ export async function processImportMessage(env: Env, message: ImportMessage) {
 
     const doneChunks = message.chunk + 1;
     const last = doneChunks >= (job.totalChunks ?? 0);
+    const embed = last && job.kind === "submissions";
     await updateJob(db, job.id, {
-      status: last ? "done" : "writing",
+      status: embed ? "embedding" : last ? "done" : "writing",
       doneChunks,
       counts: mergeCounts(job.counts, result.counts),
       warnings: [...new Set([...job.warnings, ...result.warnings])],
     });
     if (!last) await enqueue(env, { jobId: job.id, step: "write", chunk: doneChunks });
+    if (embed) await enqueue(env, { step: "embed", editionId: edition.id, jobId: job.id });
   } catch (e) {
     console.error(`import ${job.id} failed`, e);
     await updateJob(db, job.id, {
