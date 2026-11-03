@@ -41,6 +41,7 @@ export default function Division() {
       <BiddingCard param={param} canEdit={canEdit} deadline={info.data.biddingDeadline} />
       <References param={param} canEdit={canEdit} sources={info.data.referenceSources} />
       <Reviewers param={param} canEdit={canEdit} />
+      <Assignments param={param} canEdit={canEdit} />
       <Submissions param={param} />
     </div>
   );
@@ -509,5 +510,194 @@ function Invite({ param, notInvited, onDone }: { param: Params; notInvited: numb
       </div>
       <ErrorText error={send.error} />
     </div>
+  );
+}
+
+type Settings = {
+  reviewersPerSubmission: number;
+  maxStudentReviewers: number;
+  noBidPenalty: number;
+  includeWho: "all" | "authors" | "authors or bidders";
+  divisionShare: boolean;
+};
+
+const methodStyle: Record<string, string> = {
+  bid: "bg-green-100 text-green-800",
+  similarity: "bg-slate-100 text-slate-700",
+  filled: "bg-amber-100 text-amber-800",
+  replacement: "bg-blue-100 text-blue-800",
+};
+
+function Assignments({ param, canEdit }: { param: Params; canEdit: boolean }) {
+  const queryClient = useQueryClient();
+  const key = ["division", param.editionId, param.divisionId, "assignments"];
+  const refresh = () => queryClient.invalidateQueries({ queryKey: key });
+  const data = useQuery({ queryKey: key, queryFn: () => unwrap(divisionApi().assignments.$get({ param })) });
+  const [settings, setSettings] = useState<Settings>();
+  const [showReviewers, setShowReviewers] = useState(false);
+  const current = settings ?? (data.data?.settings as Settings | undefined);
+
+  const compute = useMutation({
+    mutationFn: () => unwrap(divisionApi().assignments.$post({ param, json: { settings: current! } })),
+    onSuccess: refresh,
+  });
+  const replace = useMutation({
+    mutationFn: (v: { reviewerId: number; submissionId?: number }) =>
+      unwrap(divisionApi().assignments.replace.$post({ param, json: v })),
+    onSuccess: refresh,
+  });
+  const lock = useMutation({
+    mutationFn: async (locked: boolean) => {
+      if (locked) await unwrap(divisionApi().assignments.lock.$post({ param }));
+      else await unwrap(divisionApi().assignments.unlock.$post({ param }));
+    },
+    onSuccess: refresh,
+  });
+
+  if (!data.data || !current) return null;
+  const { submissions, reviewers, computedAt, exportedAt } = data.data;
+  const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setSettings({ ...current, [k]: v });
+  const methods = submissions
+    .flatMap((s) => s.reviewers)
+    .reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.method]: (acc[r.method] ?? 0) + 1 }), {});
+  const counts = reviewers.map((r) => r.count);
+  const short = submissions.filter((s) => s.reviewers.length < current.reviewersPerSubmission).length;
+
+  return (
+    <Card title="Assignments">
+      <ErrorText error={data.error || compute.error || replace.error || lock.error} />
+      {canEdit ? (
+        <div className="mb-4 grid grid-cols-[14rem_1fr] items-center gap-2 text-sm">
+          <label>Reviewers per submission</label>
+          <Input type="number" min={1} max={10} className="w-20" value={current.reviewersPerSubmission}
+            onChange={(e) => set("reviewersPerSubmission", Number(e.target.value))} disabled={!!exportedAt} />
+          <label>Max. students per submission</label>
+          <Input type="number" min={0} max={10} className="w-20" value={current.maxStudentReviewers}
+            onChange={(e) => set("maxStudentReviewers", Number(e.target.value))} disabled={!!exportedAt} />
+          <label title="Added to the rank of similarity matches: the higher, the more bids count">No-bid penalty</label>
+          <Input type="number" min={0} max={100} className="w-20" value={current.noBidPenalty}
+            onChange={(e) => set("noBidPenalty", Number(e.target.value))} disabled={!!exportedAt} />
+          <label>Who to assign</label>
+          <select className="w-56 rounded border border-slate-300 px-2 py-1" value={current.includeWho}
+            onChange={(e) => set("includeWho", e.target.value as Settings["includeWho"])} disabled={!!exportedAt}>
+            <option value="all">everyone in the pool</option>
+            <option value="authors">only authors in this division</option>
+            <option value="authors or bidders">authors and bidders</option>
+          </select>
+          <label>Reviewers in several divisions</label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={current.divisionShare} disabled={!!exportedAt}
+              onChange={(e) => set("divisionShare", e.target.checked)} />
+            get a smaller share (e.g. half if in 2 divisions)
+          </label>
+        </div>
+      ) : null}
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+        {canEdit && !exportedAt ? (
+          <Button
+            disabled={compute.isPending}
+            onClick={() => {
+              if (!computedAt || confirm("Compute again? The current assignments are replaced.")) compute.mutate();
+            }}
+          >
+            {compute.isPending ? "Computing…" : computedAt ? "Compute again" : "Compute assignments"}
+          </Button>
+        ) : null}
+        {computedAt ? (
+          <span className="text-slate-600">Computed {new Date(computedAt).toLocaleString()}.</span>
+        ) : (
+          <span className="text-slate-600">Not computed yet.</span>
+        )}
+        {exportedAt ? (
+          <span className="text-amber-800">
+            Locked (exported {new Date(exportedAt).toLocaleString()}): you can still replace reviewers.
+          </span>
+        ) : null}
+        {canEdit && computedAt ? (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (exportedAt ? confirm("Unlock? Computing again changes assignments that may already be in the platform.") : true)
+                lock.mutate(!exportedAt);
+            }}
+          >
+            {exportedAt ? "Unlock" : "Lock"}
+          </Button>
+        ) : null}
+      </div>
+      {submissions.length > 0 ? (
+        <>
+          <p className="mb-3 text-sm">
+            {submissions.length} submissions, {reviewers.length} reviewers with{" "}
+            {Math.min(...counts)}–{Math.max(...counts)} submissions each.{" "}
+            {Object.entries(methods).map(([m, n]) => (
+              <span key={m} className={`mr-1 rounded px-1.5 py-0.5 text-xs ${methodStyle[m]}`}>
+                {m}: {n}
+              </span>
+            ))}
+            {short > 0 ? <span className="text-red-700"> {short} submissions have too few reviewers.</span> : null}
+          </p>
+          <Button variant="ghost" onClick={() => setShowReviewers(!showReviewers)}>
+            {showReviewers ? "Show by submission" : "Show by reviewer"}
+          </Button>
+          {showReviewers ? (
+            <ul className="mt-2 flex max-h-[32rem] flex-col divide-y divide-slate-100 overflow-auto text-sm">
+              {reviewers.map((r) => (
+                <li key={r.reviewerId} className="flex items-center justify-between py-1">
+                  <span>
+                    {r.email} {r.student ? <span className="text-xs text-slate-500">student</span> : null}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {r.count}
+                    {canEdit ? (
+                      <Button
+                        variant="danger"
+                        title="E.g. when they drop out: their submissions go to backups"
+                        onClick={() => {
+                          if (confirm(`Replace ${r.email} on all ${r.count} submissions?`))
+                            replace.mutate({ reviewerId: r.reviewerId });
+                        }}
+                      >
+                        Replace everywhere
+                      </Button>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="mt-2 flex max-h-[32rem] flex-col divide-y divide-slate-100 overflow-auto text-sm">
+              {submissions.map((s) => (
+                <li key={s.id} className="py-2">
+                  <div>
+                    <span className="mr-2 font-mono text-xs text-slate-500">{s.externalId}</span>
+                    {s.title}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {s.reviewers.map((r) => (
+                      <span key={r.reviewerId} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${methodStyle[r.method]}`}>
+                        {r.email}
+                        {r.rank ? ` #${r.rank}` : ""}
+                        {r.student ? " (s)" : ""}
+                        {canEdit ? (
+                          <button
+                            title="Replace with the best backup"
+                            className="ml-1 text-red-700"
+                            onClick={() => replace.mutate({ reviewerId: r.reviewerId, submissionId: s.id })}
+                          >
+                            ×
+                          </button>
+                        ) : null}
+                      </span>
+                    ))}
+                    <span className="text-xs text-slate-500">{s.backups} backups</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : null}
+    </Card>
   );
 }

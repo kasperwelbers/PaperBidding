@@ -24,6 +24,7 @@ import { bids, invitations } from "@cp/db";
 import { biddingOpen } from "../bidding";
 import { enqueue } from "../imports/process";
 import { defaultInvitation, inviteMessages } from "../invitations";
+import { assignmentRoutes } from "./assignments";
 
 /** The division (of this conference) and its settings for this edition
  *  (created on first use) */
@@ -346,4 +347,5 @@ export const divisionRoutes = router()
         await enqueue(c.env, message);
       return c.json({ queued: targets.length });
     },
-  );
+  )
+  .route("/assignments", assignmentRoutes);

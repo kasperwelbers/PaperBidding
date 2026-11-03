@@ -4,7 +4,12 @@
 // an edition.
 
 import { sql } from "drizzle-orm";
-import { defaultConflictRules, type ConflictRules } from "@cp/shared";
+import {
+  defaultConflictRules,
+  type Assigned,
+  type ConflictRules,
+  type MatchingSettings,
+} from "@cp/shared";
 import {
   blob,
   index,
@@ -403,13 +408,7 @@ export const divisionReviewerExclusions = sqliteTable(
 
 // PER DIVISION, PER EDITION
 
-export interface MatchingSettings {
-  reviewersPerSubmission: number;
-  maxStudentReviewers: number;
-  /** added to the rank of similarity-based (not bid) matches */
-  noBidPenalty: number;
-  includeWho: "all" | "authors" | "authors or bidders";
-}
+export type { MatchingSettings };
 
 export interface ReferenceSources {
   /** other divisions in the same edition */
@@ -477,8 +476,8 @@ export const assignments = sqliteTable("assignments", {
     .primaryKey()
     .references(() => divisionEditions.id, { onDelete: "cascade" }),
   settings: text("settings", { mode: "json" }).$type<MatchingSettings>().notNull(),
-  /** per submission: the assigned reviewer ids, in order */
-  result: text("result", { mode: "json" }).$type<Record<number, number[]>>().notNull(),
+  /** per submission: the assigned reviewers, and how they were assigned */
+  result: text("result", { mode: "json" }).$type<Record<number, Assigned[]>>().notNull(),
   /** per submission: backup reviewer ids, best first (for replacements) */
   backups: text("backups", { mode: "json" }).$type<Record<number, number[]>>().notNull(),
   computedAt: integer("computed_at", { mode: "timestamp_ms" }).notNull(),

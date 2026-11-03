@@ -1,8 +1,9 @@
 // Paper bidding: who is bidding, and the ranked list of submissions they can
 // bid on (the division's submissions, minus conflicts, most similar first).
 
-import { and, eq, isNotNull, sql } from "drizzle-orm";
-import { blobToEmbedding, conflictReason, rankBySimilarity } from "@cp/shared";
+import { and, eq, sql } from "drizzle-orm";
+import { conflictReason } from "@cp/shared";
+import { divisionCandidates, ownEmbeddings, rankFor } from "./ranking";
 import {
   bids,
   conferences,
@@ -13,8 +14,6 @@ import {
   personIdentifiers,
   reviewerDivisions,
   reviewers,
-  submissionAuthors,
-  submissions,
   type Db,
 } from "@cp/db";
 import { getEmbedder } from "./embeddings";
@@ -100,23 +99,11 @@ export function biddingOpen(de: { biddingDeadline: Date | null }, now = new Date
   return !!de.biddingDeadline && now < de.biddingDeadline;
 }
 
-/** A stable pseudo-random order, so reviewers without own submissions don't
- *  all see (and bid on) the same submissions first */
-function stableOrder(reviewerId: number, submissionId: number) {
-  let h = Math.imul(reviewerId ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(submissionId, 0xc2b2ae35);
-  h ^= h >>> 13;
-  return (Math.imul(h, 0x27d4eb2d) >>> 0) / 4294967296;
-}
-
 /** The submissions a reviewer may bid on, most similar to their own work first */
 export async function biddingList(env: Env, db: Db, bidder: Bidder) {
   const { edition, division, reviewer } = bidder;
   const model = getEmbedder(env).model;
-
-  const candidates = await db
-    .select({ id: submissions.id, title: submissions.title, embedding: submissions.embedding, model: submissions.embeddingModel })
-    .from(submissions)
-    .where(and(eq(submissions.editionId, edition.id), eq(submissions.divisionId, division.id)));
+  const candidates = await divisionCandidates(db, edition.id, division.id, model);
 
   // conflicts (own, co-authors, institution) are left out
   const conflictReviewer = (await loadConflictReviewers(db, edition, [reviewer.personId])).get(reviewer.personId)!;
@@ -126,38 +113,9 @@ export async function biddingList(env: Env, db: Db, bidder: Bidder) {
   );
 
   // the reviewer's own work: their submissions in the reference sources
-  const own = await db
-    .select({ embedding: submissions.embedding })
-    .from(submissionAuthors)
-    .innerJoin(submissions, eq(submissions.id, submissionAuthors.submissionId))
-    .where(
-      and(
-        eq(submissionAuthors.personId, reviewer.personId),
-        referenceScope(edition.id, division.id, bidder.divisionEdition.referenceSources),
-        eq(submissions.embeddingModel, model),
-        isNotNull(submissions.embedding),
-      ),
-    );
-  const ownEmbeddings = own.map((o) => blobToEmbedding(o.embedding as Uint8Array));
-
-  const withEmbedding = allowed.filter((s) => s.embedding && s.model === model);
-  const without = allowed.filter((s) => !(s.embedding && s.model === model));
-  const ranked =
-    ownEmbeddings.length > 0
-      ? rankBySimilarity(
-          withEmbedding.map((s) => ({ id: s.id, title: s.title, embedding: blobToEmbedding(s.embedding as Uint8Array) })),
-          ownEmbeddings,
-        ).map((s) => ({ id: s.id, title: s.title, similarity: s.similarity as number | null }))
-      : withEmbedding
-          .map((s) => ({ id: s.id, title: s.title, similarity: null as number | null }))
-          .sort((a, b) => stableOrder(reviewer.id, a.id) - stableOrder(reviewer.id, b.id));
-  return {
-    basedOnOwnWork: ownEmbeddings.length > 0,
-    submissions: [
-      ...ranked,
-      ...without.map((s) => ({ id: s.id, title: s.title, similarity: null as number | null })),
-    ],
-  };
+  const scope = referenceScope(edition.id, division.id, bidder.divisionEdition.referenceSources);
+  const own = (await ownEmbeddings(db, [reviewer.personId], scope, model)).get(reviewer.personId) ?? [];
+  return { basedOnOwnWork: own.length > 0, submissions: rankFor(reviewer.id, allowed, own) };
 }
 
 export async function currentBids(db: Db, divisionEditionId: number, reviewerId: number) {
