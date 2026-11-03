@@ -20,10 +20,10 @@ import { canEditDivision, normalizeEmail } from "../permissions";
 import { addToPool, divisionPool, divisionsOfReviewers } from "../pool";
 import { referenceCounts, referenceScope } from "../references";
 import { randomToken } from "../util";
-import { bids, invitations } from "@cp/db";
+import { bids, reviewers } from "@cp/db";
 import { biddingOpen } from "../bidding";
 import { enqueue } from "../imports/process";
-import { defaultInvitation, inviteMessages } from "../invitations";
+import { biddingLink } from "../bidding";
 import { assignmentRoutes } from "./assignments";
 
 /** The division (of this conference) and its settings for this edition
@@ -222,9 +222,6 @@ export const divisionRoutes = router()
         authorsHere.add(a.personId);
     }
     const divisionCounts = await divisionsOfReviewers(db, pool.map((p) => p.reviewerId));
-    const invited = new Map(
-      (await db.select().from(invitations).where(eq(invitations.divisionEditionId, de.id))).map((i) => [i.reviewerId, i.sentAt]),
-    );
     const bidRows = new Map(
       (await db.select().from(bids).where(eq(bids.divisionEditionId, de.id))).map((b) => [b.reviewerId, b]),
     );
@@ -246,7 +243,6 @@ export const divisionRoutes = router()
           authorHere: authorsHere.has(p.personId),
           /** own submissions in the reference sources (the basis for similarity) */
           ownSubmissions: basis.get(p.personId) ?? 0,
-          invitedAt: invited.get(p.reviewerId) ?? null,
           bids: bidRows.get(p.reviewerId)?.submissionIds.length ?? 0,
           bidsUpdatedAt: bidRows.get(p.reviewerId)?.updatedAt ?? null,
         }))
@@ -312,45 +308,33 @@ export const divisionRoutes = router()
       );
     return c.json({ reviewerId: Number(c.req.param("reviewerId")) });
   })
-  .get("/invitations/template", (c) => c.json(defaultInvitation))
-  /** Email reviewers a personal bidding link (sent in the background) */
-  .post(
-    "/invitations",
-    requireDivisionEditor,
-    zValidator(
-      "json",
-      z.object({
-        /** specific reviewers, or everyone in the pool who was not invited yet */
-        reviewerIds: z.array(z.number().int()).optional(),
-        subject: z.string().trim().min(1).max(300),
-        body: z.string().trim().min(1).max(10000),
-      }),
-    ),
-    async (c) => {
-      const db = c.get("db");
-      const de = await loadSettings(c);
-      if (!biddingOpen(de)) return c.json({ error: "Set a bidding deadline in the future first" }, 400);
-      const body = c.req.valid("json");
-      const pool = (await divisionPool(db, c.get("editionId"), c.get("divisionId"))).filter(
-        (r) => !r.excluded && r.canReview,
-      );
-      const invited = new Set(
-        (await db.select().from(invitations).where(eq(invitations.divisionEditionId, de.id))).map((i) => i.reviewerId),
-      );
-      const targets = body.reviewerIds
-        ? pool.filter((r) => body.reviewerIds!.includes(r.reviewerId))
-        : pool.filter((r) => !invited.has(r.reviewerId));
-      for (const message of inviteMessages(
-        {
-          origin: c.env.BETTER_AUTH_URL || new URL(c.req.url).origin,
-          divisionEditionId: de.id,
-          subject: body.subject,
-          body: body.body,
-        },
-        targets.map((r) => r.reviewerId),
-      ))
-        await enqueue(c.env, message);
-      return c.json({ queued: targets.length });
-    },
-  )
+  /** Personal bidding links (no sign-in needed), for planners who want to
+   *  send them through their own mail tool. We don't send them ourselves */
+  .get("/links", requireDivisionEditor, async (c) => {
+    const db = c.get("db");
+    const pool = (await divisionPool(db, c.get("editionId"), c.get("divisionId"))).filter(
+      (r) => !r.excluded && r.canReview,
+    );
+    const origin = c.env.BETTER_AUTH_URL || new URL(c.req.url).origin;
+    const rows: string[][] = [["email", "name", "link"]];
+    for (const part of chunkValues(pool.map((p) => p.reviewerId), 80)) {
+      const list = await db
+        .select({
+          id: reviewers.id,
+          secret: reviewers.secret,
+          name: persons.name,
+          email: sql<string | null>`(select value from person_identifiers pi where pi.person_id = ${reviewers.personId} and pi.kind = 'email' order by pi.id limit 1)`,
+        })
+        .from(reviewers)
+        .innerJoin(persons, eq(persons.id, reviewers.personId))
+        .where(inArray(reviewers.id, part));
+      for (const r of list)
+        rows.push([r.email ?? "", r.name ?? "", biddingLink(origin, c.get("divisionEditionId"), r)]);
+    }
+    const csv = rows.map((cells) => cells.map((v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)).join(",")).join("\n");
+    return c.body("\ufeff" + csv + "\n", 200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="bidding_links.csv"`,
+    });
+  })
   .route("/assignments", assignmentRoutes);

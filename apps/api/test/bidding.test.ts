@@ -1,7 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { app } from "../src/app";
-import { sentTestEmails } from "../src/email";
 import { drainTestQueue } from "../src/imports/process";
 import { signIn } from "./helpers";
 
@@ -49,18 +48,18 @@ async function setup() {
     admin(divisionBase, { method: "PATCH", body: { biddingDeadline: date?.toISOString() ?? null } });
   const pool = async () => (await json(await admin(`${divisionBase}/reviewers`))) as any[];
 
-  /** invites everyone not invited yet, and returns email -> bidding link */
-  async function invite() {
-    const template = await json(await admin(`${divisionBase}/invitations/template`));
-    const res = await admin(`${divisionBase}/invitations`, { method: "POST", body: template });
-    const sent = sentTestEmails.length;
-    await drainTestQueue(env);
+  /** the personal links CSV: email -> bidding link */
+  async function personalLinks() {
+    const res = await admin(`${divisionBase}/links`);
+    const lines = (await res.text()).replace(/^\ufeff/, "").trim().split("\n").slice(1);
     const links: Record<string, string> = {};
-    for (const mail of sentTestEmails.slice(sent))
-      links[mail.to] = mail.text.match(/https?:\/\/\S+\/bid\/\S+/)![0];
+    for (const line of lines) {
+      const [email, , link] = line.split(",");
+      links[email!] = link!;
+    }
     return { res, links };
   }
-  return { admin, base, divisionBase, deId: info.divisionEditionId as number, joinToken: info.joinToken, setDeadline, pool, invite };
+  return { admin, base, divisionBase, deId: info.divisionEditionId as number, joinToken: info.joinToken, setDeadline, pool, personalLinks };
 }
 
 /** A reviewer's requests with the token from their bidding link */
@@ -79,16 +78,16 @@ const titles = (list: any) => list.submissions.map((s: any) => s.title);
 
 describe("bidding", () => {
   it("is closed until a deadline is set", async () => {
-    const { invite } = await setup();
-    const { res } = await invite();
-    expect(res.status).toBe(400);
+    const { personalLinks } = await setup();
+    const { links } = await personalLinks();
+    expect((await json(await withLink(links["r1@uva.nl"]!).get())).open).toBe(false);
   });
 
   it("shows the division's submissions without conflicts, most similar first", async () => {
-    const { setDeadline, invite } = await setup();
+    const { setDeadline, personalLinks } = await setup();
     await setDeadline(tomorrow());
-    const { res, links } = await invite();
-    expect((await json(res)).queued).toBe(2);
+    const { res, links } = await personalLinks();
+    expect(res.headers.get("content-disposition")).toContain("bidding_links.csv");
     expect(Object.keys(links).sort()).toEqual(["r1@uva.nl", "r9@x.org"]);
 
     const r1 = await json(await withLink(links["r1@uva.nl"]!).get());
@@ -106,9 +105,9 @@ describe("bidding", () => {
   });
 
   it("saves bids, and refuses bids on submissions that are not allowed", async () => {
-    const { setDeadline, invite } = await setup();
+    const { setDeadline, personalLinks } = await setup();
     await setDeadline(tomorrow());
-    const r1 = withLink((await invite()).links["r1@uva.nl"]!);
+    const r1 = withLink((await personalLinks()).links["r1@uva.nl"]!);
     const list = await json(await r1.get());
     const [topic, vaccine] = list.submissions.map((s: any) => s.id);
 
@@ -121,9 +120,9 @@ describe("bidding", () => {
   });
 
   it("closes after the deadline", async () => {
-    const { setDeadline, invite } = await setup();
+    const { setDeadline, personalLinks } = await setup();
     await setDeadline(tomorrow());
-    const r1 = withLink((await invite()).links["r1@uva.nl"]!);
+    const r1 = withLink((await personalLinks()).links["r1@uva.nl"]!);
     const [first] = (await json(await r1.get())).submissions;
     await setDeadline(new Date(Date.now() - 1000));
     expect((await r1.bid([first.id])).status).toBe(403);
@@ -131,22 +130,33 @@ describe("bidding", () => {
   });
 
   it("refuses wrong links and reviewers taken out of the division", async () => {
-    const { setDeadline, invite, pool, admin, divisionBase } = await setup();
+    const { setDeadline, personalLinks, pool, admin, divisionBase } = await setup();
     await setDeadline(tomorrow());
-    const link = (await invite()).links["r9@x.org"]!;
+    const link = (await personalLinks()).links["r9@x.org"]!;
     expect((await withLink(link.replace(/[^/]+$/, "wrong")).get()).status).toBe(404);
 
     const r9 = (await pool()).find((r) => r.emails[0] === "r9@x.org");
-    expect(r9).toMatchObject({ bids: 0, invitedAt: expect.any(String) });
+    expect(r9).toMatchObject({ bids: 0 });
     await admin(`${divisionBase}/reviewers/${r9.reviewerId}`, { method: "DELETE" });
     expect((await withLink(link).get()).status).toBe(404);
   });
 
-  it("does not invite anyone twice", async () => {
-    const { setDeadline, invite } = await setup();
-    await setDeadline(tomorrow());
-    await invite();
-    expect((await json((await invite()).res)).queued).toBe(0);
+  it("only gives the personal links to the division's planners", async () => {
+    const { admin, base, divisionBase } = await setup();
+    await admin(`${base}/users`, { method: "POST", body: { email: "other@example.com", role: "planner" } });
+    const other = await signIn("other@example.com");
+    expect((await other(`${divisionBase}/links`)).status).toBe(403);
+  });
+
+  it("does not let someone who was taken out rejoin via the division link", async () => {
+    const { admin, divisionBase, deId, joinToken, pool } = await setup();
+    const r9 = (await pool()).find((r) => r.emails[0] === "r9@x.org");
+    await admin(`${divisionBase}/reviewers/${r9.reviewerId}`, { method: "DELETE" });
+    const user = await signIn("r9@x.org");
+    const info = await json(await user(`/api/join/${deId}?token=${joinToken}`));
+    expect(info).toMatchObject({ joined: false, excluded: true });
+    const res = await user(`/api/join/${deId}`, { method: "POST", body: { token: joinToken, student: false } });
+    expect(res.status).toBe(403);
   });
 
   it("lets people who joined via the join link bid when signed in", async () => {

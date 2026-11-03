@@ -95,6 +95,11 @@ export async function resolveBidder(
   return { reviewer, divisionEdition: de, division, edition, conference, email: email?.value ?? null };
 }
 
+/** A personal bidding link: no sign-in needed */
+export function biddingLink(origin: string, divisionEditionId: number, reviewer: { id: number; secret: string }) {
+  return `${origin.replace(/\/$/, "")}/bid/${divisionEditionId}/${reviewer.id}/${reviewer.secret}`;
+}
+
 export function biddingOpen(de: { biddingDeadline: Date | null }, now = new Date()) {
   return !!de.biddingDeadline && now < de.biddingDeadline;
 }

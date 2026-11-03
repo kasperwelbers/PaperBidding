@@ -38,6 +38,9 @@
   // `pnpm dev:remote-ai` the real one)
   "ai": { "binding": "AI", "remote": true },
 
+  // Cloudflare Email Service (used if EMAIL_PROVIDER is "cloudflare"; beta)
+  "send_email": [{ "name": "EMAIL" }],
+
   // Settings (not secret). Secrets are in .dev.vars locally, and set with
   // `wrangler secret put` (or the deploy button) in production: see
   // .dev.vars.example
@@ -48,7 +51,9 @@
     "EMBEDDINGS": "",
     // the app's address; empty = the address it is visited on
     "BETTER_AUTH_URL": "",
-    // sender of sign-in codes and invitations (a verified domain)
+    // sign-in codes: "scaleway" (SCW_* secrets) or "cloudflare" (Email Service, beta)
+    "EMAIL_PROVIDER": "scaleway",
+    // sender of the sign-in codes (an address on a verified domain)
     "EMAIL_FROM": "Conference planner <noreply@example.org>",
     "SCW_REGION": "fr-par"
   }

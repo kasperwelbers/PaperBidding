@@ -1,5 +1,8 @@
-// Sending email. Production: Scaleway Transactional Email (HTTP API).
-// Development: print to the console. Tests: keep in memory.
+// Sending email: only sign-in codes (requested by the user). We send no
+// invitations or other bulk email; planners use their own channels.
+// Production: Scaleway Transactional Email (HTTP API, the default) or
+// Cloudflare Email Service (a binding; beta). Development: print to the
+// console. Tests: keep in memory.
 
 export interface Email {
   to: string;
@@ -57,10 +60,24 @@ function scalewaySender(env: Env): EmailSender {
   };
 }
 
+function cloudflareSender(env: Env): EmailSender {
+  return {
+    async send(email) {
+      const from = parseFrom(env.EMAIL_FROM);
+      await env.EMAIL.send({
+        to: email.to,
+        from: from.name ? { name: from.name, email: from.email } : from.email,
+        subject: email.subject,
+        text: email.text,
+      } as never);
+    },
+  };
+}
+
 export function getEmailSender(env: Env): EmailSender {
   if (env.ENVIRONMENT === "test") return memorySender;
-  if (env.SCW_SECRET_KEY && env.SCW_PROJECT_ID && env.EMAIL_FROM)
-    return scalewaySender(env);
+  if (env.EMAIL_PROVIDER === "cloudflare" && env.ENVIRONMENT !== "development") return cloudflareSender(env);
+  if (env.SCW_SECRET_KEY && env.SCW_PROJECT_ID && env.EMAIL_FROM) return scalewaySender(env);
   if (env.ENVIRONMENT === "development") return consoleSender;
   throw new Error("Email is not configured (SCW_SECRET_KEY, SCW_PROJECT_ID, EMAIL_FROM)");
 }

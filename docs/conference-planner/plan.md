@@ -107,8 +107,9 @@ docs/
   neurons per day, then $0.011 per 1,000 neurons). The free plan might work,
   but at your own risk. Put this in the README.
 - **Auth:** better-auth with the drizzle sqlite adapter, and email OTP sign-in.
-- **Email:** behind a small `EmailSender` interface. The first implementation
-  is **Scaleway Transactional Email** (cheap, pay per use).
+- **Email:** only sign-in codes, behind a small `EmailSender` interface:
+  **Scaleway Transactional Email** (the default: established, EU) or
+  **Cloudflare Email Service** (a binding; beta, with growing quotas).
   - **Transport:** use Scaleway's HTTP API from the Worker. SMTP on port 587
     over Cloudflare TCP sockets is the alternative. Port 25 is blocked on
     Workers.
@@ -403,12 +404,15 @@ the first version.
    division only), reference source selection with each reviewer's number of
    own submissions in it, and the join link.
 5. **Optional bidding** (done): invitations, the bidding page, and the deadline.
-   - **Imported reviewers** get an invitation email with a personal bidding
-     link.
-   - **People who join via the join link** go straight to bidding from the
-     join page, with no invitation needed. The join page tells them to use the
-     same email as their platform account, since we can't check that without
-     platform API access.
+   - **We send no invitations** (unrequested bulk email). Planners share
+     their **division link** through their own channels. Reviewers sign in
+     with an email code (the only email we send) and go to bidding.
+   - **Use the right address:** the page tells people to sign in with the
+     email address of their platform account. An unknown address gets the
+     warning again ("did you use your platform address?"), and only then the
+     option to join as a new reviewer. People a planner took out can't rejoin.
+   - **Personal links** (no sign-in needed) can be downloaded as a CSV, for
+     planners who want to send them with their own mail tool.
    - **Assignments are made in the platform** (from our export); we send no
      assignment emails.
 6. **Matching** (done): compute (with division share), review, replace with

@@ -23,6 +23,7 @@ export default defineConfig(async () => {
             SCW_PROJECT_ID: "",
             SCW_REGION: "",
             EMAIL_FROM: "",
+            EMAIL_PROVIDER: "scaleway",
           },
         },
       }),

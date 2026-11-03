@@ -57,10 +57,15 @@ function JoinLink({ param, divisionEditionId, token }: { param: Params; division
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["division", param.editionId, param.divisionId] }),
   });
   return (
-    <Card title="Join link">
+    <Card title="Division link">
       <p className="mb-2 text-sm">
-        Anyone with this link can sign in and join this division as a reviewer, e.g. volunteers
-        that are not in the reviewer list.
+        Share this link with your reviewers through your own channels (e.g. a ScholarOne mass
+        email or your division's mailing list): we don't send invitations. Reviewers sign in with
+        their email and go to bidding. People who are not in the reviewer pool can join it.
+      </p>
+      <p className="mb-2 text-sm text-amber-800">
+        Ask reviewers to sign in with the email address of their {"ScholarOne"} account, so they
+        are matched to their reviewer profile. The page repeats this.
       </p>
       <div className="flex gap-2">
         <Input readOnly value={url} className="flex-1 font-mono text-xs" onFocus={(e) => e.target.select()} />
@@ -269,9 +274,7 @@ function Reviewers({ param, canEdit }: { param: Params; canEdit: boolean }) {
                 <td className="text-xs">{r.sources.map((s) => sourceLabels[s] ?? s).join(", ")}</td>
                 <td className={r.divisions >= 3 ? "font-bold text-amber-800" : ""}>{r.divisions}</td>
                 <td className={r.ownSubmissions === 0 ? "text-amber-800" : ""}>{r.ownSubmissions}</td>
-                <td className="text-xs">
-                  {r.bids > 0 ? r.bids : r.invitedAt ? <span className="text-slate-500">invited</span> : "–"}
-                </td>
+                <td className="text-xs">{r.bids > 0 ? r.bids : "–"}</td>
                 <td className="text-right">
                   {canEdit ? (
                     r.excluded ? (
@@ -386,7 +389,18 @@ function BiddingCard({
   const toLocalInput = (d: string | null) =>
     d ? new Date(new Date(d).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
   const [value, setValue] = useState(toLocalInput(deadline));
-  const [composing, setComposing] = useState(false);
+  const downloadLinks = useMutation({
+    mutationFn: async () => {
+      const res = await divisionApi().links.$get({ param });
+      if (!res.ok) throw new Error("Download failed");
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bidding_links.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+  });
   const reviewers = useQuery({
     queryKey: ["division", param.editionId, param.divisionId, "reviewers"],
     queryFn: () => unwrap(divisionApi().reviewers.$get({ param })),
@@ -404,7 +418,6 @@ function BiddingCard({
 
   const open = !!deadline && new Date(deadline) > new Date();
   const pool = (reviewers.data ?? []).filter((r) => !r.excluded && r.canReview);
-  const invited = pool.filter((r) => r.invitedAt).length;
   const bidded = pool.filter((r) => r.bids > 0).length;
 
   return (
@@ -447,72 +460,24 @@ function BiddingCard({
       </div>
       {deadline ? (
         <p className="mb-3 text-sm">
-          {invited} of {pool.length} reviewers invited, {bidded} have bid.
+          {bidded} of {pool.length} reviewers have bid.
         </p>
       ) : null}
       {canEdit && open ? (
-        composing ? (
-          <Invite param={param} notInvited={pool.length - invited} onDone={() => setComposing(false)} />
-        ) : (
-          <Button onClick={() => setComposing(true)} disabled={pool.length === invited}>
-            {pool.length === invited ? "Everyone is invited" : `Invite reviewers (${pool.length - invited} not invited yet)`}
-          </Button>
-        )
+        <p className="text-sm text-slate-600">
+          Reviewers bid via the division link (above). If you prefer to send everyone a personal
+          link with your own mail tool (no sign-in needed),{" "}
+          <button className="text-blue-800 underline" onClick={() => downloadLinks.mutate()}>
+            download the personal links
+          </button>{" "}
+          (CSV with email and link).
+        </p>
       ) : null}
+      <ErrorText error={downloadLinks.error} />
     </Card>
   );
 }
 
-function Invite({ param, notInvited, onDone }: { param: Params; notInvited: number; onDone: () => void }) {
-  const queryClient = useQueryClient();
-  const template = useQuery({
-    queryKey: ["invitation-template"],
-    queryFn: () => unwrap(divisionApi().invitations.template.$get({ param })),
-  });
-  const [subject, setSubject] = useState<string>();
-  const [body, setBody] = useState<string>();
-  const send = useMutation({
-    mutationFn: () =>
-      unwrap(
-        divisionApi().invitations.$post({
-          param,
-          json: { subject: subject ?? template.data!.subject, body: body ?? template.data!.body },
-        }),
-      ),
-    onSuccess: () => {
-      setTimeout(
-        () => queryClient.invalidateQueries({ queryKey: ["division", param.editionId, param.divisionId, "reviewers"] }),
-        3000,
-      );
-      onDone();
-    },
-  });
-  if (!template.data) return null;
-  return (
-    <div className="flex flex-col gap-2 rounded border border-slate-200 p-3 text-sm">
-      <p className="text-slate-600">
-        Each reviewer gets a personal bidding link (no sign-in needed). You can use{" "}
-        <code>{"{division}"}</code>, <code>{"{conference}"}</code>, <code>{"{deadline}"}</code> and{" "}
-        <code>{"{link}"}</code>.
-      </p>
-      <Input value={subject ?? template.data.subject} onChange={(e) => setSubject(e.target.value)} />
-      <textarea
-        className="h-64 rounded border border-slate-300 p-2 font-mono text-xs"
-        value={body ?? template.data.body}
-        onChange={(e) => setBody(e.target.value)}
-      />
-      <div className="flex gap-2">
-        <Button onClick={() => send.mutate()} disabled={send.isPending}>
-          Send to {notInvited} reviewers
-        </Button>
-        <Button variant="ghost" onClick={onDone}>
-          Cancel
-        </Button>
-      </div>
-      <ErrorText error={send.error} />
-    </div>
-  );
-}
 
 type Settings = {
   reviewersPerSubmission: number;

@@ -47,8 +47,8 @@ export default function Bidding() {
     return (
       <div>
         <p className="mx-auto mt-12 max-w-sm px-6 text-sm text-slate-600">
-          Sign in with the email address you are a reviewer with. If you are, but this doesn't work, use the link
-          from your invitation email.
+          Sign in with the email address of your platform account (the one you are a reviewer with). Not a
+          reviewer for this division yet? Use the division link you got from the planners.
         </p>
         <SignIn onSignedIn={() => queryClient.invalidateQueries({ queryKey: key })} />
       </div>

@@ -103,9 +103,10 @@ migrations, then deploys the code.
 ### Settings and secrets
 
 - **Secrets** (`.dev.vars.example`): `SUPERADMIN`, `BETTER_AUTH_SECRET`,
-  `SCW_SECRET_KEY` and `SCW_PROJECT_ID`.
+  `SCW_SECRET_KEY` and `SCW_PROJECT_ID` (the last two not with Cloudflare email).
 - **Settings** (`vars` in `wrangler.jsonc`, also editable in the Cloudflare
   dashboard):
+  - `EMAIL_PROVIDER`: `scaleway` (default) or `cloudflare` (see Email)
   - `EMAIL_FROM`: the sender, on your verified domain
   - `SCW_REGION`
   - `BETTER_AUTH_URL`: only needed with a custom domain; empty means the
@@ -125,12 +126,19 @@ Changing the model means computing the embeddings again (per edition:
 
 ### Email
 
-Sign-in codes and invitations are sent by email, through Scaleway
-Transactional Email (`SCW_*` secrets and `EMAIL_FROM`). **Set up email
-properly**: use a verified sending domain with SPF, DKIM and DMARC records, or
-your emails will end up in spam. In local development, sign-in codes are
-printed to the console instead.
+The app only sends **sign-in codes**: email that the user requests. It sends
+no invitations or other bulk email: planners share their division's link
+through their own channels (e.g. a ScholarOne mass email or a mailing list).
 
-Cloudflare now also has a transactional email service, but it is not mature
-yet. You have to build up your sending limits by using it, which doesn't fit
-paper bidding: there, all invitations go out in one big spike.
+- **Scaleway Transactional Email** (default, `EMAIL_PROVIDER=scaleway`, with
+  the `SCW_*` secrets): an established service with known limits, hosted in
+  the EU.
+- **Cloudflare Email Service** (`EMAIL_PROVIDER=cloudflare`): no extra account
+  or keys. But it is in beta, and new accounts start with an undisclosed,
+  conservative daily quota that grows with use. The risky moment is right
+  after planners share their links, when many reviewers request a code on the
+  same day. If you use it, request a higher limit in advance.
+
+**Set up email properly**: use a verified sending domain with SPF, DKIM and
+DMARC records, or your emails will end up in spam. In local development,
+sign-in codes are printed to the console instead.

@@ -464,20 +464,6 @@ export const bids = sqliteTable(
   (t) => [primaryKey({ columns: [t.divisionEditionId, t.reviewerId] })],
 );
 
-export const invitations = sqliteTable(
-  "invitations",
-  {
-    divisionEditionId: integer("division_edition_id")
-      .notNull()
-      .references(() => divisionEditions.id, { onDelete: "cascade" }),
-    reviewerId: integer("reviewer_id")
-      .notNull()
-      .references(() => reviewers.id, { onDelete: "cascade" }),
-    sentAt: integer("sent_at", { mode: "timestamp_ms" }).notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.divisionEditionId, t.reviewerId] })],
-);
-
 export const assignments = sqliteTable("assignments", {
   divisionEditionId: integer("division_edition_id")
     .primaryKey()
