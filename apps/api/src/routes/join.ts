@@ -7,6 +7,7 @@ import { resolvePersons } from "../imports/persons";
 import { requireUser } from "../middleware";
 import { addToPool } from "../pool";
 import { randomToken } from "../util";
+import { scholarOneAdapter } from "@cp/adapter-scholarone";
 
 /** The general join link of a division: anyone with the link can sign in and
  *  join the division's reviewer pool */
@@ -45,7 +46,15 @@ export const joinRoutes = router()
         .limit(1);
       joined = rows.length > 0;
     }
+    // where joiners check or create their account in the platform, so their
+    // email can be matched to a person ID (needed to export assignments)
+    const links = scholarOneAdapter.links(
+      { name: link.edition.name, createdAt: link.edition.createdAt },
+      scholarOneAdapter.resolveSettings(link.conference.settings),
+    );
     return c.json({
+      platformName: scholarOneAdapter.name,
+      registrationUrl: links.registration,
       conference: link.conference.name as string,
       division: link.division.name as string,
       edition: link.edition.name as string,

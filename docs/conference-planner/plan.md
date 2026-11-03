@@ -400,6 +400,14 @@ the first version.
    division only), reference source selection with each reviewer's number of
    own submissions in it, and the join link.
 5. **Optional bidding:** invitations, the bidding page, and the deadline.
+   - **Imported reviewers** get an invitation email with a personal bidding
+     link.
+   - **People who join via the join link** go straight to bidding from the
+     join page, with no invitation needed. The join page tells them to use the
+     same email as their platform account, since we can't check that without
+     platform API access.
+   - **Assignments are made in the platform** (from our export); we send no
+     assignment emails.
 6. **Matching:** compute (with division load), review, exclude, replace with
    backups, and lock.
 7. **Export:** the ScholarOne CSV and the unmatched-persons workflow.

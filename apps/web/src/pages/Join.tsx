@@ -23,7 +23,7 @@ export default function Join() {
 
   if (info.error) return <Message title="This link does not work">{info.error.message}</Message>;
   if (!info.data) return null;
-  const { conference, division, edition, signedInAs, joined } = info.data;
+  const { conference, division, edition, signedInAs, joined, platformName, registrationUrl } = info.data;
   const heading = `${division} · ${edition}`;
 
   if (!signedInAs)
@@ -36,12 +36,23 @@ export default function Join() {
       </div>
     );
 
+  const accountNote = (
+    <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3">
+      <b>Important:</b> reviews are assigned in {platformName}. Make sure you have an account at{" "}
+      <a href={registrationUrl} target="_blank" rel="noreferrer" className="text-blue-800 underline">
+        {registrationUrl}
+      </a>{" "}
+      with this email address (<b>{signedInAs}</b>). Otherwise submissions cannot be assigned to
+      you.
+    </p>
+  );
+
+  // TODO (phase 5): go straight to the bidding page from here
   if (joined)
     return (
       <Message title={`You are a reviewer for ${heading}`}>
-        You'll receive an email when the paper bidding opens, or when submissions are assigned to
-        you. Make sure you have an account in the conference's submission system with{" "}
-        <b>{signedInAs}</b>, so the assignments can be added there.
+        <p>You are in the reviewer pool of this division. Paper bidding is opened from this page.</p>
+        {accountNote}
       </Message>
     );
 
@@ -58,6 +69,7 @@ export default function Join() {
         Join as reviewer
       </Button>
       <ErrorText error={join.error} />
+      {accountNote}
     </Message>
   );
 }
