@@ -410,7 +410,13 @@ the first version.
      assignment emails.
 6. **Matching** (done): compute (with division share), review, replace with
    backups (one submission, or a reviewer everywhere), and lock.
-7. **Export:** the ScholarOne CSV and the unmatched-persons workflow.
+7. **Export** (done): the ScholarOne CSV (`Person ID,Control ID`, UTF-8 BOM),
+   which locks the assignments, and the unmatched-reviewers workflow:
+   - the matching list (persons import, also for planners; it only adds
+     missing IDs)
+   - entering a Person ID by hand. If it belongs to another person, it's used
+     for that reviewer's export only, and recorded as a conflict
+   - Control IDs per unmatched reviewer, for assigning by hand
 8. **Pilot** on a test conference, then the next ICA round. Rename the
    repository.
 

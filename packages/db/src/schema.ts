@@ -352,6 +352,9 @@ export const reviewers = sqliteTable(
     source: text("source", { enum: ["import", "planner", "join_link"] }).notNull(),
     /** for the secret bidding link */
     secret: text("secret").notNull(),
+    /** a person ID entered by hand for the export, when it belongs to another
+     *  person in our data (e.g. the same person with another email) */
+    exportPersonId: text("export_person_id"),
     createdAt: createdAt(),
   },
   (t) => [unique().on(t.editionId, t.personId)],

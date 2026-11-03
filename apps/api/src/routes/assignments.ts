@@ -8,6 +8,8 @@ import type { Context } from "hono";
 import { router, type AppEnv } from "../context";
 import { chunkValues } from "../imports/d1";
 import { matchingInput } from "../matching";
+import { exportStatus, setPersonId } from "../export";
+import { scholarOneAdapter } from "@cp/adapter-scholarone";
 
 const settingsSchema = z.object({
   reviewersPerSubmission: z.number().int().min(1).max(10),
@@ -171,4 +173,54 @@ export const assignmentRoutes = router()
       .set({ exportedAt: null })
       .where(eq(assignments.divisionEditionId, c.get("divisionEditionId")));
     return c.json({ locked: false });
-  });
+  })
+  /** Which assigned reviewers have a person ID, and what to do about the rest */
+  .get("/export", async (c) => {
+    const row = await load(c);
+    if (!row) return c.json({ error: "No assignments yet" }, 404);
+    const conference = (await c.get("db").query.conferences.findFirst({ where: eq(conferences.id, c.get("conferenceId")) }))!;
+    const settings = scholarOneAdapter.resolveSettings(conference.settings);
+    const { rows, ...status } = await exportStatus(c.get("db"), row.result);
+    return c.json({
+      ...status,
+      rows: rows.length,
+      exportedAt: row.exportedAt,
+      platformName: scholarOneAdapter.name,
+      instructions: scholarOneAdapter.exports.assignments.instructions(settings),
+    });
+  })
+  /** The file for the platform's bulk upload. Locks the assignments */
+  .post("/export", requireEditor, async (c) => {
+    const row = await load(c);
+    if (!row) return c.json({ error: "No assignments yet" }, 404);
+    const conference = (await c.get("db").query.conferences.findFirst({ where: eq(conferences.id, c.get("conferenceId")) }))!;
+    const settings = scholarOneAdapter.resolveSettings(conference.settings);
+    const spec = scholarOneAdapter.exports.assignments;
+    const status = await exportStatus(c.get("db"), row.result);
+    const csv = spec
+      .rows({ assignments: status.rows }, settings)
+      .map((cells) => cells.map((v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)).join(","))
+      .join("\n");
+    await c
+      .get("db")
+      .update(assignments)
+      .set({ exportedAt: new Date() })
+      .where(eq(assignments.divisionEditionId, c.get("divisionEditionId")));
+    return c.body((spec.bom ? "\ufeff" : "") + csv + "\n", 200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${spec.filename(settings)}"`,
+      "X-Unmatched-Reviewers": String(status.unmatched.length),
+    });
+  })
+  /** Enter a reviewer's person ID by hand (e.g. found by name in the platform) */
+  .post(
+    "/person-id",
+    requireEditor,
+    zValidator("json", z.object({ reviewerId: z.number().int(), personId: z.string().trim().min(1).max(64) })),
+    async (c) => {
+      const { reviewerId, personId } = c.req.valid("json");
+      const res = await setPersonId(c.get("db"), { conferenceId: c.get("conferenceId"), reviewerId, platformId: personId });
+      if (!res) return c.json({ error: "Not found" }, 404);
+      return c.json(res);
+    },
+  );

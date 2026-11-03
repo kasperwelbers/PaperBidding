@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { api, unwrap } from "../api";
-import { Button, Card, ErrorText, Input } from "../ui";
+import { Button, Card, ErrorText, Input, Markdown } from "../ui";
 import { ImportForm } from "./Edition";
 
 type Params = { conferenceId: string; editionId: string; divisionId: string };
@@ -42,6 +42,7 @@ export default function Division() {
       <References param={param} canEdit={canEdit} sources={info.data.referenceSources} />
       <Reviewers param={param} canEdit={canEdit} />
       <Assignments param={param} canEdit={canEdit} />
+      <Export param={param} canEdit={canEdit} />
       <Submissions param={param} />
     </div>
   );
@@ -531,7 +532,8 @@ const methodStyle: Record<string, string> = {
 function Assignments({ param, canEdit }: { param: Params; canEdit: boolean }) {
   const queryClient = useQueryClient();
   const key = ["division", param.editionId, param.divisionId, "assignments"];
-  const refresh = () => queryClient.invalidateQueries({ queryKey: key });
+  // also the export status and the reviewer list
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["division", param.editionId, param.divisionId] });
   const data = useQuery({ queryKey: key, queryFn: () => unwrap(divisionApi().assignments.$get({ param })) });
   const [settings, setSettings] = useState<Settings>();
   const [showReviewers, setShowReviewers] = useState(false);
@@ -699,5 +701,177 @@ function Assignments({ param, canEdit }: { param: Params; canEdit: boolean }) {
         </>
       ) : null}
     </Card>
+  );
+}
+
+/** The file for the platform's bulk upload. Assigned reviewers need a person
+ *  ID; this shows who doesn't have one, and how to fix it */
+function Export({ param, canEdit }: { param: Params; canEdit: boolean }) {
+  const queryClient = useQueryClient();
+  const key = ["division", param.editionId, param.divisionId, "export"];
+  const [showMatching, setShowMatching] = useState(false);
+  const status = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const res = await divisionApi().assignments.export.$get({ param });
+      if (res.status === 404) return null; // no assignments yet
+      return unwrap(Promise.resolve(res));
+    },
+  });
+  const specs = useQuery({
+    queryKey: ["edition", param.editionId, "import-specs"],
+    queryFn: () =>
+      unwrap(
+        api.conferences[":conferenceId"].editions[":editionId"].imports.specs.$get({
+          param: { conferenceId: param.conferenceId, editionId: param.editionId },
+        }),
+      ),
+    enabled: canEdit,
+  });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: key });
+    queryClient.invalidateQueries({ queryKey: ["division", param.editionId, param.divisionId, "assignments"] });
+  };
+  const setPersonId = useMutation({
+    mutationFn: (v: { reviewerId: number; personId: string }) =>
+      unwrap(divisionApi().assignments["person-id"].$post({ param, json: v })),
+    onSuccess: refresh,
+  });
+  const download = useMutation({
+    mutationFn: async () => {
+      const res = await divisionApi().assignments.export.$post({ param });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "assignments.csv";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    onSuccess: refresh,
+  });
+
+  if (!status.data) return null;
+  const s = status.data;
+  const allMatched = s.matched === s.assigned;
+  const personsSpec = specs.data?.find((x) => x.kind === "persons");
+
+  return (
+    <Card title={`Export to ${s.platformName}`}>
+      <ErrorText error={status.error || setPersonId.error || download.error} />
+      <p className={`mb-3 text-sm ${allMatched ? "text-green-700" : ""}`}>
+        {s.matched} of {s.assigned} assigned reviewers have a Person ID.
+      </p>
+
+      {!allMatched ? (
+        <section className="mb-4 flex flex-col gap-3 rounded border-2 border-amber-400 bg-amber-50 p-3 text-sm">
+          <b className="text-amber-900">
+            ⚠ {s.unmatched.length} assigned reviewer{s.unmatched.length === 1 ? " has" : "s have"} no Person ID,
+            so their assignments are left out of the file
+          </b>
+          <table className="w-full bg-white">
+            <thead className="text-left text-xs text-slate-500">
+              <tr>
+                <th className="p-1 font-normal">Email</th>
+                <th className="p-1 font-normal">Added via</th>
+                <th className="p-1 font-normal">Control IDs</th>
+                <th className="p-1 font-normal">Person ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {s.unmatched.map((u) => (
+                <tr key={u.reviewerId} className="border-t border-slate-100 align-top">
+                  <td className="p-1 break-all">{u.email}</td>
+                  <td className={`p-1 text-xs ${u.source === "join_link" ? "font-bold text-amber-800" : ""}`}>
+                    {u.source === "join_link" ? "join link" : u.source === "planner" ? "planner" : "import"}
+                  </td>
+                  <td className="p-1 font-mono text-xs">{u.submissions.join(", ")}</td>
+                  <td className="p-1">
+                    {canEdit ? <PersonIdInput onSave={(personId) => setPersonId.mutate({ reviewerId: u.reviewerId, personId })} /> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <ol className="ml-5 list-decimal leading-6">
+            <li>
+              {canEdit && personsSpec ? (
+                <button className="font-bold text-blue-900 underline" onClick={() => setShowMatching(!showMatching)}>
+                  Update the matching list
+                </button>
+              ) : (
+                "Update the matching list"
+              )}{" "}
+              (emails and Person IDs) from {s.platformName}. This fixes most cases.
+            </li>
+            <li>Still missing? Their email may have changed. Find them by name and enter the Person ID.</li>
+            <li>
+              Not in {s.platformName} at all (often <i>join link</i> reviewers)? They need to create an account
+              first. Or assign their Control IDs by hand in {s.platformName}.
+            </li>
+          </ol>
+          {showMatching && personsSpec ? (
+            <div className="rounded border bg-white p-3">
+              <ImportForm
+                conferenceId={param.conferenceId}
+                editionId={param.editionId}
+                spec={personsSpec}
+                onStarted={() => {
+                  setShowMatching(false);
+                  setTimeout(refresh, 3000);
+                }}
+              />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {canEdit ? (
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Button onClick={() => download.mutate()} disabled={download.isPending || s.rows === 0}>
+              Download file ({s.rows} assignments)
+            </Button>
+            {s.exportedAt ? (
+              <span className="text-slate-600">Last exported {new Date(s.exportedAt).toLocaleString()}.</span>
+            ) : (
+              <span className="text-slate-600">Downloading locks the assignments (replacing reviewers stays possible).</span>
+            )}
+          </div>
+          <ul className="ml-5 list-disc text-slate-600">
+            {s.instructions.map((step) => (
+              <li key={step.text}>
+                <Markdown text={step.text} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function PersonIdInput({ onSave }: { onSave: (personId: string) => void }) {
+  const [value, setValue] = useState("");
+  return (
+    <form
+      className="flex gap-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value.trim()) onSave(value.trim());
+      }}
+    >
+      <input
+        className="h-6 w-24 rounded border border-slate-300 px-1 text-xs"
+        placeholder="Person ID"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      <Button className="h-6 px-2 py-0 text-xs" disabled={!value.trim()}>
+        Save
+      </Button>
+    </form>
   );
 }

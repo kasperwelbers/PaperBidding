@@ -11,9 +11,13 @@ import { enqueue, jobFolder } from "../imports/process";
 import { canEditConference, canEditDivision } from "../permissions";
 
 /** Conference admins import everything. Planners can import a reviewer list
- *  for a division they work on (the reviewers are linked to that division) */
+ *  for a division they work on (the reviewers are linked to that division),
+ *  and the persons matching list */
 async function canImport(c: Context<AppEnv>, kind: string, divisionId: number | null | undefined) {
   if (canEditConference(c.get("role"))) return true;
+  // the matching list (emails and person IDs) only adds missing IDs; an email
+  // that belongs to someone else becomes a conflict, never an overwrite
+  if (kind === "persons" && !divisionId) return c.get("role") === "planner";
   if (kind !== "reviewers" || !divisionId) return false;
   const division = await c.get("db").query.divisions.findFirst({
     where: and(eq(divisions.id, divisionId), eq(divisions.conferenceId, c.get("conferenceId"))),

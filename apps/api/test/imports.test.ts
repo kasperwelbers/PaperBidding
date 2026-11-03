@@ -174,8 +174,8 @@ describe("imports", () => {
       body: { email: "planner@example.com", role: "planner" },
     });
     const planner = await signIn("planner@example.com");
-    const res = await planner(`${editionBase}/imports?kind=persons&filename=p.csv`, {
-      file: "PERSON (ID),PERSON (EMAIL)\n1,a@b.c\n",
+    const res = await planner(`${editionBase}/imports?kind=submissions&filename=s.csv`, {
+      file: "CONTROL ID,TITLE\n1,T\n",
     });
     expect(res.status).toBe(403);
     expect((await planner(`${editionBase}/summary`)).status).toBe(200);

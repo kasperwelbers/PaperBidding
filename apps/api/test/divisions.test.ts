@@ -105,7 +105,8 @@ describe("division reviewer pool", () => {
     const { planner, cm, pc, e2027, runImport, pool } = await setup();
     const list = [revHeader, "p9,r9@x.org,", "p3,r3@x.org,Political Communication"].join("\n");
     expect(await runImport(planner, e2027.id, "reviewers", list, pc.id)).toBe(403);
-    expect(await runImport(planner, e2027.id, "persons", list)).toBe(403);
+    // the persons matching list is allowed (it only adds missing person IDs)
+    expect(await runImport(planner, e2027.id, "submissions", list)).toBe(403);
     expect(await runImport(planner, e2027.id, "reviewers", list, cm.id)).toBe(201);
     const reviewers = await pool();
     expect(emailsOf(reviewers)).toEqual(["r1@x.org", "r2@x.org", "r3@x.org", "r9@x.org"]);

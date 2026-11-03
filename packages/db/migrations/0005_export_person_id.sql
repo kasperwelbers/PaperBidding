@@ -1,0 +1,1 @@
+ALTER TABLE `reviewers` ADD `export_person_id` text;
